@@ -1,11 +1,5 @@
 {
     "Common": {
-        "Page": {
-            "title": "VoidToInfinite"
-        },
-        "Navbar": {
-            "openMenu": "Abrir menu"
-        },
         "Navigation": {
             "home": "Inicio",
             "history": "Historia",
@@ -18,32 +12,27 @@
             "story": "Historia",
             "journey": "Viaje",
             "features": "Características",
-            "contact": "Contacto"
+            "contact": "Contacto",
+            "about": "Qué es VoidToInfinite"
         },
-        "Status": {
-            "success": "Correcto",
-            "successfully": "Correctamente",
-            "warning": "Advertencia",
-            "information": "Informacion",
-            "error": "Error",
-            "accepted": "Aceptado",
-            "pending": "Pendiente",
-            "process": "En proceso",
-            "confirmed": "Confirmado"
+        "Nav": {
+            "landmark": "Navegación del sitio",
+            "onSite": "En el sitio",
+            "discover": "Descubre",
+            "resources": "Recursos",
+            "community": "Comunidad",
+            "more": "Más",
+            "moreHint": "destinos del sitio",
+            "sdk": "VTI - SDK",
+            "discord": "Discord",
+            "github": "GitHub",
+            "linkedin": "LinkedIn",
+            "newTab": "se abre en una pestaña nueva",
+            "openMenu": "Abrir el menú de navegación",
+            "closeMenu": "Cerrar el menú de navegación",
+            "closeSheet": "Cerrar navegación",
+            "sheetTitle": "Menú de navegación"
         },
-        "Button": {
-            "accept": "Aceptar",
-            "cancel": "Cancelar",
-            "edit": "Editar",
-            "delete": "Borrar",
-            "yes": "Si",
-            "no": "No",
-            "showMore": "Mostrar mas",
-            "ariaLabel": {
-                "pressButton": "Presiona el boton para"
-            }
-        },
-        "switchLocale": "Cambiar idioma a {locale, select, es {Español} en {Ingles} other {}}",
         "Lang": {
             "title": "Idioma",
             "en": {
@@ -57,35 +46,38 @@
                 "title": "Seleccionar idioma Español"
             }
         },
-        "Notification": {
-            "title": "Notificacion",
-            "default": {
-                "title": "¡Oops! Algo ha salido mal",
-                "description": "Aun asi se puede arreglar."
-            }
-        },
         "Footer": {
             "copyright": "© {{year}} VoidToInfinite. Todos los derechos reservados.",
-            "tagline": "Juntos, vamos más allá.",
-            "explore": "Explora",
-            "discover": "Descubre",
-            "resources": "Recursos",
-            "documentation": "Documentación",
-            "guides": "Guías",
-            "accessibility": "Accesibilidad",
+            "tagline": "Sigue siempre adelante.",
             "privacy": "Política de privacidad",
-            "terms": "Términos de uso",
-            "legalNotice": "Aviso legal",
-            "cookiePreferences": "Preferencias de cookies"
+            "legalNotice": "Aviso legal"
         },
         "ThemeToggle": {
-            "switchToLight": "Cambiar a tema claro",
-            "switchToDark": "Cambiar a tema oscuro"
+            "switchToLight": "Tema oscuro activo: cambiar a tema claro, que recompone la página entera con las secciones en tarjetas y un recorrido más corto",
+            "switchToDark": "Tema claro activo: cambiar a tema oscuro, que recompone la página entera con las secciones en diapositivas y un recorrido más largo",
+            "stateLight": "Tema claro",
+            "stateDark": "Tema oscuro"
+        },
+        "SkipLink": {
+            "label": "Saltar al contenido"
+        },
+        "BackToTop": {
+            "label": "Volver arriba"
+        },
+        "Deck": {
+            "scrollHint": "Desplázate para continuar"
+        },
+        "Meta": {
+            "home": {
+                "title": "Aprendizaje, imaginación y juego",
+                "description": "VoidToInfinite es un proyecto creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar."
+            }
         }
     },
     "notFound": {
         "title": "Página no encontrada",
-        "message": "La página que buscas no existe."
+        "message": "La página que buscas no existe.",
+        "backToHome": "Volver al inicio"
     },
     "language": {
         "es": "Español",

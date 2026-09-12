@@ -221,3 +221,11 @@ Sin claves nuevas. `Home.features.*` se consume igual en las dos ramas: mismo ki
 3. **Dos docblocks huérfanos en `contactNeonGalaxy`** (bajo), que citaban `FeaturesCelestialGuide` y `FEATURES_CELESTIAL_VOID` como precedente de los suyos. Es el MISMO efecto colateral que la entrega de la mañana ya documentó en su propio §12 («prosa obsoleta fuera del alcance de los agentes»): un borrado deja mintiendo a la prosa de ficheros que ningún flujo tenía asignados. Corregidos en la integración; el de `CONTACT_NEON_VOID` aprovecha para dejar escrito que ese literal ya no lo comparte con ninguna otra escena.
 
 Los tres son de la misma familia: **cosas que la suite no puede ver porque no pierden contenido**. Que aparecieran pese a haber escrito la spec con la falsabilidad como criterio es el argumento de que la auditoría adversarial no es ceremonia.
+
+---
+
+## Nota 2026-09-03 — la altura de pista que inventaría esta spec ya no es la del código
+
+La tabla de estado de arriba anota `ScJourneyTrack` con `height: calc(8 × 100dvh)` y **sin cola**. Esa aritmética caducó con la ola L (crítica externa #16, commits `175da8a..dfd8b40`): cada diapositiva de los dos decks oscuros consume ahora **media pantalla** de recorrido y no una entera, mediante la constante compartida `DECK_SLIDE_TRAVEL` (`"50dvh"`) de `src/hooks/useSlideDeck.ts`, y la pista se calcula como `(diapositivas − 1) × DECK_SLIDE_TRAVEL + 1 pantalla del stage + cola × pantalla`. Journey lleva además cola desde antes de esa ola (`JOURNEY_DECK_TAIL_SCREENS = 1`), porque Features se le superpone igual que Journey se superponía a Story.
+
+La fila se conserva tal cual porque es un inventario FECHADO del estado que había al escribir esta spec, no una decisión de esta entrega; la decisión y sus cifras viven en la enmienda del 2026-09-03 de `2026-08-02-journey-deck-8-diapositivas-design.md`.

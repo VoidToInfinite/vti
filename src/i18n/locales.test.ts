@@ -5,10 +5,8 @@ import esHome from "./locales/es/home.json";
 import enHome from "./locales/en/home.json";
 import esLegal from "./locales/es/legal.json";
 import enLegal from "./locales/en/legal.json";
-import esConsent from "./locales/es/consent.json";
-import enConsent from "./locales/en/consent.json";
 import { namespaces as registeredNamespaces } from "./config";
-import { PLACEHOLDER } from "@/config/legal";
+import { PLACEHOLDER, hasPendingLegalData } from "@/config/legal";
 
 /**
  * Candado permanente de los locales. Existe por dos motivos concretos, todos
@@ -69,8 +67,8 @@ const namespaces = [
   { name: "common", es: esCommon as JsonTree, en: enCommon as JsonTree },
   { name: "home", es: esHome as JsonTree, en: enHome as JsonTree },
   /*
-   * `as unknown as` en estos dos, y no el `as JsonTree` directo de arriba,
-   * por un detalle del tipo que TypeScript infiere de un JSON con bloques
+   * `as unknown as` en este, y no el `as JsonTree` directo de arriba, por un
+   * detalle del tipo que TypeScript infiere de un JSON con bloques
    * heterogéneos: la unión de `{kind,text}` y `{kind,items}` produce miembros
    * con propiedades opcionales de tipo `undefined` (`items?: undefined`), que
    * no encajan en la firma de índice. El recorrido en tiempo de ejecución es
@@ -81,11 +79,6 @@ const namespaces = [
     name: "legal",
     es: esLegal as unknown as JsonTree,
     en: enLegal as unknown as JsonTree,
-  },
-  {
-    name: "consent",
-    es: esConsent as unknown as JsonTree,
-    en: enConsent as unknown as JsonTree,
   },
 ];
 
@@ -150,24 +143,91 @@ describe("locales", () => {
    * otro darían el mismo total y pasarían desapercibidos.
    */
   describe("marcadores de dato pendiente", () => {
-    it.each(["privacy", "terms", "accessibility", "legalNotice"] as const)(
+    it.each(["privacy", "legalNotice"] as const)(
       "el documento '%s' tiene los mismos marcadores en es y en",
       (doc) => {
         const cuenta = (arbol: JsonTree): number =>
           JSON.stringify((arbol.Legal as JsonTree)[doc]).split(PLACEHOLDER)
             .length - 1;
 
+        /*
+         * PARIDAD, que es el defecto original que este candado existe para
+         * impedir: da igual cuántos marcadores haya, tiene que haber los
+         * MISMOS en los dos idiomas. Un idioma con marcador y otro sin él es
+         * exactamente el fallo de la traducción "PENDING".
+         */
         expect(cuenta(esLegal as unknown as JsonTree)).toBe(
           cuenta(enLegal as unknown as JsonTree),
         );
+
+        /*
+         * La sonda positiva de este candado era `toBeGreaterThan(0)`: exigía
+         * que el documento LLEVARA marcadores, porque mientras los datos del
+         * responsable no existieran, borrarlos de los dos idiomas a la vez
+         * habría dejado la página afirmando en silencio unos datos que nadie
+         * había aportado.
+         *
+         * El 2026-08-13 el dueño aportó los datos y esa sonda dejó de ser
+         * cierta: hoy el recuento correcto es CERO. Se invierte en vez de
+         * retirarse -- un test que no asevera nada sobre el recuento dejaría
+         * pasar que alguien reintroduzca un marcador y publique un documento
+         * legal incompleto sin que nada avise.
+         */
+        expect(cuenta(esLegal as unknown as JsonTree)).toBe(0);
+      },
+    );
+
+    /*
+     * Candado de coherencia entre las DOS fuentes que describen lo mismo: el
+     * JSON de los documentos y `LEGAL_ENTITY`. Antes daba igual porque las dos
+     * decían "incompleto"; desde que las dos dicen "completo", pueden
+     * divergir, y la divergencia sería invisible -- un marcador nuevo en el
+     * JSON con `hasPendingLegalData()` en `false` publica una página que se
+     * declara pendiente mientras el código la considera lista.
+     */
+    it("el estado del JSON y el de LEGAL_ENTITY coinciden: nada pendiente", () => {
+      const marcadoresTotales =
+        JSON.stringify(esLegal).split(PLACEHOLDER).length - 1;
+
+      expect(marcadoresTotales).toBe(0);
+      expect(hasPendingLegalData()).toBe(false);
+    });
+  });
+
+  /*
+   * Candado de la revisión legal del 2026-08-08: los dos documentos retirados
+   * no pueden volver por la puerta de atrás. Un `Legal.terms` reintroducido en
+   * el JSON no rompería ningún typecheck (nadie lo importa) y quedaría ahí,
+   * traducido y muerto, hasta que alguien lo enlazara "porque ya estaba".
+   */
+  describe("documentos retirados", () => {
+    it.each(["terms", "accessibility"] as const)(
+      "'%s' no reaparece en el namespace legal de ninguno de los dos idiomas",
+      (doc) => {
+        expect(
+          Object.keys((esLegal as unknown as JsonTree).Legal as JsonTree),
+        ).not.toContain(doc);
+        expect(
+          Object.keys((enLegal as unknown as JsonTree).Legal as JsonTree),
+        ).not.toContain(doc);
       },
     );
   });
 
+  /*
+   * TASK 14 (plan premium F3, 2026-08-11): `kicker` sale de esta lista --
+   * la clave `Home.hero.kicker` se retira (sustituida por `Home.hero.tagline`,
+   * la linea descriptiva "Del vacio al infinito...") -- y `support` tambien,
+   * porque `Home.hero.support` SALE del hero hacia `Home.story.support`
+   * (apertura de Story, ver Story.test.tsx). El test de caja natural del
+   * kicker se retira con la clave: `Home.hero.tagline` no lleva ningun
+   * text-transform en CSS (ScTagline, Hero.tsx), asi que no hay ninguna
+   * mayuscula-por-CSS que proteger aqui.
+   */
   describe("copia del hero", () => {
     it.each(
       locales.flatMap(({ lang, home }) =>
-        (["kicker", "subtitle", "support"] as const).map((key) => ({
+        (["tagline", "subtitle"] as const).map((key) => ({
           lang,
           home,
           key,
@@ -178,22 +238,56 @@ describe("locales", () => {
       expect(value).toBeDefined();
       expect(value?.trim()).not.toBe("");
     });
-
-    it.each(locales)(
-      "$lang: el kicker va en caja natural, las mayusculas las pone el CSS",
-      ({ home }) => {
-        // Varios lectores de pantalla deletrean las cadenas escritas en caja
-        // alta como si fueran siglas.
-        const kicker = valueAt(home, "Home.hero.kicker") ?? "";
-        expect(kicker).not.toBe(kicker.toUpperCase());
-      },
-    );
   });
 
+  /*
+   * Claves retiradas: el candado que impide que una clave vuelva a colarse
+   * "porque parecia que faltaba". Cada entrada trae el porque de su retirada,
+   * porque sin eso la lista es indistinguible de una arbitrariedad.
+   *
+   * - `Home.description` / `Home.additionalDescription`: copia de la primera
+   *   version del sitio, sin consumidor.
+   * - `Home.story.note` / `noteLead` / `noteAccent` (Task 15, 2026-08-11):
+   *   decian la MISMA frase que `Home.story.statement.*` con otra particion,
+   *   y existian solo para la rama oscura. Un solo arbol de contenido no
+   *   admite dos juegos de claves para una frase: la rama oscura pasa a
+   *   consumir `statement.*`. (`note`, la version monolitica, ya estaba
+   *   huerfana desde el 2026-08-06.)
+   * - `Home.story.stepLabel` (Task 15): la etiqueta "Paso"/"Step" de las
+   *   tarjetas de pilar. Los cuatro pilares no son pasos -- la unica
+   *   secuencia real del sitio es la de Journey.
+   * - `Home.features.<key>.badge` (Task 15): la etiqueta del badge de cada
+   *   tarjeta, que en las dos lenguas repetia el titulo de la propia tarjeta
+   *   en otra forma ("Aprendizaje" sobre "Aprende", "Learn" sobre
+   *   "Learning").
+   * - `Home.contact.email` (Task 16, 2026-08-11): la direccion escrita a
+   *   mano dentro del chip de la rama clara. Era la MISMA direccion que
+   *   `links.email` (`src/config/links.ts`), duplicada como texto
+   *   traducible: un dato de contacto no es copia. Hoy la direccion se
+   *   muestra una sola vez, en el panel que revela un envio valido, y sale
+   *   de `links.email`.
+   * - `Home.contact.cta` / `ctaAria` (Task 16): el ancla "Contactar por
+   *   correo" que acompanaba al chip. Abria el mismo `mailto:` que el boton
+   *   de envio del formulario, que desde esta tarea existe en las dos
+   *   ramas: una segunda salida al mismo destino, presente en un solo tema.
+   */
   describe("claves retiradas", () => {
     it.each(
       locales.flatMap(({ lang, home }) =>
-        ["Home.description", "Home.additionalDescription"].map((path) => ({
+        [
+          "Home.description",
+          "Home.additionalDescription",
+          "Home.story.note",
+          "Home.story.noteLead",
+          "Home.story.noteAccent",
+          "Home.story.stepLabel",
+          "Home.features.learning.badge",
+          "Home.features.imagination.badge",
+          "Home.features.gaming.badge",
+          "Home.contact.email",
+          "Home.contact.cta",
+          "Home.contact.ctaAria",
+        ].map((path) => ({
           lang,
           home,
           path,
@@ -201,6 +295,97 @@ describe("locales", () => {
       ),
     )("$lang: $path no reaparece", ({ home, path }) => {
       expect(keyPaths(home)).not.toContain(path);
+    });
+  });
+
+  /*
+   * Candado de rayas (Tarea 5, auditoría de copy, 2026-08-09). Nació porque
+   * `en/home.json` tenía 5 em-dashes que eran artefacto de la traducción (2
+   * de ellos en etiquetas ARIA) sin equivalente en `es/home.json`, y porque
+   * `en/legal.json:145` tenía un inciso con raya abierto que nunca se
+   * cerraba. Alcance deliberado, NO los cuatro namespaces:
+   *
+   * - `common` y `home`, es Y en: cero `—`/`–` en CUALQUIER valor. Este es el
+   *   copy de cara al usuario que la auditoría clasificó como "sin raya".
+   * - `legal.json` ES queda EXENTO a propósito: sus rayas (líneas 65/145/224)
+   *   son incisos RAE legítimos -- «—solo si nos escribes—», «—por ejemplo,
+   *   direcciones IP...—» -- y forman parte de la identidad de lengua del
+   *   documento legal en español. Retirarlas sería una regresión de estilo,
+   *   no una corrección.
+   * - `legal.json` EN se reescribió SIN rayas en la misma Tarea 5 (los 3
+   *   incisos con raya, incluido el abierto sin cerrar de la línea 145, pasan
+   *   a coma/paréntesis, que es la puntuación natural del inciso en inglés),
+   *   así que el candado lo exige a cero igual que `common`/`home` -- no
+   *   necesita una excepción propia.
+   */
+  const DASH_PATTERN = /[—–]/;
+
+  function dashOffenders(tree: JsonTree): string[] {
+    return keyPaths(tree).filter((path) => {
+      const value = valueAt(tree, path);
+      return value !== undefined && DASH_PATTERN.test(value);
+    });
+  }
+
+  describe("candado de rayas (Tarea 5)", () => {
+    it.each([
+      { name: "common/es", tree: esCommon as JsonTree },
+      { name: "common/en", tree: enCommon as JsonTree },
+      { name: "home/es", tree: esHome as JsonTree },
+      { name: "home/en", tree: enHome as JsonTree },
+      {
+        name: "legal/en",
+        tree: enLegal as unknown as JsonTree,
+      },
+    ])("$name: ningun valor contiene raya (— ni –)", ({ tree }) => {
+      const offenders = dashOffenders(tree);
+      expect(
+        offenders,
+        `Claves con raya sin exención: ${offenders.join(", ")}`,
+      ).toEqual([]);
+    });
+
+    // Sonda positiva + documentación del exento: legal/es SÍ conserva rayas
+    // a propósito (incisos RAE). Sin esta prueba, borrar por error las tres
+    // rayas de legal/es dejaría la exención sin sentido y nadie lo notaría.
+    it("legal/es SÍ tiene rayas: incisos RAE legítimos, exento a propósito", () => {
+      const offenders = dashOffenders(esLegal as unknown as JsonTree);
+      expect(offenders.length).toBeGreaterThan(0);
+    });
+  });
+
+  /*
+   * Candado de middot (Tarea 5). Guarda contra el mismo defecto que las
+   * rayas -- puntuación decorativa metida a mano en el copy -- pero para el
+   * "·": el punto 4 del encargo descartó explícitamente un separador de
+   * "middot doble" para el deck de Story, así que este candado impide que
+   * ese patrón (o cualquier otro con más de un "·" por valor) entre por otro
+   * sitio.
+   *
+   * La excepción única que tenía este candado -- `Home.hero.kicker`
+   * ("Aprendizaje · Imaginación · Juego" / "Learning · Imagination ·
+   * Gaming"), un separador de enumeración de tres palabras -- desaparece con
+   * la propia clave (Task 14, plan premium F3, 2026-08-11: `kicker` se
+   * retira, sustituida por `Home.hero.tagline`, sin ningún "·"). Sin
+   * excepciones vivas, la regla queda "cero middots en todo el árbol",
+   * literal.
+   */
+  describe("candado de middot (Tarea 5)", () => {
+    it.each([
+      { name: "home/es", tree: esHome as JsonTree },
+      { name: "home/en", tree: enHome as JsonTree },
+      { name: "common/es", tree: esCommon as JsonTree },
+      { name: "common/en", tree: enCommon as JsonTree },
+    ])("$name: ningun valor tiene mas de 1 middot", ({ tree }) => {
+      const offenders = keyPaths(tree).filter((path) => {
+        const value = valueAt(tree, path) ?? "";
+        const count = (value.match(/·/g) ?? []).length;
+        return count > 1;
+      });
+      expect(
+        offenders,
+        `Claves con mas de 1 middot: ${offenders.join(", ")}`,
+      ).toEqual([]);
     });
   });
 });

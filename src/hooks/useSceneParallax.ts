@@ -276,7 +276,20 @@ export function useSceneParallax(
         const y =
           py * opts.pointerAmp.y * target.depth +
           scrollProgress * opts.scrollAmp * target.depth;
-        const scale = opts.overscan + scrollProgress * target.depth * 0.05;
+        // Task 7 (plan premium F1-F5, "micro-perf sin riesgo"): `scale`
+        // CONGELADO en `overscan` -- hasta esta tarea variaba
+        // `+- 0.05 * depth` con `scrollProgress` (hasta +-3.6% en Story, la
+        // escena de mayor profundidad -- 0.72 -- y +-5% en Journey/Features/
+        // Contact, con depth 1). A diferencia de una traslacion pura (que
+        // solo recoloca el bitmap ya rasterizado de la capa), un `scale` que
+        // cambia en CADA frame de scroll fuerza al compositor a
+        // re-rasterizar para no perder nitidez -- coste medido, no solo
+        // teorico, que motiva esta tarea. El `overscan` de cada escena ya
+        // esta dimensionado para absorber la traslacion (`x`/`y`, arriba)
+        // por si mismo: verificado en navegador real, sin costura visible en
+        // ninguna de las cuatro escenas (informe de la tarea). Solo se
+        // traslada; la escala deja de depender de `scrollProgress`.
+        const scale = opts.overscan;
         el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${scale.toFixed(4)})`;
       }
 
@@ -382,7 +395,14 @@ export function useSceneParallax(
     // observer entero (nada que observar: el hook esta apagado del todo);
     // fuera de `reduce`, el observer decide `start()`/`release()` segun
     // interseccion en cada aviso.
-    const observer = new IntersectionObserver(([entry]) => {
+    // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+    // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Aqui el
+    // precio de leer la obsoleta era entrar en `release()` con la escena
+    // DENTRO del viewport, o sea el parallax detenido. Este observador vigila
+    // un solo nodo (`sceneRef.current`), asi que todas las entradas del lote
+    // son suyas y la ultima es el estado vigente.
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[entries.length - 1];
       if (entry.isIntersecting) {
         // Si el bucle seguia vivo (en pleno release), basta con apagar la
         // bandera -- SIN tocar `appliedX`/`appliedY`/`scrollProgress` -- para

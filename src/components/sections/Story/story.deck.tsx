@@ -1,6 +1,8 @@
 "use client";
-import styled, { css } from "styled-components";
+import styled, { css, type RuleSet } from "styled-components";
 import { gradientTextClip } from "@/components/layout/Brand/BrandName";
+import { DECK_DOES_NOT_FIT, DECK_FIT_ATTRIBUTE } from "@/hooks/useDeckFit";
+import { DECK } from "@/motion/vocabulary";
 import {
   STORY_DARK_HEIGHT,
   STORY_DARK_MAX_WIDTH,
@@ -10,6 +12,7 @@ import {
   STORY_DECK_PILLAR_BODY_SIZE,
   STORY_DECK_PILLAR_SUBTITLE_SIZE,
   STORY_DECK_PILLAR_TITLE_SIZE,
+  STORY_DECK_TAIL_SCREENS,
   STORY_DECK_TITLE_SIZE,
   STORY_DECK_TRACK_HEIGHT,
   STORY_SCENE_DEPTH_SHIFT,
@@ -34,14 +37,119 @@ import {
  * De regalo, el progreso 0..1 que da el hook es reversible por construccion
  * -- exactamente lo que el caracter de "rewind" del encargo necesita.
  */
+/*
+ * LA PRESENTACIÓN SE LINEALIZA POR DOS CAUSAS, CON UNA SOLA LEY (crítica
+ * externa #19, P1 número 3; WCAG 1.4.4).
+ *
+ * `deckStatic` recibe las declaraciones que convierten esta presentación en
+ * un documento en flujo -- pista de alto automático, escenario sin pin,
+ * diapositivas visibles a la vez, adornos de progreso retirados -- y las emite
+ * DOS VECES, bajo las dos condiciones que hoy la exigen:
+ *
+ * 1. `prefers-reduced-motion: reduce`, que ya era la causa original (D6): sin
+ *    movimiento no hay coreografía que pinar.
+ * 2. `data-deck-fit="false"` en la PISTA, que escribe `useDeckFit`
+ *    (`src/hooks/useDeckFit.ts`) cuando alguna diapositiva no cabe en el
+ *    escenario pegado. El defecto medido y el porqué de la medida están en el
+ *    docblock de ese hook; en una línea: con la raíz a 32 px y 320 px de
+ *    ancho, el enlace de comunidad del cierre quedaba 706 px por debajo del
+ *    borde por el que el escenario recorta, inalcanzable por cualquier gesto.
+ *
+ * POR QUÉ UN HELPER Y NO DOS BLOQUES ESCRITOS A MANO: porque el arreglo del
+ * segundo caso ES el primero. Dos copias del mismo bloque divergen en cuanto
+ * alguien toque una -- y la que quedaría atrás sería siempre la que casi nadie
+ * ve. Con el helper hay un solo cuerpo de declaraciones por componente, y el
+ * candado de CSSOM de `Story.test.tsx` comprueba, componente a componente, que
+ * toda regla de este fichero bajo `reduce` tiene su gemela de estado con el
+ * mismo cuerpo.
+ *
+ * POR QUÉ EL SELECTOR TIENE DOS RAMAS. El estado vive en la pista, y la pista
+ * es a la vez uno de los elementos que el bloque tiene que alcanzar: la rama
+ * `&[data-deck-fit="false"]` casa cuando el componente ES la pista, y la rama
+ * descendiente `[data-deck-fit="false"] &` cuando es cualquier hijo suyo
+ * (lección de CSS de la casa: `&[data-x]` solo matchea el MISMO elemento).
+ * En cada componente casa exactamente una de las dos.
+ *
+ * DIFERENCIA DE CASCADA DECLARADA, y es real: un selector de atributo pesa
+ * (0,2,0) y un `@media` no añade especificidad al suyo (0,1,0). Donde un
+ * bloque `@media` posterior sobrescribe al de `reduce` -- el hueco de
+ * composición de pantalla ancha en `ScDeck`, que se declara después a
+ * propósito -- el bloque de estado gana igualmente. Consecuencia concreta y
+ * aceptada: en una pantalla ancha con una diapositiva que no cabe, el relleno
+ * del deck queda simétrico en vez del hueco asimétrico de 8rem. Ese hueco
+ * existe para dejar respirar el lado por el que la escena tiene su figura, y
+ * en el estado que este bloque atiende -- texto tan grande que el contenido no
+ * cabe -- la prioridad es la columna de lectura, no el arte.
+ */
+function deckStatic(declaraciones: RuleSet): RuleSet {
+  return css`
+    @media (prefers-reduced-motion: reduce) {
+      ${declaraciones}
+    }
+
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"],
+    [${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] & {
+      ${declaraciones}
+    }
+  `;
+}
+
+/*
+ * `height: auto` en el bloque estático (D6): sin pin, la pista deja de
+ * necesitar recorrido de scroll propio -- vuelve a medir lo que mide su
+ * contenido, en flujo normal.
+ *
+ * ---------------------------------------------------------------------------
+ * LA COLA SE RESTITUYE CUANDO LA PISTA SE LINEALIZA POR NO CABER, Y SOLO
+ * ENTONCES. Es la mitad del arreglo del P1 número 3 que NO se ve mirando el
+ * deck: cerrar el recorte del escenario sin esto cambia un contenido
+ * inalcanzable por otro igual de inalcanzable.
+ *
+ * LO MEDIDO (build propio de esta ola, Chrome, tema oscuro, 320x800, raíz a
+ * 32 px, sin `prefers-reduced-motion`, coordenadas de documento): con el deck
+ * ya linealizado, el enlace de comunidad del cierre ocupaba de 8.114 a 8.249 y
+ * la sección Journey empezaba en 7.449 -- 800 px de solape, con
+ * `background-color` opaco y `z-index: 1` por encima. El contenido dejaba de
+ * estar recortado y pasaba a estar TAPADO. Con `prefers-reduced-motion:
+ * reduce`, misma geometría y mismo tamaño de texto, el solape medía 0.
+ *
+ * EL PORQUÉ. La altura pinada de esta pista incluye `STORY_DECK_TAIL_SCREENS`
+ * pantallas de cola justamente para que Journey suba `JOURNEY_OVERLAY_RISE`
+ * sobre terreno vacío (la aritmética completa vive en `journey.layers.ts`, en
+ * los docblocks de `JOURNEY_OVERLAY_RISE` y `JOURNEY_DECK_TAIL_SCREENS`, y la
+ * igualdad entre las dos constantes la comprueba un test que importa los dos
+ * ficheros). Al pasar a `height: auto` la cola desaparece con el resto del
+ * recorrido, y la última pantalla de la pista deja de estar vacía: la ocupa la
+ * diapositiva de cierre. Bajo `reduce` ese mismo hecho ya estaba resuelto por
+ * el otro extremo -- `ScJourney` (`Journey.tsx`) anula su `margin-block-start`
+ * negativo--, así que no hacía falta reservar nada.
+ *
+ * POR QUÉ NO ENTRA EN `deckStatic`, y por qué el guard de `no-preference` es
+ * obligatorio: porque las dos causas de linealización NO comparten esta
+ * consecuencia. La subida de Journey solo existe fuera de `reduce`; declarar
+ * la reserva sin guard dejaría, en la combinación "reduce + texto grande", una
+ * pantalla entera en blanco entre las dos secciones -- compensando un solape
+ * que ahí no ocurre. La condición del bloque es, literalmente, "hay solape que
+ * compensar y la pista ya no lo reserva".
+ *
+ * POR QUÉ EL SELECTOR NO LLEVA LA RAMA DESCENDIENTE que sí emite `deckStatic`:
+ * el atributo lo escribe `useDeckFit` en ESTA pista, así que aquí casa la rama
+ * calificada `&[data-deck-fit="false"]` y la descendiente no casaría nunca.
+ */
 export const ScTrack = styled.div`
   position: relative;
   height: ${STORY_DECK_TRACK_HEIGHT};
 
-  /* D6: sin pin, la pista deja de necesitar recorrido de scroll propio --
-     vuelve a medir lo que mide su contenido, en flujo normal. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     height: auto;
+  `)}
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] {
+      padding-block-end: calc(
+        ${STORY_DECK_TAIL_SCREENS} * ${STORY_DARK_HEIGHT}
+      );
+    }
   }
 `;
 
@@ -55,12 +163,35 @@ export const ScTrack = styled.div`
  * escena (StoryCosmicBeing se escala 1.06x) lo hace este elemento, que no es
  * ancestro de si mismo.
  *
- * La interpolacion de escala/radio usa --story-enter con su valor por
- * defecto en el estado FINAL (var(--story-enter, 1)): si el rAF del hook
- * nunca corre -- sin JS, primer frame antes de que escriba, o
- * prefers-reduced-motion -- el stage se ve a escala 1 y sin radio, es decir
- * YA ABIERTO. Encogerlo por defecto dejaria la presentacion ilegible en
- * cualquiera de esos casos.
+ * La interpolacion de ESCALA usa --story-enter con su valor por defecto en
+ * el estado FINAL (var(--story-enter, 1)): si el rAF del hook nunca corre --
+ * sin JS, primer frame antes de que escriba, o prefers-reduced-motion -- el
+ * stage se ve a escala 1, es decir YA ABIERTO. Encogerlo por defecto dejaria
+ * la presentacion ilegible en cualquiera de esos casos.
+ *
+ * `border-radius` FIJO en 0 (Task 7, plan premium F1-F5, "micro-perf sin
+ * riesgo"): hasta esta tarea interpolaba con el MISMO --story-enter que la
+ * escala (`calc(radius["2xl"] * (1 - var(--story-enter, 1)))`). El problema
+ * no era esa unica transicion de apertura (~1 pantalla de scroll): measure()
+ * (useSlideDeck.ts) reescribe --story-enter en CADA frame de scroll mientras
+ * la pista entera (6 diapositivas + cola) intersecta -- muchas pantallas mas
+ * alla de la apertura, aunque el valor ya este clavado en 1 y no cambie. A
+ * diferencia de `transform` (compositor puro), `border-radius` participa del
+ * pintado: cada escritura de la custom property obligaba a repintar este
+ * elemento -- pantalla completa, con su `background-color` y las 11 capas de
+ * la escena detras -- el UNICO repintado por scroll de todo el repo. El
+ * radio se congela en 0, el mismo valor que el degradado sin-JS ya usaba por
+ * defecto (parrafo de arriba): la presentacion sigue abriendose de 0.92 a 1
+ * (`transform`, sin coste de pintado), solo deja de "desredondear" sus
+ * esquinas durante ese primer tramo.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): el pin en sí es la primera baja --
+ * sin `position: sticky` no hay nada que despegar ni escalar --, y
+ * `height: auto` deja que las diapositivas, ya en flujo, determinen el alto
+ * real. El `overflow: hidden` se conserva a propósito en el estado estático,
+ * igual que ya lo conservaba bajo `reduce`: con el alto siguiendo al
+ * contenido no recorta nada, y quitarlo devolvería el overscan de la escena
+ * por encima de la sección.
  */
 export const ScStage = styled.div`
   position: sticky;
@@ -75,17 +206,13 @@ export const ScStage = styled.div`
         var(--story-enter, 1)
     )
   );
-  border-radius: calc(
-    ${({ theme }) => theme.data.radius["2xl"]} * (1 - var(--story-enter, 1))
-  );
+  border-radius: 0;
 
-  /* D6: el pin en si es la primera baja -- sin position: sticky no hay nada
-     que despegar ni escalar. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     position: static;
     height: auto;
     transform: none;
-  }
+  `)}
 `;
 
 /*
@@ -97,6 +224,33 @@ export const ScStage = styled.div`
  * de ScScene (que ya lleva isolation: isolate en storyCosmicBeing.parts.tsx),
  * devuelve esa sensacion de profundidad con un transform propio gobernado
  * por --story-progress, sin arriesgar ninguna otra seccion.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): guard IMPRESCINDIBLE y nada obvio,
+ * MISMO mecanismo que `ScJourneySceneWrap` en `journey.deck.tsx` (leer su
+ * docblock es releer este). En el estado estático -- por `reduce` o porque una
+ * diapositiva no cabe -- `ScStage` pasa a `position: static`: deja de ser un
+ * elemento posicionado y, con él, deja de ser el CONTAINING BLOCK de este
+ * envoltorio, que sigue siendo absoluto. El containing block sube entonces a
+ * `ScTrack` (`position: relative` incondicional), cuya altura en ese estado es
+ * `auto` -- es decir, las 6 diapositivas apiladas en flujo, varias pantallas.
+ * Sin este bloque, el `inset: 0` de arriba resolvería contra esa caja y las 11
+ * capas de `StoryCosmicBeing` (`object-fit: cover`,
+ * `storyCosmicBeing.parts.tsx`) se estirarían a esas varias pantallas de alto:
+ * el arte quedaría recortado a una franja vertical con un zoom brutal. No se
+ * pierde texto -- por eso ningún test de contenido lo vería -- pero el fondo se
+ * rompe.
+ *
+ * El arreglo NO puede ser devolverle al stage un `position: relative` en ese
+ * estado: seguiría midiendo `height: auto`, o sea las mismas varias pantallas,
+ * y el estiramiento sería idéntico. Lo que cierra el fallo es dar aquí una
+ * altura EXPLÍCITA de una pantalla y anclarla arriba, que es correcto sea cual
+ * sea el ancestro que acabe haciendo de containing block. La escena aparece
+ * entonces una vez, con sus proporciones intactas, detrás de la primera
+ * diapositiva; el resto del recorrido queda sobre el `background-color` de la
+ * sección. Se prefiere eso a `display: none`: lo que se degrada es el
+ * MOVIMIENTO, no la identidad visual de la sección. Y `will-change: auto`
+ * porque sin recorrido que animar, promover la capa solo gasta memoria de
+ * compositor.
  */
 export const ScSceneWrap = styled.div`
   position: absolute;
@@ -138,45 +292,13 @@ export const ScSceneWrap = styled.div`
      para el que existe will-change. */
   will-change: transform;
 
-  /*
-   * Guard IMPRESCINDIBLE y nada obvio, MISMO mecanismo que ScJourneySceneWrap
-   * en journey.deck.tsx (leer su docblock es releer este). Bajo reduce,
-   * ScStage pasa a position: static (mas arriba): deja de ser un elemento
-   * posicionado y, con el, deja de ser el CONTAINING BLOCK de este
-   * envoltorio, que sigue siendo absoluto. El containing block sube entonces
-   * a ScTrack (position: relative incondicional), cuya altura bajo reduce es
-   * auto -- es decir, las 6 diapositivas apiladas en flujo, varias pantallas.
-   * Sin este bloque, el inset: 0 de arriba resolveria contra esa caja y las
-   * 11 capas de StoryCosmicBeing (object-fit: cover,
-   * storyCosmicBeing.parts.tsx) se estirarian a esas varias pantallas de
-   * alto: el arte quedaria recortado a una franja vertical con un zoom
-   * brutal. No se pierde texto -- por eso ningun test de contenido lo veria
-   * -- pero el fondo se rompe.
-   *
-   * El arreglo NO puede ser devolverle al stage un position: relative bajo
-   * reduce: seguiria midiendo height: auto, o sea las mismas varias
-   * pantallas, y el estiramiento seria identico. Lo que cierra el fallo es
-   * dar aqui una altura EXPLICITA de una pantalla y anclarla arriba, que es
-   * correcto sea cual sea el ancestro que acabe haciendo de containing
-   * block. La escena aparece entonces una vez, con sus proporciones
-   * intactas, detras de la primera diapositiva; el resto del recorrido queda
-   * sobre el background-color de la seccion. Se prefiere eso a display:
-   * none: bajo reduce se degrada el MOVIMIENTO, no la identidad visual de la
-   * seccion.
-   *
-   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
-   * literal de styled-components, donde un backtick lo cierra y rompe el
-   * build (leccion del repo, task/lessons.md 2026-07-25, reincidida el 2026-08-02).
-   */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     top: 0;
     bottom: auto;
     height: ${STORY_DARK_HEIGHT};
     transform: none;
-    /* Sin recorrido que animar, promover la capa solo gasta memoria de
-       compositor. */
     will-change: auto;
-  }
+  `)}
 `;
 
 /*
@@ -185,6 +307,150 @@ export const ScSceneWrap = styled.div`
  * topado a STORY_DARK_MAX_WIDTH. z-index: 1 lo sube por encima de
  * ScSceneWrap (que no declara ninguno, asi que participa del orden normal
  * del documento) sin necesitar tocar la escena.
+ *
+ * Los tres docblocks que siguen viven FUERA del template a proposito: lo que
+ * se escribe DENTRO de un template de styled-components es CSS, viaja al
+ * bundle y se paga en el presupuesto de JavaScript de la home. Lo vigila el
+ * candado `src/test/css-template-comments.test.ts`.
+ *
+ * ---------------------------------------------------------------------------
+ * `padding-inline`: RELLENO DEL EJE INLINE ACOTADO AL VIEWPORT (`inlineSpace`,
+ * no `space`) -- critica externa #20, 2026-09-05.
+ *
+ * EL DEFECTO. Medido sobre el build de produccion servido en Chrome con la
+ * fuente al 200 % (`Page.setFontSizes`, raiz 32 px), 320 px de viewport y
+ * `prefers-reduced-motion: reduce`: este relleno y el canal de
+ * `padding-inline-end` se doblaban con la fuente mientras el viewport se
+ * quedaba donde estaba (64 px por lado + 112 px de canal), y la columna de
+ * copia del deck se quedaba en 144 px de 320. El h2 de 64 px salia a 2,25
+ * caracteres por linea y la nota de cierre de 80 px a 1,5. El arreglo anterior
+ * de la critica #19 (`overflow-wrap: anywhere`) habia convertido la PERDIDA de
+ * texto en ILEGIBILIDAD: no se salia nada del viewport, pero no se podia leer.
+ *
+ * EL ARREGLO. `inlineSpace[6]` es `min(2rem, 10vw)`: el mismo peldano de la
+ * escala, con un techo en unidades de viewport igual al peldano en pixeles a
+ * 320 px con la raiz por defecto. Con la raiz a 16 px y cualquier ancho
+ * desde 320 px vale EXACTAMENTE `space[6]` -- la composicion no cambia ni un
+ * pixel; con la raiz a 32 px sigue creciendo mientras el viewport da de si y
+ * se detiene en 32 px por lado a 320 px de ancho. Solo se acota AIRE del eje
+ * inline: la tipografia crece siempre (acotarla seria el patron de fallo F94
+ * de WCAG 1.4.4) y `padding-block` no compite con el viewport. El docblock
+ * entero del token vive en `src/theme/tokens/space.ts`.
+ *
+ * ---------------------------------------------------------------------------
+ * `padding-inline-end`: CANAL DEL RAIL (critica externa #16, hallazgo L1 =
+ * hallazgo 2 de Craft): el rail no flota sobre un margen vacio, flota sobre la
+ * copia. Medido en tema oscuro a 390 px de ancho, la banda del rail ocupa
+ * x=342-366 mientras la caja de contenido del deck llegaba hasta x=358 (390
+ * menos el `padding-inline` de 2rem): 11 lineas de glifos entraban entre 2 y
+ * 13 px dentro de la banda, ScDeckPillarSubtitle terminaba en x=358 solapando
+ * el rail entero, y `elementsFromPoint` sobre la banda devolvia el BUTTON del
+ * rail POR ENCIMA del parrafo -- es decir, el control tapaba texto y el texto
+ * pasaba por debajo del control. Se reproduce igual a 414, 480, 600 y 768
+ * (maximo 16 px de invasion) y desaparece a 1024, donde la regla `lg` de mas
+ * abajo ya deja 8rem libres.
+ *
+ * El valor NO es un numero elegido: es la geometria del rail sumada termino a
+ * termino, para que se mueva sola si el rail se mueve.
+ *   `inlineSpace[5]` -> `inset-inline-end` del rail (ScRail, mas abajo)
+ *   `space[5]`       -> ancho de la caja de una marca (ScRailMark: la diana
+ *                       de 24 px de WCAG 2.5.8; el rotulo de posicion se
+ *                       stackea en vertical justamente para no ensanchar esta
+ *                       columna)
+ *   `inlineSpace[2]` -> el canal libre entre la copia y la banda del rail,
+ *                       8 px: exactamente el margen que el propio hallazgo
+ *                       fija como objetivo (ninguna caja de glifo cruza
+ *                       `rail.left - 8px`)
+ * Total 3.5rem, 56 px con la raiz por defecto -- exactamente el mismo canal
+ * que antes de acotar, porque `inlineSpace[n]` vale `space[n]` desde 320 px
+ * con la raiz a 16. A 390 px la copia sigue terminando en x=334 = el borde
+ * del rail menos el canal, asi que ningun glifo puede cruzar el umbral por
+ * construccion: el texto no desborda su caja.
+ *
+ * POR QUE DOS DE LOS TRES TERMINOS SE ACOTAN Y EL DEL MEDIO NO (critica
+ * externa #20). El primero y el tercero son AIRE: separan, y pueden dejar de
+ * crecer cuando el viewport ya no da mas -- por eso siguen al inset del rail,
+ * que en ScRail pasa a `inlineSpace[5]` en esta misma ola. El del medio es el
+ * ANCHO REAL de la marca, y ese ancho lo declara ScRailMark en `space[5]`:
+ * a raiz 32 px la diana mide 48 px, y ademas contiene un rotulo de posicion
+ * apilado cuya caja pasa de 24 px con la fuente ampliada (el peldano caption,
+ * 0,6875rem x 32 px x 1,2 de interlineado ~ 26 px). Acotar ese termino
+ * reservaria menos canal del que el rail ocupa de verdad y devolveria el
+ * texto debajo del control: el hallazgo L1 otra vez, ahora solo al 200 %. Si
+ * algun dia ScRailMark acota su propio ancho, este termino le sigue.
+ *
+ * ARITMETICA A RAIZ 32 px Y 320 px DE ANCHO: 320 - 32 (`padding-inline`
+ * acotado) - (24 + 48 + 8) = 208 px de columna de copia, frente a los 144 px
+ * medidos antes -- el h2 de 64 px pasa de 2,25 a ~6,5 caracteres por linea y
+ * la nota de 80 px de 1,5 a ~5,2. A raiz 16 px la columna no cambia ni un
+ * pixel: 320 - 32 - 56 = 232 px.
+ *
+ * POR QUE NO MAS. La primera version de esta ola reservaba `space[7]` de
+ * canal (6rem en total, 96 px) y la medicion de un agente vecino la tumbo:
+ * a 390 px dejaba la copia del deck en 25-36 caracteres por linea, frente
+ * a los 38-46 de la rama clara. El rail solo necesita que el texto no entre
+ * en su banda; cada pixel de canal por encima de eso se paga en medida de
+ * lectura justo en el ancho donde menos sobra. Con 56 px la copia conserva
+ * la medida (cifras en el informe de la ola L, medidas con `Range` por
+ * caracter) y el hit-test sobre la banda devuelve el rail.
+ *
+ * Va DESPUES del `padding-inline` de arriba (longhand contra shorthand, lo
+ * decide el orden) y ANTES del bloque `lg`, que lo sustituye por su hueco de
+ * composicion -- 8rem, mas ancho todavia, asi que la garantia se conserva.
+ *
+ * ---------------------------------------------------------------------------
+ * SIN RAIL VISIBLE NO HAY CANAL QUE RESERVAR (verificador de producto de la
+ * ola R, 2026-09-05, P3).
+ *
+ * EL DEFECTO. `ScRail` (mas abajo) se retira por completo bajo
+ * `prefers-reduced-motion: reduce` -- `display: none`, misma condicion y mismo
+ * motivo que `ScScrollHint` -- pero este `padding-inline-end` seguia reservando
+ * su geometria entera. Medido a 320 px de ancho con la preferencia activa: 56
+ * px de canal a la raiz por defecto y 80 px con la fuente al 200 %, guardados
+ * para un control que no se pinta. La columna de copia se quedaba en 232 px de
+ * 320 y en 208 de 320 respectivamente, en el ancho donde menos sobra.
+ *
+ * EL ARREGLO. Bajo `reduce` el relleno vuelve a ser simetrico -- el MISMO
+ * peldano que el lado de inicio, `inlineSpace[6]` -- y la columna pasa a 256 px
+ * a las DOS raices (320 - 32 - 32, porque `min(2rem, 10vw)` vale 32 px en las
+ * dos): +24 px a la raiz por defecto y +48 px al 200 %.
+ *
+ * EL ORDEN DE LOS DOS BLOQUES ES LA MITAD DEL ARREGLO, y por eso el bloque de
+ * `reduce` se declara AHORA ANTES del bloque `lg` y no despues, como estaba.
+ * Los dos son `@media` con la misma especificidad, asi que cuando los dos
+ * casan -- una pantalla ancha con la preferencia activa -- gana el ultimo
+ * declarado. Con el orden anterior, `reduce` habria borrado tambien el hueco de
+ * composicion de 8rem por encima de 62em, que no tiene nada que ver con el rail
+ * (existe para dejar respirar el lado por el que la escena tiene su figura).
+ * Con el orden nuevo, `lg` sigue mandando por encima de su escalon y la
+ * simetria de `reduce` solo actua por debajo, que es donde el canal dolia.
+ *
+ * ---------------------------------------------------------------------------
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba) Y LA CANCELACIÓN DEL SCRUB.
+ *
+ * Las tres declaraciones del bloque son las de siempre (D6): sin grid ya no
+ * hace falta apilar las 6 diapositivas en la MISMA celda -- se dejan caer una
+ * debajo de otra, todas visibles (ver `ScSlide`, más abajo) -- y el relleno del
+ * lado del rail vuelve a ser simétrico porque el rail no se pinta. Lo nuevo es
+ * que ese bloque lo emite el helper para las DOS causas de linealización.
+ *
+ * EL SCRUB SE CANCELA APARTE, y no metiendo `animation: none` en el bloque de
+ * arriba, por dos motivos que se refuerzan. El primero es de cascada: el scrub
+ * vive en `[data-dir="rewind"] &`, (0,2,0), la misma especificidad que la rama
+ * de estado del helper, y se declara DESPUÉS -- un `animation: none` en el
+ * bloque estático perdería por orden. El segundo es de simetría: bajo `reduce`
+ * el scrub no existe en absoluto (su regla vive dentro de un `@media
+ * (prefers-reduced-motion: no-preference)`), así que no hay nada que cancelar
+ * y el bloque compartido seguiría siendo el mismo cuerpo en las dos
+ * condiciones. La cancelación se declara por eso DENTRO del propio bloque
+ * `no-preference`, justo detrás del scrub y con un selector más específico
+ * (0,3,0): la regla se lee entera de una vez -- "hay scrub mientras el deck
+ * esté pinado, y no lo hay cuando deja de estarlo".
+ *
+ * Sin ella, el rebobinado seguiría corriendo sobre un deck ya linealizado: una
+ * columna de varias pantallas desplazándose en horizontal y bajando a
+ * `opacity` 0,75 en cada gesto de scroll hacia atrás, justo para el usuario
+ * que ha pedido el texto al 200 %.
  */
 export const ScDeck = styled.div`
   position: relative;
@@ -194,8 +460,30 @@ export const ScDeck = styled.div`
   max-width: ${STORY_DARK_MAX_WIDTH};
   margin-inline: auto;
   display: grid;
+  /* Pista UNICA declarada, y declarada como minmax(0, 1fr) (WCAG 2.1 SC 1.4.4,
+     critica externa #13). Sin grid-template-columns el deck creaba una pista
+     IMPLICITA de tamano auto, cuyo minimo es el min-content de la diapositiva
+     mas ancha: con la raiz al 200% eso medía 391.6px dentro de una caja de
+     262px, y las diapositivas (width: 100%) heredaban esa pista desbordada --
+     texto fuera del viewport sin scroll horizontal que lo recupere, porque
+     html declara overflow-x: clip (regla 21). Una pista auto tambien se estira
+     hasta llenar el hueco libre cuando cabe, asi que a raiz 16px el ancho
+     resultante es el MISMO (326px medidos antes y despues): lo unico que
+     cambia es que ahora tiene un minimo de 0 en vez de min-content. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
+
+  padding-inline-end: calc(
+    ${({ theme }) => theme.data.inlineSpace[5]} +
+      ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.inlineSpace[2]}
+  );
+  ${deckStatic(css`
+    display: block;
+    height: auto;
+    padding-inline-end: ${({ theme }) => theme.data.inlineSpace[6]};
+  `)}
 
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (encargo
@@ -208,14 +496,6 @@ export const ScDeck = styled.div`
    */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     padding-inline-end: ${STORY_DECK_PADDING_INLINE_END};
-  }
-
-  /* D6: sin grid ya no hace falta apilar las 6 diapositivas en la MISMA
-     celda -- se dejan caer una debajo de otra, todas visibles (ver ScSlide,
-     mas abajo, donde reduce fuerza opacity/transform al estado final). */
-  @media (prefers-reduced-motion: reduce) {
-    display: block;
-    height: auto;
   }
 
   /*
@@ -237,6 +517,10 @@ export const ScDeck = styled.div`
     [data-dir="rewind"] & {
       animation: story-deck-scrub ${STORY_SCRUB_MS}ms
         ${({ theme }) => theme.data.motion.easing.standard} both;
+    }
+
+    [${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] [data-dir="rewind"] & {
+      animation: none;
     }
 
     @keyframes story-deck-scrub {
@@ -268,6 +552,107 @@ export const ScDeck = styled.div`
  * El estado base (sin data-state="current"/"past") es el de una diapositiva
  * que TODAVIA no ha llegado ("next"): opacity 0 + desplazada hacia abajo.
  * "past" invierte el signo del desplazamiento; "current" limpia los dos.
+ *
+ * `visibility` (fix wave A, hallazgo A1, WCAG 2.4.7 -- el defecto de
+ * interaccion mas grave de la revision final de rama): hasta esta tarea el
+ * estado base solo llevaba `opacity: 0` + `pointer-events: none`, y
+ * `pointer-events: none` NO saca un elemento del orden de tabulacion --
+ * ninguna de las dos propiedades lo hace. La Task 6 (mas arriba en la
+ * historia del plan) monto el primer elemento REALMENTE focalizable dentro
+ * de una `ScSlide` (`ScDeckNoteLink`, el enlace de Discord de la ultima
+ * diapositiva, Story.tsx): con tema oscuro, tabular por el deck ANTES de
+ * llegar a esa diapositiva llevaba el foco a un `<a>` invisible -- y como el
+ * stage vive en `position: sticky` (ya en el viewport), el navegador ni
+ * siquiera desplazaba la pagina para traerlo a la vista: el foco
+ * desaparecia de la pantalla sin ninguna pista de donde habia ido. Antes de
+ * la Task 6 el deck no tenia nada focalizable dentro de una diapositiva no
+ * actual, por eso nadie lo vio: el defecto vive en la INTERSECCION de dos
+ * tareas, invisible desde cualquiera de las dos por separado (misma familia
+ * que la leccion del 2026-08-11, Task 31, `task/lessons.md`).
+ *
+ * A1 eligio `visibility: hidden` en el reposo (no `inert`) para reutilizar
+ * el selector `&[data-state="current"]` como unica fuente de verdad, y
+ * declaro como COSTE aceptable que un lector de pantalla solo anunciara la
+ * diapositiva `current`, con este argumento: "el contenido sigue alcanzable
+ * exactamente por el mismo mecanismo (scroll) por el que ya lo era
+ * visualmente".
+ *
+ * REVERTIDO (critica externa #10, hallazgo A + tarea derivada, 2026-08-18):
+ * ese argumento ERA FALSO. El cursor virtual de un lector de pantalla
+ * recorre el arbol de accesibilidad y no emite eventos de scroll, asi que
+ * nunca hace avanzar el deck: `visibility: hidden` no aplazaba la lectura,
+ * la hacia IMPOSIBLE -- 5 de 6 diapositivas inalcanzables por cualquier
+ * medio (el mismo P0 medido primero en Journey; ver `journey.deck.tsx`).
+ * Las diapositivas vuelven a vivir SIEMPRE en el arbol de accesibilidad
+ * (`opacity: 0` oculta de la vista pero no expulsa del arbol), y la mitad
+ * de A1 que sigue viva -- cero trampas de foco invisible, WCAG 2.4.7,
+ * porque la ultima diapositiva contiene un enlace REAL (`ScDeckNoteLink`,
+ * Story.tsx) -- se ata donde vive el problema: en el PROPIO enlace, que
+ * lleva `visibility: hidden` mientras su diapositiva no es `current`, con
+ * el mismo selector descendiente de estado (`[data-state]:not(...) &` --
+ * el estado vive en el ancestro ScSlide, leccion CSS de la casa) y la
+ * excepcion de `reduce` (todas las diapositivas visibles => el enlace debe
+ * volver a ser focalizable; perderlo seria perder la salida de pertenencia
+ * de la Task 6). A diferencia de Journey (cero focalizables: su candado es
+ * estructural), aqui la estructura admite EXACTAMENTE UN focalizable y el
+ * candado exige que ese uno lleve la compuerta -- ver el describe
+ * "critica #10" en Story.test.tsx. Coste declarado del arreglo: en las
+ * diapositivas no actuales el lector de pantalla lee el TEXTO completo pero
+ * no anuncia el enlace (el mismo destino vive tambien en el footer, grupo
+ * "community"); lo contrario -- un enlace alcanzable e invisible -- seria
+ * reabrir A1.
+ *
+ * LAS SEIS DIAPOSITIVAS SE CENTRAN, SIN EXCEPCIONES: no hay ningún prop de
+ * alineación aquí, y eso es una decisión revertida, no una que nunca se tomó.
+ * Entre el 2026-08-12 y el 2026-08-16 la diapositiva de cierre (`#statement`,
+ * `Story.tsx`) recibía un prop `$anchorTop` que le ponía `align-self: start`
+ * para pegarla al borde superior del stage. El motivo era real y medido: en la
+ * rama oscura Journey sube 100dvh sobre la cola de Story y su borde superior
+ * barre la pantalla de abajo hacia arriba, así que cuanto más arriba esté el
+ * enlace de Discord, más tarda en quedar tapado.
+ *
+ * Se revierte porque el precio visual es mucho mayor que la ganancia, y quien
+ * lo vio fue el dueño mirando la página, no un test. Medido en navegador real
+ * (playwright-cli, dev server, tema oscuro, `#statement` recién puesta
+ * `current`), el bloque de cierre mide entre 211 y 474 px de alto según el
+ * ancho, y el stage siempre 100dvh — con `align-self: start` el hueco que
+ * queda DEBAJO del bloque es de 246 px a 1280x720, **431 px a 1920x905**, 633
+ * px a 390x844 y 726 px a 1920x1200. Es decir: en cualquier pantalla algo alta
+ * la última diapositiva del deck se leía como un bloque desprendido en la
+ * esquina superior con media pantalla vacía debajo, y en móvil como tres
+ * cuartos de pantalla vacía.
+ *
+ * Lo que cuesta centrarla, medido con el mismo barrido en las dos variantes
+ * (paso de 60 px, se registra en qué scrollY `elementFromPoint` sobre el
+ * centro del enlace deja de devolver el propio enlace):
+ *
+ *   1280x720  ventana limpia del enlace 600 px anclado -> 480 px centrado
+ *   1920x905  ventana limpia del enlace 840 px anclado -> 660 px centrado
+ *
+ * O sea 120-180 px de recorrido, un 20-21 % de la ventana. Lo que NO cambia:
+ * la diapositiva sigue entrando entera y sin tapar, y el bloque cabe con
+ * holgura en todos los tamaños probados (el margen más justo es 174 px a
+ * 1024x600), así que centrar no reintroduce el desbordamiento que la QA cerró
+ * en su día. El resto del hallazgo D1 sigue siendo cierto y sin resolver: el
+ * solape ES una arquitectura que tapa el cierre de Story, y arreglarlo de
+ * verdad pasa por `STORY_DECK_TAIL_SCREENS`/`JOURNEY_OVERLAY_RISE`, que es
+ * decisión del dueño y no de este componente.
+ *
+ * Y ese "cabe con holgura en todos los tamaños probados" tenía una letra
+ * pequeña que la crítica externa #19 midió: los tamaños probados eran todos a
+ * la raíz por defecto. Con la raíz a 32 px y 320 px de ancho el bloque de
+ * cierre mide 2.049 px y no cabe en ninguna pantalla -- de ahí el bloque
+ * estático de abajo, que en esa situación lo saca del escenario recortado y lo
+ * devuelve al flujo del documento.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): todas visibles a la vez, en flujo --
+ * la degradación a documento que el encargo de accesibilidad exige (perder 5
+ * de 6 diapositivas sería perder CONTENIDO, no solo movimiento). La línea de
+ * `visibility` que vivió aquí (fix wave A, A1) se retiró con la reversión de
+ * la crítica #10 (ver más arriba): ya no hay nada que revertir -- las
+ * diapositivas nunca salen del árbol. La excepción de `reduce` del ENLACE del
+ * cierre vive con el enlace (`ScDeckNoteLink`, `Story.tsx`) y no cambia con
+ * esta ola: ese enlace ya no lleva compuerta ninguna.
  */
 export const ScSlide = styled.div`
   grid-area: 1 / 1;
@@ -291,28 +676,45 @@ export const ScSlide = styled.div`
     transform: translateY(calc(${STORY_SLIDE_SHIFT} * -1));
   }
 
-  /* D6: todas visibles a la vez, en flujo -- la degradacion a documento que
-     el encargo de accesibilidad exige (perder 5 de 6 diapositivas seria
-     perder CONTENIDO, no solo movimiento). */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
     opacity: 1;
     transform: none;
     pointer-events: auto;
-  }
+  `)}
 `;
 
 /*
- * Rail de progreso decorativo (D13): aria-hidden, refleja data-slide del
- * stage (un ANCESTRO de ScRailMark) por el mismo selector descendiente que
- * ya usa el scrub de ScDeck. Se retira en reduce: sin pin ni avance atado al
- * scroll, "por donde voy" deja de tener sentido -- todas las diapositivas ya
- * estan a la vista a la vez.
+ * Rail de progreso (D13): refleja data-slide del stage (un ANCESTRO de
+ * ScRailMark) por el mismo selector descendiente que ya usa el scrub de
+ * ScDeck. Se retira en el bloque estatico (`deckStatic`, arriba), o sea por
+ * las dos causas: sin pin ni avance atado al scroll, "por donde voy" deja de
+ * tener sentido -- todas las diapositivas ya estan a la vista a la vez.
+ *
+ * DEJO DE SER aria-hidden en la critica externa #12 (2026-08-19, dimension 4
+ * de Craft): sus marcas son ahora botones reales (ver ScRailMark, abajo), asi
+ * que ocultarlo del arbol de accesibilidad esconderia seis controles
+ * operables. Es el MISMO contrato que Journey ya estreno en la critica #10
+ * (commit f9cf823) -- este rail se quedo atras aquella vez porque el hallazgo
+ * se midio alli, no aqui.
+ *
+ * El nombre del GRUPO lo pone Story.tsx via role="group": ver el comentario
+ * del rail en ese fichero para el estado exacto de ese nombre, que es lo unico
+ * de este contrato que esta tarea no pudo cerrar.
+ *
+ * `inset-inline-end`: separacion del borde ACOTADA AL VIEWPORT (critica
+ * externa #20). Es el primer sumando del canal que ScDeck reserva en su
+ * `padding-inline-end`, y los dos tienen que moverse juntos: si el inset se
+ * doblara con la fuente (48 px a raiz 32) y el canal no, el rail se meteria en
+ * la copia. Es aire puro -- separa el rail del borde y nada mas -- asi que
+ * puede dejar de crecer cuando el viewport ya no da de si. El ANCHO de la
+ * marca (ScRailMark) NO se acota, y el porque esta escrito en el docblock del
+ * canal, en ScDeck.
  */
 export const ScRail = styled.div`
   position: absolute;
   inset-block: 0;
-  inset-inline-end: ${({ theme }) => theme.data.space[5]};
+  inset-inline-end: ${({ theme }) => theme.data.inlineSpace[5]};
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -320,37 +722,269 @@ export const ScRail = styled.div`
   justify-content: center;
   gap: ${({ theme }) => theme.data.space[2]};
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     display: none;
-  }
+  `)}
 `;
 
-export const ScRailMark = styled.span<{ $index: number }>`
-  width: ${({ theme }) => theme.data.space[2]};
-  height: ${({ theme }) => theme.data.space[2]};
+/*
+ * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
+ * visible el rotulo del paso activo en el rail»).
+ *
+ * EL DEFECTO QUE CIERRA. El evaluador de Nielsen lo describio asi: «progreso
+ * del deck solo como puntos mudos PARA QUIEN VE; "Paso 3 de 6" en clip
+ * inset(50 %)», frente al tema claro, que entrega la misma informacion como
+ * una linea temporal con nombres. Es decir: la informacion de posicion existia
+ * -- en `VisuallyHidden`, para tecnologia asistiva -- y lo que faltaba era
+ * verla. Seis puntos de 8 px sobre una escena casi negra no dicen "vas por la
+ * tercera de seis"; dicen que hay algo ahi.
+ *
+ * FORMA: una fraccion APILADA (numerador sobre denominador, con la barra
+ * horizontal dibujada como borde del total), no "3 / 6" en linea. El motivo es
+ * geometrico y esta atado al hallazgo L1, justo arriba: el rail vive a 24 px
+ * del borde y sus marcas miden 24 px, y de esos 48 px sale el canal que la
+ * copia tiene que respetar. Un rotulo en linea ensancharia la columna del rail
+ * a ~30 px y se comeria otros 6 px de medida de lectura en el ancho donde
+ * menos sobra. Apilada, la fraccion mide menos que la propia diana (dos
+ * digitos de `caption` = ~14 px) y el canal calculado sigue siendo exacto.
+ *
+ * `aria-hidden`, A PROPOSITO Y CONTRA LA TENTACION DE ANUNCIARLO. Este rotulo
+ * es el gemelo VISUAL de una senal que ya existe para el lector de pantalla, y
+ * la pagina ya se quemo una vez con la version contraria: la critica #12 midio
+ * que el rail de Journey ANUNCIABA "Ir a la diapositiva N de 8" mientras las
+ * diapositivas anunciaban "Paso N de 6", dos numeraciones desalineadas del
+ * mismo mecanismo, y la retirada de aquella numeracion fue el arreglo. Dar voz
+ * a este rotulo reabriria exactamente ese defecto. La capa accesible del rail
+ * queda como la dejaron las criticas #10 y #12: cada marca se llama por su
+ * DESTINO y el activo lleva `aria-current`. Precedente de la misma forma en
+ * este mismo fichero: `ScScrollHint`, visible y `aria-hidden`.
+ *
+ * SIN BACKTICKS en este comentario: vive dentro del template literal de
+ * styled-components (leccion del repo, task/lessons.md 2026-07-25).
+ */
+export const ScRailStatus = styled.p`
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[3]};
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.caption.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.caption.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.caption.tracking};
+  /* Cifras de ancho fijo: sin esto, pasar de "1" a "4" mueve la barra de la
+     fraccion un pixel a cada cambio de diapositiva. */
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+`;
+
+/*
+ * El numerador: la diapositiva activa. Unico elemento del rotulo en el color de
+ * texto pleno -- es el dato que cambia y el que se busca de un vistazo; el
+ * total se queda en textMuted como referencia. Los dos libran AA (4.5:1) sobre
+ * la escena; el candado que lo mide contra el void real vive en
+ * Story.test.tsx.
+ */
+export const ScRailStatusCurrent = styled.span`
+  color: ${({ theme }) => theme.data.semantic.text};
+`;
+
+/*
+ * El denominador, con la barra de la fraccion como borde superior. Se dibuja
+ * con el borde y no con un caracter "/" porque un caracter tendria que salir
+ * de i18n (regla 28) para ser, en realidad, un adorno de composicion: la barra
+ * es geometria, no copia.
+ */
+export const ScRailStatusTotal = styled.span`
+  /* borderStrong y no border: es el MISMO token que las marcas inactivas del
+     rail usan desde la critica #12, ya medido por encima de 3:1 sobre el void
+     de esta escena (Story.test.tsx). Un hairline en border (neutral 800) sobre
+     un fondo casi negro no se ve. */
+  border-block-start: 1px solid
+    ${({ theme }) => theme.data.semantic.borderStrong};
+  padding-block-start: ${({ theme }) => theme.data.space[1]};
+  margin-block-start: ${({ theme }) => theme.data.space[1]};
+`;
+
+/*
+ * Marca del rail (critica externa #12, 2026-08-19, dimension 4 de Craft: el
+ * rail de ESTE deck seguia siendo mudo para tecnologia asistiva). Hasta esta
+ * tarea era un `span` decorativo dentro de un rail `aria-hidden`: se veia "por
+ * donde vas" pero no se podia ir a ningun sitio, y encima apenas se veia --
+ * los inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4`
+ * sobre la escena casi negra de StoryCosmicBeing.
+ *
+ * MISMO CONTRATO, PIEZA A PIEZA, que ScJourneyRailMark (journey.deck.tsx,
+ * commit f9cf823, critica #10) -- no una variacion: los dos decks son gemelos
+ * declarados (deuda "Decks Story/Journey gemelos", RULES.md) y dos raíles que
+ * se operan distinto en la misma pagina serian dos gramaticas para el mismo
+ * mecanismo. Se DUPLICA aqui en vez de importarse de alli, mismo criterio que
+ * ScScrollHint y stepColor: este fichero es una hoja estructural sin ninguna
+ * dependencia de la seccion hermana.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Story.tsx le pone `type="button"`,
+ *    `aria-label` con el NOMBRE de la diapositiva a la que lleva (claves de
+ *    i18n que ya pinta el propio deck), `aria-current` en el activo, y
+ *    engancha el salto a `scrollToSlide` (`useSlideDeck`), que invierte la
+ *    geometria de la pista. Al ser un boton nativo trae foco, Enter/Espacio y
+ *    rol sin nada que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), el minimo de WCAG 2.5.8 (Target Size, AA en WCAG 2.2).
+ *    Un boton de 8x8 es inoperable con el dedo y casi con el raton. La caja es
+ *    transparente: no se ve, solo se toca.
+ *
+ * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad a
+ *    `semantic.borderStrong` OPACO. La opacidad desaparece de la declaracion y
+ *    de la lista de `transition` -- ya no hay nada que interpolar en ese eje.
+ *    WCAG 1.4.11 pide 3:1 para un componente de interfaz frente a lo que tiene
+ *    detras; el candado que lo mide contra el void real de esta escena vive en
+ *    Story.test.tsx (describe "critica #12 -- rail"). El activo conserva
+ *    `semantic.brand` y su `scale(1.5)`.
+ *
+ * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
+ * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
+ * que ScStage ya escribe con el index de useSlideDeck -- y no desde un
+ * atributo del propio boton. `aria-current` se anade en el JSX como senal para
+ * tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad para
+ * lo mismo pueden divergir, y la que ya estaba probada es esta.
+ */
+export const ScRailMark = styled.button<{ $index: number }>`
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: ${({ theme }) => theme.data.space[5]};
+  height: ${({ theme }) => theme.data.space[5]};
   border-radius: ${({ theme }) => theme.data.radius.full};
-  background-color: ${({ theme }) => theme.data.semantic.border};
-  opacity: 0.4;
-  transform: scale(1);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    background-color ${({ theme }) => theme.data.motion.duration.base}
+  color: ${({ theme }) => theme.data.semantic.borderStrong};
+  cursor: pointer;
+  transition: color ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  /* El punto visible. Hereda currentColor para que el color viva en UNA sola
+     declaracion (la del boton) y el estado activo no tenga que repetirlo sobre
+     dos elementos. SIN BACKTICKS en este comentario, a proposito: vive DENTRO
+     del template literal de styled-components, donde un backtick lo cierra y
+     rompe el build (leccion del repo, task/lessons.md 2026-07-25). */
+  &::before {
+    content: "";
+    display: block;
+    width: ${({ theme }) => theme.data.space[2]};
+    height: ${({ theme }) => theme.data.space[2]};
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background-color: currentColor;
+    transform: scale(1);
+    transition: transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &:hover {
+    color: ${({ theme }) => theme.data.semantic.text};
+  }
+
+  /* AQUI VIVIO un halo de foco propio: outline: none mas un box-shadow de
+     3px contra semantic.focus al 45%. Era el tercer vocabulario de anillo
+     del sitio -- y el unico SUSTITUTIVO -- y ademas dejaba esta marca sin
+     ningun indicador de foco bajo forced-colors, donde el navegador fuerza
+     box-shadow: none y el outline: none ya habia apagado el anillo global.
+     Retirado el 2026-09-02 (critica externa #14, P1 de Craft): el anillo
+     unico se declara en GlobalStyles.tsx con la geometria de
+     src/theme/tokens/focus.ts. El boton es redondo y outline adopta el
+     border-radius del elemento, asi que el anillo sigue saliendo redondo sin
+     declarar nada aqui. */
 
   ${({ $index, theme }) => css`
     [data-slide="${$index}"] & {
-      opacity: 1;
+      color: ${theme.data.semantic.brand};
+    }
+
+    [data-slide="${$index}"] &::before {
       transform: scale(1.5);
-      background-color: ${theme.data.semantic.brand};
     }
   `}
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
+
+    &::before {
+      transition: none;
+    }
+  `)}
+`;
+
+/*
+ * Pista de scroll del deck (Task 4, plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5`): indicio visual de que la
+ * presentacion avanza con scroll. Sigue siendo `aria-hidden`, y desde la
+ * critica externa #12 es el UNICO de los dos adornos del stage que lo es: el
+ * rail de al lado dejo de serlo al convertirse en seis botones operables (ver
+ * ScRail, arriba), mientras que esta pista no gana nada al anunciarse -- no es
+ * un control, no dice "por donde voy" sino "puedes seguir bajando", y las
+ * diapositivas siguen accesibles en el DOM sin importar si se lee o no.
+ *
+ * Reutiliza `data-slide`, que `ScStage` (Story.tsx) YA escribe con el
+ * `index` de `useSlideDeck` -- SIN listener nuevo, mismo mecanismo que
+ * `ScRailMark` un poco mas arriba (selector descendiente sobre el MISMO
+ * ancestro). Visible mientras el indice sigue en la diapositiva 0; en
+ * cuanto el usuario avanza por primera vez (`data-slide` deja de ser "0"),
+ * el selector dejar de matchear apaga la pista -- y, por construccion,
+ * tambien se apaga si el usuario retrocede hasta la diapositiva 0 (D4 del
+ * encargo no distingue "primer avance" de "cualquier vez que no se este en
+ * la 0"; las dos lecturas coinciden con `[data-slide]:not([data-slide="0"])`,
+ * y esta es la que no requiere estado propio).
+ *
+ * `opacity` es la UNICA propiedad animada (encargo explicito de la spec).
+ * `DECK.exitDurationMs` (200ms, `vocabulary.ts`) consigue aqui su primer
+ * consumidor real: su propio docblock describe el rol "salida de un velo o
+ * capa de la presentacion", que es exactamente este desvanecimiento.
+ *
+ * En el bloque estatico se retira POR COMPLETO (`display: none`), mismo
+ * tratamiento y mismo motivo que `ScRail`: sin pin ni avance atado al scroll,
+ * las diapositivas ya estan todas en flujo a la vez -- "puedes seguir bajando
+ * DENTRO del deck" deja de tener sentido, no solo de movimiento. Decision
+ * de la spec ("se muestra estatico o no se muestra"): aqui se elige NO
+ * MOSTRAR, no un estado estatico, por coherencia con el rail que ya
+ * desaparece en la misma condicion. La `transition` de arriba, declarada
+ * sin condicion, nunca llega a activarse ahi: el elemento deja de
+ * renderizarse antes de que pueda dispararse -- verificado por texto de CSS
+ * (jsdom no evalua `@media`), no observando la animacion en si.
+ */
+export const ScScrollHint = styled.p`
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: ${({ theme }) => theme.data.space[6]};
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.overline.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.overline.weight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.overline.tracking};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity ${DECK.exitDurationMs}ms
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  [data-slide]:not([data-slide="0"]) & {
+    opacity: 0;
   }
+
+  ${deckStatic(css`
+    display: none;
+  `)}
 `;
 
 /*
@@ -382,7 +1016,7 @@ export const ScRailMark = styled.span<{ $index: number }>`
  * fija `font-family: type.fontBody` y `color: semantic.text` igual para las
  * doce variantes de la escala -- no hay "familia de titular" distinta de
  * "familia de cuerpo" que inventar). Peso/interlineado/tracking si seguian
- * la variante concreta que cada pieza sustituye (h2/h5/body/bodySm), para
+ * la variante concreta que cada pieza sustituye (h2/h4/body/bodySm), para
  * conservar el mismo ritmo visual que ya tenian: en esta entrega solo el
  * TAMANO es nuevo (las cinco constantes de story.layers.ts).
  */
@@ -414,27 +1048,25 @@ export const ScDeckIntroBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
 /*
  * Titulo de la diapositiva de pilar (`01 --`..`04 --` + nombre): antes
- * `Typography variant="h5" as="p"` en Story.tsx. Se mantiene como `<p>`, no
- * `<h3>`/`<h5>`: el `h2#story-title` de la diapositiva de intro es el UNICO
+ * `Typography variant="h4" as="p"` en Story.tsx. Se mantiene como `<p>`, no
+ * `<h3>`/`<h4>`: el `h2#story-title` de la diapositiva de intro es el UNICO
  * encabezado accesible de la seccion entera (regla dura de la Task 2).
- * Peso/interlineado/tracking de h5 se conservan tal cual; solo el tamano
+ * Peso/interlineado/tracking de h4 se conservan tal cual; solo el tamano
  * crece a STORY_DECK_PILLAR_TITLE_SIZE (encargo: 3rem en pantallas grandes).
  */
 export const ScDeckPillarTitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
   color: ${({ theme }) => theme.data.semantic.text};
   font-size: ${STORY_DECK_PILLAR_TITLE_SIZE};
-  font-weight: ${({ theme }) => theme.data.type.scale.h5.weight};
-  line-height: ${({ theme }) => theme.data.type.scale.h5.lineHeight};
-  letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
+  font-weight: ${({ theme }) => theme.data.type.scale.h4.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.h4.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h4.tracking};
 `;
 
 /*
@@ -445,6 +1077,20 @@ export const ScDeckPillarTitle = styled.p`
  * (`type.scale.body.size`), asi que este elemento toma tambien su
  * peso/interlineado/tracking -- no los de `bodySm` (0.875rem), que era la
  * variante que usaba ANTES de promoverse a subtitulo.
+ *
+ * `max-width` (Task 22, tipografia de lectura): NUEVO con esta tarea. El
+ * detector de craft midio en runtime, en los dos gates, que este parrafo no
+ * declaraba tope de ancho propio y heredaba la capacidad completa de su
+ * contenedor -- 97,9-112ch a 1280px (`STORY_DARK_MAX_WIDTH`,
+ * `story.layers.ts`, 1280px de contenido). Con el copy actual ninguna
+ * instancia llega a envolver a ese ancho -- es riesgo ESTRUCTURAL latente, no
+ * un defecto visible hoy -- pero un copy mas largo se extenderia sin freno.
+ * `theme.data.grid.prose` (56ch desde la critica #13, ~65 caracteres REALIZADOS;
+ * ver la derivacion del ratio en theme/tokens/grid.ts) es el token que el
+ * propio sistema ya reserva para exactamente este rol -- lo usan
+ * `ScIntro`/`ScBody`/`ScDarkBody` en Features.tsx y `ScDarkIntro` en el mismo
+ * fichero -- y cae dentro del objetivo de legibilidad de 60-75ch del
+ * encargo.
  */
 export const ScDeckPillarSubtitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -453,25 +1099,29 @@ export const ScDeckPillarSubtitle = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
 /*
  * Cuerpo de la diapositiva de pilar: el texto de inspiracion NUEVO
  * (`pillars.<key>.inspiration`, cuatro frases por pilar).
  *
- * Lleva LAS DOS formas del equilibrado, `text-wrap: balance` y
- * `text-wrap-style: balance` (encargo del usuario 2026-08-04). Hasta hoy solo
- * llevaba la shorthand, por decision T6 de la spec de tipografia de Story
- * (2026-08-02): el encargo de entonces tambien nombraba la longhand de CSS
- * Text 4, y se prefirio la shorthand porque su soporte es mas amplio para el
- * MISMO efecto. Esa disyuntiva era falsa y se corrige aqui: declarando la
- * shorthand como base y la longhand encima, un motor que no conozca la
- * segunda descarta esa declaracion y conserva el equilibrado de la primera, y
- * uno que si la conozca la aplica con el mismo valor. No hay orden de soporte
- * en el que se pierda nada. Ver `Typography.tsx`, que es donde vive el
- * criterio completo para las variantes de cuerpo del sistema.
+ * SIN equilibrado de linea (critica externa #14, 2026-09-02, decision D1 del
+ * dueno). Hasta esa ronda este cuerpo llevaba las dos formas de
+ * `text-wrap: balance` (encargo del 2026-08-04, con la disyuntiva
+ * shorthand/longhand de la decision T6 resuelta declarando ambas). El A/B en
+ * navegador sobre los mismos nodos lo desmonto: con equilibrado la prosa
+ * realizaba 53,5 caracteres por linea (2 de 11 lineas dentro de 60-75) y sin
+ * el 64,5 (10 de 11), porque el equilibrado minimiza la linea mas larga sin
+ * cambiar el numero de lineas y deja de llenar la caja que `grid.prose`
+ * promete. El equilibrado se queda en los titulares y en las piezas de
+ * cartel (`ScDeckTitle`, `ScDeckNote`); el cuerpo vuelve al corte con
+ * bandera derecha sobre el que se derivo el token. Ver `Typography.tsx`.
+ *
+ * `max-width` (Task 22, tipografia de lectura): mismo hallazgo y mismo token
+ * que `ScDeckPillarSubtitle`, arriba -- ver su docblock para la cifra medida
+ * (97,9-112ch de capacidad a 1280px) y el porque de `grid.prose` (56ch
+ * desde 2026-08-17).
  */
 export const ScDeckPillarBody = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -480,15 +1130,19 @@ export const ScDeckPillarBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[2]};
 `;
 
 /*
- * Nota de cierre (diapositiva 5), partida en noteLead (este elemento) +
- * ScDeckNoteAccent (span hijo, ver mas abajo -- T3 de la spec: envolver
- * "new beginning"/"nuevo comienzo" exige dos nodos de texto).
+ * Cierre de la presentacion (diapositiva 5, `<section id="statement">` desde
+ * la Task 15). Este elemento pinta las dos primeras partes de la frase
+ * (`Home.story.statement.first` + `second`) y `ScDeckNoteAccent` (span hijo,
+ * ver mas abajo) la tercera -- envolver el tramo final en un acento exige dos
+ * nodos de texto, igual que exigia la particion noteLead/noteAccent que la
+ * Task 15 sustituye (esas dos claves decian la misma frase que
+ * `Home.story.statement.*` y se retiraron; ver el JSX de `StoryDeckDark`,
+ * `Story.tsx`, para el porque completo).
  * `color: textMuted` se conserva de la version anterior (`ScNote` en
  * Story.tsx tenia el mismo override): no es un cambio de este encargo.
  *
@@ -518,7 +1172,8 @@ export const ScDeckNote = styled.p`
 `;
 
 /*
- * "new beginning"/"nuevo comienzo" (noteAccent): MISMO tratamiento que
+ * El tramo final de la frase (`Home.story.statement.third`, "un nuevo
+ * comienzo" -- hasta la Task 15, `noteAccent`): MISMO tratamiento que
  * "ToInfinite" en el h1 del Hero (T7 de la spec) -- `gradientTextClip`
  * IMPORTADO de BrandName.tsx, sin duplicar el degradado, para que la nota y
  * el Hero recorran exactamente el mismo color en el mismo instante. Trae

@@ -2,56 +2,119 @@
  * Identidad del responsable del tratamiento y versionado de los documentos
  * legales.
  *
- * Decisión del usuario, checkpoint "dato que solo yo puedo dar" (spec
- * `docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md`,
- * tabla de decisiones del arranque, 2026-08-05): "Responsable del tratamiento
- * / titular legal" y "NIF/CIF, domicilio, correo de contacto legal" quedan
- * explícitamente `PLACEHOLDER` — el usuario no los aportó y pidió no
- * inventarlos. Mismo criterio que `src/config/links.ts` ya aplica a las
- * URLs legales sin confirmar: un valor plausible-pero-inventado es peor que
- * su ausencia marcada.
+ * HISTORIA DE ESTE FICHERO, en dos actos, porque el segundo solo se entiende
+ * con el primero delante:
  *
- * CONSECUENCIA, no cosmética: sin identidad real del responsable, `/privacidad`
- * no cumple el art. 13.1.a RGPD ("la identidad y los datos de contacto del
- * responsable") ni `/aviso-legal` cumple el art. 10.a LSSI-CE ("nombre o
- * denominación social... domicilio... dirección de correo electrónico").
- * Las cuatro páginas legales quedan por tanto ESTRUCTURALMENTE completas pero
- * NO PUBLICABLES hasta que estos campos se rellenen con datos reales — es el
- * único bloqueante real de esta entrega (spec §9.1). `hasPendingLegalData()`
- * es el candado programático de ese hecho: mientras exista un solo campo sin
- * rellenar, la función devuelve `true` y cualquier consumidor futuro (un
- * gate de build, un aviso en el propio sitio) puede engancharse a ella en vez
- * de repetir la comprobación campo a campo.
+ * 1. Del 2026-08-05 al 2026-08-12 los seis campos identificativos valieron
+ *    `PLACEHOLDER`. El usuario no había aportado los datos y pidió no
+ *    inventarlos; `hasPendingLegalData()` devolvía `true` y las dos páginas
+ *    legales quedaban estructuralmente completas pero NO PUBLICABLES (spec
+ *    `docs/superpowers/specs/2026-08-04-legal-seo-consentimiento-design.md`
+ *    §9.1). Ese era el único bloqueante real de aquella entrega.
  *
- * `dpo: null` NO es un dato pendiente: es un valor deliberado ("no se ha
- * designado Delegado de Protección de Datos", sección `delegado` de
- * `/privacidad`, art. 13.1.b RGPD) que puede seguir siendo `null` incluso
- * después de rellenar el resto — por eso `hasPendingLegalData()` no lo
- * evalúa como pendiente.
+ * 2. El 2026-08-13 el dueño aportó los datos en sesión y cerró la Fase 0 del
+ *    plan premium. La consecuencia NO es solo rellenar seis strings: tres de
+ *    los seis campos no tienen valor porque el dato NO PROCEDE, y eso es una
+ *    declaración distinta de «todavía no lo sé». El modelo tenía que
+ *    distinguirlas, porque `hasPendingLegalData()` las trataba igual y habría
+ *    dejado el sitio bloqueado para siempre por datos ya decididos.
+ *
+ * DATOS APORTADOS (dueño, 2026-08-13, verbatim de la sesión):
+ * VoidToInfinite es un proyecto personal de **Daniel Mosquera**, persona
+ * física. No hay sociedad, no hay alta de autónomo, no hay actividad
+ * económica: el sitio no vende, no anuncia y no ingresa. De ahí las tres
+ * declaraciones de «no procede»:
+ *
+ *   - `registry`: no existe sociedad inscribible en ningún registro público.
+ *     Es una imposibilidad material, no una omisión.
+ *   - `taxId` y `address`: decisión expresa del dueño de no publicar su DNI
+ *     ni su domicilio particular en un sitio que no recaba información
+ *     sensible de nadie. Ver el LÍMITE DECLARADO más abajo.
+ *
+ * LÍMITE DECLARADO, que ningún agente debe «arreglar» por su cuenta: el art.
+ * 10.a LSSI-CE exige domicilio y NIF a quien presta un servicio de la
+ * sociedad de la información, y ese régimen se activa con la ACTIVIDAD
+ * ECONÓMICA. La lectura sobre la que se apoya esta configuración es que un
+ * proyecto personal sin actividad económica queda fuera de ese supuesto. Es
+ * una lectura fundamentada, NO una certeza confirmada por un profesional, y
+ * así consta también en `PRODUCT.md` §10. Si algún día el proyecto ingresa
+ * dinero —donaciones, patrocinio, venta, publicidad—, esta decisión hay que
+ * volver a tomarla, no heredarla.
+ *
+ * `dpo: null` es la tercera declaración deliberada del fichero y la más
+ * antigua: «no se ha designado Delegado de Protección de Datos» (art. 13.1.b
+ * RGPD), no un dato pendiente. Tiene su propio texto en el documento porque
+ * dice algo distinto de «no procede».
+ *
+ * REGLA DURA para quien toque esto: `PLACEHOLDER` sigue existiendo y sigue
+ * significando «dato desconocido». Si mañana entra un campo nuevo sin valor
+ * real, se marca con `PLACEHOLDER` —nunca con `null`— para que
+ * `hasPendingLegalData()` vuelva a bloquear la publicación. `null` es una
+ * afirmación sobre el mundo; `PLACEHOLDER` es una ausencia. Confundirlas
+ * publica un documento legal incompleto sin que nada avise.
  */
 
-/** Marcador de dato aún no aportado. Se renderiza visible, nunca se
- *  sustituye por un valor plausible (misma doctrina que `links.ts:1-9`). */
+import { EMAIL_ADDRESS } from "@/config/links";
+
+/**
+ * Marcador de dato aún no aportado. Se renderiza visible, nunca se sustituye
+ * por un valor plausible (misma doctrina que `links.ts:1-9`).
+ *
+ * CENTINELA DE MÁQUINA, NO PROSA (regla 30 de `RULES.md`): el renderer lo
+ * busca literalmente para envolverlo en `<mark>`, así que es idéntico en
+ * español y en inglés y NO SE TRADUCE. El texto explicativo dirigido a quien
+ * lee vive en la clave i18n `Legal.common.placeholderTitle`.
+ *
+ * Hoy no queda ninguna aparición en `LEGAL_ENTITY` ni en `legal.json`, pero
+ * la constante NO se retira: es el mecanismo con el que un campo futuro sin
+ * dato vuelve a bloquear la publicación (ver REGLA DURA del docblock del
+ * módulo). `locales.test.ts` ata que su recuento siga siendo cero.
+ */
 export const PLACEHOLDER = "POR_COMPLETAR";
+
+/**
+ * Forma jurídica del responsable, como IDENTIFICADOR, no como texto.
+ *
+ * Nació siendo el literal "Persona física" y duró unas horas: la verificación
+ * en navegador del 2026-08-13 lo pilló pintado EN ESPAÑOL dentro del
+ * documento inglés (`/aviso-legal` con `lang="en"` mostraba «Forma jurídica:
+ * Persona física»). Los tests no lo vieron porque renderizan en español, que
+ * es el idioma en el que la fuga es invisible.
+ *
+ * Es el mismo defecto que la regla 30 de `RULES.md` describe: prosa metida en
+ * el código en vez de en i18n. `name` y `contactEmail` pueden quedarse como
+ * literales porque un nombre propio y una dirección de correo no se traducen;
+ * una forma jurídica sí.
+ */
+export type LegalForm = "naturalPerson";
 
 export interface LegalEntity {
   readonly name: string;
-  readonly legalForm: string;
-  readonly taxId: string;
-  readonly address: string;
-  readonly registry: string;
+  /** Clave, no prosa: la resuelve `Legal.common.legalForm.<valor>`. */
+  readonly legalForm: LegalForm;
+  /** `null` = no procede: persona física sin actividad económica declarada. */
+  readonly taxId: string | null;
+  /** `null` = no procede, mismo motivo que `taxId`. */
+  readonly address: string | null;
+  /** `null` = no procede: no hay sociedad inscribible en registro público. */
+  readonly registry: string | null;
   readonly contactEmail: string;
   /** `null` = no se ha designado Delegado de Protección de Datos. */
   readonly dpo: string | null;
 }
 
 export const LEGAL_ENTITY: LegalEntity = {
-  name: PLACEHOLDER,
-  legalForm: PLACEHOLDER,
-  taxId: PLACEHOLDER,
-  address: PLACEHOLDER,
-  registry: PLACEHOLDER,
-  contactEmail: PLACEHOLDER,
+  name: "Daniel Mosquera",
+  legalForm: "naturalPerson",
+  taxId: null,
+  address: null,
+  registry: null,
+  /* Derivado, no reescrito: es el QUINTO consumidor de `EMAIL_ADDRESS`
+     (`src/config/links.ts`), que existe justamente para que la dirección no
+     viva a mano en varios sitios (regla 13 de `RULES.md`). Escribirla aquí
+     como literal habría dejado el correo de ejercicio de derechos del RGPD
+     capaz de divergir en silencio del que el sitio pinta y copia. */
+  contactEmail: EMAIL_ADDRESS,
   dpo: null,
 };
 
@@ -67,31 +130,49 @@ export interface LegalVersion {
  * usa esta fecha en vez de `new Date()` precisamente para no declarar un
  * cambio en cada build cuando el documento no ha cambiado de verdad.
  */
-export const LEGAL_VERSIONS: Record<
-  "privacy" | "terms" | "accessibility" | "legalNotice",
-  LegalVersion
-> = {
-  privacy: { version: "1.0.0", updated: "2026-08-05" },
-  terms: { version: "1.0.0", updated: "2026-08-05" },
-  accessibility: { version: "1.0.0", updated: "2026-08-05" },
-  legalNotice: { version: "1.0.0", updated: "2026-08-05" },
+export const LEGAL_VERSIONS: Record<"privacy" | "legalNotice", LegalVersion> = {
+  /* 3.0.0, no 2.1.0: la revisión del 2026-08-13 no corrige una errata ni
+     añade un matiz. Sustituye la identidad del responsable —que hasta hoy no
+     constaba— y describe por primera vez la cadena real de proveedores del
+     correo y el plazo de conservación. Quien leyera la versión 2.0.0 no
+     puede dar por buena su lectura: no sabía quién respondía de sus datos.
+     Eso es exactamente lo que un salto de mayor comunica, mismo criterio que
+     razonó el salto 1.0.0 -> 2.0.0 en su día. */
+  privacy: { version: "3.0.0", updated: "2026-08-13" },
+  legalNotice: { version: "3.0.0", updated: "2026-08-13" },
 };
 
-/** Campos de `LEGAL_ENTITY` que identifican al responsable y por tanto
- *  pueden estar "pendientes". `dpo` queda fuera a propósito: es una
- *  declaración legítima (`null` = no designado), no un dato desconocido. */
+/**
+ * Campos de `LEGAL_ENTITY` que identifican al responsable y que, por tanto,
+ * pueden estar "pendientes".
+ *
+ * `dpo` queda fuera desde el principio, y desde el 2026-08-13 quedan fuera
+ * de facto `taxId`, `address` y `registry`: los cuatro admiten `null` como
+ * DECLARACIÓN, no como hueco. Lo que esta lista sigue vigilando es que
+ * ninguno de los campos que SÍ tienen que tener valor real se quede con el
+ * centinela.
+ *
+ * `legalForm` también queda fuera, y por un motivo distinto: desde que es un
+ * `LegalForm` y no un string libre, el compilador impide que valga
+ * `PLACEHOLDER`. Comprobarlo en tiempo de ejecución sería comprobar algo que
+ * el tipo ya garantiza.
+ */
 const IDENTIFYING_FIELDS = [
   "name",
-  "legalForm",
   "taxId",
   "address",
   "registry",
   "contactEmail",
 ] as const satisfies readonly (keyof LegalEntity)[];
 
-/** `true` mientras quede algún dato identificativo de `LEGAL_ENTITY` sin
- *  aportar. `dpo` no entra en esta comprobación: `null` es un valor
- *  legítimo, no una ausencia de dato (ver docblock del módulo). */
+/**
+ * `true` mientras quede algún dato identificativo sin aportar.
+ *
+ * `null` NO cuenta como pendiente: es una declaración deliberada («no
+ * procede», ver docblock del módulo). Solo `PLACEHOLDER` bloquea. Hoy
+ * devuelve `false` — las dos páginas legales son publicables por primera vez
+ * desde que existen.
+ */
 export function hasPendingLegalData(): boolean {
   return IDENTIFYING_FIELDS.some(
     (field) => LEGAL_ENTITY[field] === PLACEHOLDER,

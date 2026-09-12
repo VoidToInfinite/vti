@@ -1,0 +1,284 @@
+"use client";
+import { useEffect, useRef } from "react";
+import {
+  isMountedBranchEffective,
+  scheduleBranchSettledCorrection,
+} from "./branchSettledCorrection";
+
+/**
+ * ATERRIZAJE EN UN FRAGMENTO CUANDO LA PÁGINA CAMBIA DE ALTO AL HIDRATAR
+ * (crítica externa #11, hallazgo A).
+ *
+ * EN UNA FRASE: tras montarse la rama de tema que de verdad va a quedarse, si
+ * la carga traía un fragmento en la URL, vuelve a llevar al lector a ese
+ * destino -- una sola vez, y solo si no ha tomado él el control del scroll
+ * mientras tanto.
+ *
+ * ## El defecto, medido (no supuesto)
+ *
+ * Una navegación con fragmento hecha como CARGA DE PÁGINA (`/#contact`,
+ * `/#features`, `/#journey`) aterriza en tema oscuro a miles de píxeles de su
+ * destino y no se corrige nunca. Medido por el orquestador de esta ola a
+ * 1440x900, `.top` = distancia del destino al borde superior del viewport una
+ * vez la página se ha asentado:
+ *
+ *   /#contact  claro    scrollY 4.615    destino a   +128 px  (correcto)
+ *   /#contact  OSCURO   scrollY 4.615    destino a +9.993 px  (roto)
+ *   /#features OSCURO   scrollY 3.119    destino a +10.381 px (roto)
+ *   /#story    OSCURO   scrollY   772    destino a   +128 px  (se salva)
+ *
+ * El `scrollY` final es IDÉNTICO en claro y en oscuro para `/#contact`: nadie
+ * lo tocó después. `/#story` se salva por estar antes de la expansión, no por
+ * ser un caso distinto.
+ *
+ * ## La causa raíz, en una línea
+ *
+ * Bajo `output: "export"` el primer render es SIEMPRE la rama clara
+ * (`ThemeProvider` no puede leer `localStorage` durante el render sin romper
+ * el HTML horneado -- ver su docblock). El navegador ejecuta su algoritmo de
+ * "scroll to the fragment" sobre ESA geometría, la del documento claro
+ * (~6.698 px), y cuando la hidratación monta los decks de la rama oscura
+ * (~16.379 px, la divergencia de vehículo que `DESIGN.md` §4 documenta) NADIE
+ * vuelve a medir. El navegador no repite ese algoritmo: es un paso de la
+ * navegación, no un observador del layout.
+ *
+ * POR QUÉ LOS CLICS DENTRO DE LA PÁGINA SÍ FUNCIONAN, y por qué eso no es una
+ * pista falsa: cuando alguien pulsa «Contacto» en el navbar, la página lleva
+ * rato hidratada y el desplazamiento se calcula contra la geometría REAL de la
+ * rama que está montada. El defecto no está en el destino ni en el
+ * `scroll-margin-top`: está en el INSTANTE en que se mide.
+ *
+ * AGRAVANTE: las páginas legales no tienen navegación de sección en la
+ * cabecera, así que su pie (`Footer.tsx`, enlaces `/#...` que en una carga
+ * completa son exactamente este caso) es la única vuelta a la home por
+ * sección -- rota en oscuro para todo el mundo que llegue a una legal desde
+ * fuera.
+ *
+ * ## Mecanismo, y por qué el "cuándo" no se resuelve con un temporizador a ojo
+ *
+ * El efecto de este hook depende de `branchKey` -- `HomeSections.tsx` le pasa
+ * el `themeName` del proveedor -- y NO arma nada hasta que esa rama montada es
+ * la efectiva, lo que se pregunta sin temporizadores a
+ * `isMountedBranchEffective` (`branchSettledCorrection.ts`): el `data-theme`
+ * que el script anti-flash del `<head>` escribe antes de hidratar. Así la
+ * corrección queda atada al hecho observable que importa (LA RAMA EFECTIVA YA
+ * ESTÁ MONTADA) en vez de a una estimación de cuánto tarda la hidratación:
+ *
+ * - Carga clara sin corrección de tema: `branchKey` ya coincide con el
+ *   atributo en la primera pasada, así que el efecto corre UNA vez, con la
+ *   rama definitiva montada. La corrección llega y es un no-op observable --
+ *   el navegador ya había acertado, y volver al MISMO destino con el MISMO
+ *   `block: "start"` no mueve la página.
+ * - Carga oscura: el efecto corre primero con la rama clara (todavía la del
+ *   HTML horneado) y la puerta lo deja pasar sin armar NADA; en cuanto el
+ *   efecto de hidratación de `ThemeProvider` confirma el tema, React lo vuelve
+ *   a arrancar con la rama oscura ya montada y entonces sí se arma. La
+ *   corrección que llega a aplicarse es siempre la de la geometría buena, y lo
+ *   es POR LA PUERTA: hasta el 2026-09-06 esa frase se sostenía en que la
+ *   limpieza del cambio de rama ganara la carrera a los relojes de la rama
+ *   clara, y el hermano de este hook demostró midiendo que no siempre la gana
+ *   (ver `isMountedBranchEffective`, con las cifras).
+ *
+ * Pasada la puerta, la espera son DOS RELOJES (doble `requestAnimationFrame`
+ * contra un tope de `FRAGMENT_LANDING_SETTLE_MS`, para la pestaña oculta donde
+ * no hay frames) más la guarda de intención humana que aborta si el lector se
+ * pone a desplazar por su cuenta. Ese mecanismo NO vive ya en este fichero:
+ * vive en `branchSettledCorrection.ts`, compartido con `useReloadLanding.ts`
+ * -- el hermano que corrige la RECARGA (crítica externa #19, P1 #2) con la
+ * misma espera y por la misma causa raíz. Ver ese módulo para el porqué de
+ * cada reloj y de la guarda; aquí solo queda la decisión de QUÉ corregir y
+ * CUÁNDO decidir que hay algo que corregir.
+ *
+ * ## Cómo se corrige: `scrollIntoView`, nunca aritmética propia
+ *
+ * `GlobalStyles.tsx` declara `:where(section[id], h3[id]) { scroll-margin-top:
+ * calc(var(--nav-height) + var(--nav-gap)) }`, que es EXACTAMENTE el desfase de
+ * cabecera que el destino necesita (los 128 px que mide la columna «correcto»
+ * de la tabla de arriba). `scrollIntoView({ block: "start" })` lo consume por
+ * construcción; reimplementarlo con `scrollTo({ top: rect.top + scrollY - X })`
+ * crearía una segunda fuente de ese número que se desincronizaría del CSS al
+ * primer retoque de la barra.
+ *
+ * `behavior: "instant"` SIEMPRE, nunca `"auto"` ni `"smooth"`: esto es una
+ * CORRECCIÓN DE COLOCACIÓN, no un viaje que el lector haya pedido. Y `"auto"`
+ * no serviría, porque resuelve al `scroll-behavior` computado, que en este
+ * sitio es `smooth` para todo el mundo salvo bajo `prefers-reduced-motion`
+ * (`GlobalStyles.tsx`) -- un desplazamiento animado de 10.000 px sería
+ * justo el defecto que la Task 17 midió y retiró. Como efecto colateral
+ * declarado, `"instant"` respeta `prefers-reduced-motion` por construcción: no
+ * hay movimiento que la preferencia pueda pedir retirar.
+ *
+ * ## Lo que este hook NO hace
+ *
+ * - NO unifica la longitud de scroll entre temas: sigue siendo la decisión
+ *   pendiente del dueño que `docs/qa-3d-pendiente.md` declara desde el
+ *   2026-08-12. Esta corrección hace que la divergencia deje de romper la
+ *   navegación por fragmento mientras se decide.
+ * - NO reacciona a cambios de hash POSTERIORES a la carga. El fragmento se
+ *   captura una sola vez, en la primera ejecución del efecto, y no se vuelve a
+ *   leer: de los clics dentro de la página ya se ocupa el navegador con la
+ *   geometría real, y volver a saltar al fragmento cada vez que alguien pulsa
+ *   el conmutador de tema pelearía con la restitución del ancla de lectura de
+ *   `useThemeScrollReset.ts`.
+ * - NO vive en las páginas legales: sin decks no hay divergencia de alto entre
+ *   ramas, así que ahí no hay nada que corregir.
+ *
+ * LIMITACIÓN CONOCIDA, declarada y no resuelta: `#statement` es la única `id`
+ * de sección que no es una sección hermana en NINGUNA rama -- desde la
+ * crítica externa #15 (2026-09-02, C10) cuelga de `#story` también en claro,
+ * y en la rama OSCURA es además la última DIAPOSITIVA del deck de Story,
+ * hija de un `ScStage` con `position: sticky`
+ * (ver el docblock de `themeScrollAnchor.ts`, que excluye ese mismo caso por
+ * el mismo motivo: la caja de un elemento pegado se mueve CON el scroll, así
+ * que su posición no es una propiedad del documento sino del instante en que
+ * se mide). Una carga `/#statement` en oscuro puede por tanto recolocarse mal.
+ * No se le pone remedio aquí a propósito: `#statement` no es destino de
+ * ninguna entrada de `src/config/navigation.ts` ni del pie, así que no hay un
+ * caso de uso real que verificar en navegador, y una regla sin caso que la
+ * ejercite envejecería sin que nadie la mirara. Si algún día se enlaza, la
+ * salida ya está escrita: la misma exclusión estructural de
+ * `isTopLevelSectionAnchor`.
+ */
+
+/**
+ * Tope de espera al re-maquetado cuando el doble `requestAnimationFrame` no
+ * llega (pestaña oculta, donde no hay frames en absoluto). No temporiza
+ * ninguna animación, así que no sale de `motion.duration` ni del vocabulario:
+ * es una constante de seguridad, de la misma familia que
+ * `HERO_DECODE_TIMEOUT_MS` (`timings.ts`).
+ *
+ * YA NO ES LO QUE DECIDE LA GEOMETRÍA, y el número se conserva a propósito
+ * (2026-09-06). Hasta esa fecha este tope --y el doble frame que corre a su
+ * lado-- podían vencer con la rama del HTML horneado todavía montada, y la
+ * corrección se aplicaba contra el documento equivocado; subirlo habría movido
+ * la carrera sin eliminarla. Quien decide contra qué maquetado se mide es
+ * ahora la puerta de `isMountedBranchEffective`, y este plazo se queda donde
+ * estaba para lo único que siempre fue suyo: que una pestaña sin frames
+ * termine de asentarse igual.
+ *
+ * Es el DOBLE de `THEME_ANCHOR_SETTLE_MS` (100 ms, `useThemeScrollReset.ts`) y
+ * no el mismo número, a propósito: aquel espera UN render de React (el cambio
+ * de tema ya confirmado en el tick del click), mientras que esta ventana puede
+ * tener que cubrir la hidratación entera MÁS el render de corrección de tema.
+ * Más trabajo, más plazo. En una pestaña visible el tope no se usa nunca: los
+ * dos frames (~33 ms a 60 Hz) ganan la carrera con holgura, y este número solo
+ * decide cuánto tarda la corrección en un contexto donde nadie la está viendo.
+ */
+export const FRAGMENT_LANDING_SETTLE_MS = 200;
+
+/**
+ * LA LLEGADA POR UN RECORRIDO DEL HISTORIAL (P7-2, 2026-09-11; C2 de la
+ * pre-crítica P6).
+ *
+ * EL DEFECTO, MEDIDO en P7-2A sobre el build de `4bc3b15`: portada, clic en
+ * «Contacto» de la cabecera, rueda hasta y=10.108, enlace del pie a una legal y
+ * Atrás. La portada se vuelve a montar, este hook nace con `loadHashRef`
+ * vacío y lee `#contact` como si fuera una carga: en el mismo milisegundo el
+ * restituidor del historial pedía `scrollTo(10108)` y este hook
+ * `scrollIntoView(#contact)`, que dejaba al lector en 9.046 (−1.062 px).
+ *
+ * LA SEÑAL es el tipo de la última navegación que CAMBIÓ de entrada. Los
+ * `replace` no cuentan: Next hace un `replaceState` justo después de cada
+ * recorrido, así que "el último `navigate`" a secas sale `replace` en el
+ * instante del montaje. Ninguna señal de la plataforma lo dice en ese
+ * instante (`navigation.transition` ya es `null`), y la de
+ * `useHistoryScrollRestoration` se consume en su `popstate`: leerla de allí
+ * acoplaría los dos hooks. Por eso el oyente es propio y vive en el módulo,
+ * que se evalúa al cargar el documento (lo importan `Providers`), antes de
+ * cualquier navegación dentro de él.
+ *
+ * Si no ha habido ninguna desde la carga, la entrada activa es la de la carga
+ * y SE ATERRIZA SIEMPRE, también cuando el documento llegó por un recorrido
+ * (`navigation.activation.navigationType === "traverse"`: un Atrás ENTRE
+ * documentos, sin bfcache). Hasta el 2026-09-12 esa lectura de `activation`
+ * decidía "no aterrizar", y medido sobre el build de P7-2B (Chrome con
+ * `--disable-features=BackForwardCache`, 1440x900, `/` → Contacto → rueda →
+ * `/privacidad` como documento → Atrás) dejaba al lector en y=0 en los dos
+ * temas: con la portada en `"manual"` la nativa no restituye,
+ * `useReloadLanding` excluye las URL con fragmento y este hook se callaba.
+ * Nadie colocaba al lector. Aterrizar en el ancla es lo que hacía la base
+ * (`4bc3b15`) y lo que sigue haciendo; el filtro solo actúa en los recorridos
+ * DENTRO del documento, que es el defecto C2. Sin la Navigation API el oyente
+ * no existe y el hook aterriza como antes de P7-2.
+ */
+let ultimaNavegacionDeEntrada: string | null = null;
+
+if (typeof window !== "undefined") {
+  const { navigation } = window as Window & {
+    navigation?: Partial<EventTarget>;
+  };
+  navigation?.addEventListener?.("navigate", (event: Event) => {
+    const { navigationType } = event as Event & { navigationType?: unknown };
+    if (typeof navigationType === "string" && navigationType !== "replace") {
+      ultimaNavegacionDeEntrada = navigationType;
+    }
+  });
+}
+
+/** `true` si la entrada activa se alcanzó por Atrás o Adelante DENTRO de este
+ *  documento (la primera carga, venga de donde venga, aterriza). */
+function llegadaPorRecorrido(): boolean {
+  return ultimaNavegacionDeEntrada === "traverse";
+}
+
+/**
+ * @param branchKey Identidad de la rama montada. `HomeSections.tsx` pasa el
+ * `themeName` del proveedor: cuando cambia, la corrección pendiente se cancela
+ * y se vuelve a armar contra el maquetado nuevo (ver el docblock de cabecera).
+ * Se tipa como `string` y no como `ThemeName` a propósito -- a este hook no le
+ * importa QUÉ rama es, solo que ha cambiado.
+ */
+export function useFragmentLanding(branchKey: string): void {
+  /** Fragmento de la CARGA. `null` mientras no se ha capturado; después, el
+   *  `id` (cadena vacía si la URL no traía ninguno). Se lee una sola vez para
+   *  que un `#hash` posterior --un clic en el navbar-- no pueda rearmar nada. */
+  const loadHashRef = useRef<string | null>(null);
+  /** `true` en cuanto la corrección se aplicó O se abortó. Cierra la puerta a
+   *  cualquier ejecución futura del efecto: sin esto, un cambio de tema del
+   *  usuario media hora después volvería a saltar al fragmento de la carga. */
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    if (loadHashRef.current === null) {
+      // Una entrada alcanzada por un recorrido del historial ya trae su
+      // posición: el fragmento de su URL no es una petición nueva, y aterrizar
+      // en él pisaría la lectura restituida (P7-2, ver `llegadaPorRecorrido`).
+      loadHashRef.current = llegadaPorRecorrido()
+        ? ""
+        : window.location.hash.slice(1);
+    }
+    const id = loadHashRef.current;
+    if (id === "" || finishedRef.current) return;
+
+    // LA PUERTA. Mientras la rama montada no sea la efectiva no se arma NADA:
+    // ni relojes ni guarda. Va DESPUÉS de capturar el fragmento a propósito --
+    // esa captura tiene que ocurrir en la primera pasada, con la URL de la
+    // carga delante, y no depende de qué rama esté montada.
+    //
+    // El efecto se vuelve a evaluar solo cuando `branchKey` cambia, que es
+    // exactamente cuando la respuesta puede cambiar: el commit de la rama
+    // oscura. Ver `isMountedBranchEffective` para el porqué medido.
+    if (!isMountedBranchEffective(branchKey)) return;
+
+    // La limpieza que devuelve el programador compartido se devuelve TAL CUAL
+    // desde el efecto: descarta la corrección pendiente entera al cambiar de
+    // rama, sin tocar `finishedRef` -- el cambio de rama tiene que poder
+    // volver a armar. Ver `branchSettledCorrection.ts`.
+    return scheduleBranchSettledCorrection({
+      settleMs: FRAGMENT_LANDING_SETTLE_MS,
+      onFinish: () => {
+        finishedRef.current = true;
+      },
+      apply: () => {
+        // La existencia del destino se comprueba AQUÍ, no al armar: el `id`
+        // puede pertenecer a un elemento que solo monta una de las dos ramas,
+        // y lo que decide es la rama que hay delante en el momento de
+        // corregir.
+        const target = document.getElementById(id);
+        if (target === null) return;
+
+        target.scrollIntoView({ behavior: "instant", block: "start" });
+      },
+    });
+  }, [branchKey]);
+}

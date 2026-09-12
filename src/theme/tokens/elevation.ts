@@ -5,4 +5,3 @@ export const elevation = {
   3: "0 12px 32px oklch(0 0 0 / 0.16)",
   4: "0 20px 48px oklch(0 0 0 / 0.20)",
 } as const;
-export type ElevationKey = keyof typeof elevation;

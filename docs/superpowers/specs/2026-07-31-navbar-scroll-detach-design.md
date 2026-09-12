@@ -7,6 +7,8 @@
 
 ---
 
+> **Enmienda 2026-08-11 (Task 10, plan premium F1-F5).** Todo lo que esta spec dice sobre el DESPEGUE (`data-scrolled`, `data-detach`, `ScBar`/`ScSurface`, `peelOff`/`stickOn`, `NAV_DETACH_ANIM_MS`) sigue vigente sin un solo cambio. Lo que ya NO describe el código es el mecanismo de la ENTRADA DE CARGA que menciona de pasada en §1 y §4: `data-intro` y `useStage()` desaparecieron de `Navbar.tsx`: la entrada es hoy una `@keyframes` estática (`navbarDrop`) con `animation-delay: HERO_CHROME_OFFSET_MS`, presente en el CSS del HTML exportado. El retardo de 760 ms se conserva verbatim. Motivo y medición completos en la §5.5 de `2026-07-27-hero-coreografia-carga-tema-design.md`. Consecuencia para esta spec: `opacity`/`transform` salieron de la lista de `transition` de `ScHeader` (una `@keyframes` sobre una propiedad impide que su `transition` exista), y esa lista quedó con una sola entrada, `padding-inline` — el bloque `&[data-scrolled="true"]` sigue cambiando solo su valor, que es justo lo que D1 pedía proteger.
+
 ## 1. Estado actual (medido, no de memoria)
 
 `src/components/layout/Navbar/Navbar.tsx` monta un único `ScHeader` (`<header>`, `position: fixed`, `top/left/right: 0`) que lleva TODO a la vez: posicionamiento, la banda de cristal (`glass.bg` + `backdrop-filter` + `border-bottom`) y la animación de entrada de la carga (`data-intro`, `opacity`/`transform`). Dentro va `ScNav` (`<nav>`, `height: var(--nav-height)` = 3.5rem) con marca, enlaces de sección (solo tema claro, ≥ md) y acciones.
@@ -111,6 +113,7 @@ Lectura: la píldora cae contra el borde superior, se aplasta en el impacto y se
 
 - Nuevos: `grid.navMax = "1280px"` (D7), `motion.easing.overshoot` (D8), variable CSS `--nav-gap: 0.5rem` (D6).
 - Reutilizados sin cambios: `radius.xl` (16px), `elevation[2]`, `glass.*`, `zIndex.stickyNav`, `motion.duration.{fast,base,slow,slower}`, `space[4]`/`space[6]` (padding interno de `ScNav`), `--nav-height`.
+    - **Enmienda 2026-09-03 (ola L, crítica #16):** el relleno interno de `ScNav` ya no es la tabla `space[4]`/`space[6]` por breakpoint. Craft midió que la marca nunca coincidía con el raíl de contenido (1920: 352 frente a 384; 1600: 192/224; 1280: 40/64; 1100: 40/24, con cambio de signo), así que `ScNav` resuelve ahora su `padding-inline` contra `grid.containerMax` + `space[5]`, los mismos tokens de Features, Contacto y el pie, en los dos estados de la barra. La píldora (`grid.navMax`, D7) no cambia. Commit `2c406fa`.
 - Cero literales de color, tamaño o duración en el componente salvo los porcentajes/factores de las `@keyframes`, que son la forma de la curva, no medidas del sistema.
 
 ## 8. i18n

@@ -1,6 +1,8 @@
 "use client";
-import styled, { css } from "styled-components";
+import styled, { css, type RuleSet } from "styled-components";
 import type { ThemeDefinition } from "@/theme/theme.types";
+import { DECK_DOES_NOT_FIT, DECK_FIT_ATTRIBUTE } from "@/hooks/useDeckFit";
+import { DECK } from "@/motion/vocabulary";
 import {
   JOURNEY_CONTENT_MAX_WIDTH,
   JOURNEY_DARK_HEIGHT,
@@ -11,8 +13,10 @@ import {
   JOURNEY_DECK_STEP_LABEL_SIZE,
   JOURNEY_DECK_STEP_LABEL_WEIGHT,
   JOURNEY_DECK_STEP_SUBTITLE_SIZE,
+  JOURNEY_DECK_TAIL_SCREENS,
   JOURNEY_DECK_TITLE_SIZE,
   JOURNEY_DECK_TRACK_HEIGHT,
+  JOURNEY_QUOTE_EXIT_OPACITY,
   JOURNEY_SCENE_DEPTH_SHIFT,
   JOURNEY_SLIDE_SHIFT,
   type JourneyStep,
@@ -42,15 +46,79 @@ import {
  *    ningun transform con --journey-enter -- esa variable la sigue
  *    escribiendo el hook (es su contrato), pero aqui no la lee nadie.
  */
+/*
+ * LA PRESENTACIÓN SE LINEALIZA POR DOS CAUSAS, CON UNA SOLA LEY (crítica
+ * externa #19, P1 número 3; WCAG 1.4.4). GEMELO EXACTO de `deckStatic` en
+ * `story.deck.tsx` -- leer su docblock es releer este --, duplicado aquí a
+ * propósito y no importado de allí, mismo criterio que `stepColor` y
+ * `ScJourneyScrollHint`: este fichero es una hoja estructural sin ninguna
+ * dependencia de la sección hermana. Lo que NO se duplica es el contrato del
+ * atributo, que se importa de `useDeckFit`: un literal repetido en las dos
+ * secciones es exactamente lo que la regla 13 de `RULES.md` prohíbe, porque
+ * basta cambiarlo en un sitio para que el CSS del otro deje de casar en
+ * silencio.
+ *
+ * El helper recibe las declaraciones que convierten esta presentación en un
+ * documento en flujo y las emite bajo las dos condiciones que hoy la exigen:
+ * `prefers-reduced-motion: reduce` (D12, la causa original) y
+ * `data-deck-fit="false"` en la PISTA, que escribe `useDeckFit` cuando alguna
+ * diapositiva no cabe en el escenario pegado. El defecto medido, el porqué de
+ * la medida y la diferencia de cascada entre un selector de atributo (0,2,0) y
+ * un `@media` (0,1,0) están escritos en los docblocks de `useDeckFit` y de
+ * `deckStatic` en `story.deck.tsx`.
+ */
+function deckStatic(declaraciones: RuleSet): RuleSet {
+  return css`
+    @media (prefers-reduced-motion: reduce) {
+      ${declaraciones}
+    }
+
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"],
+    [${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] & {
+      ${declaraciones}
+    }
+  `;
+}
+
+/*
+ * `height: auto` en el bloque estático (D12): sin pin, la pista deja de
+ * necesitar recorrido de scroll propio -- vuelve a medir lo que mide su
+ * contenido, en flujo normal, con las 8 diapositivas apiladas una debajo de
+ * otra (ver `ScJourneySlide`).
+ *
+ * ---------------------------------------------------------------------------
+ * LA COLA SE RESTITUYE CUANDO LA PISTA SE LINEALIZA POR NO CABER, Y SOLO
+ * ENTONCES. Mismo mecanismo, mismo motivo y mismo guard que `ScTrack` en
+ * `story.deck.tsx` -- leer su docblock es releer este --, con las constantes
+ * de esta sección y con la cortina de Features en el papel que allí hace la
+ * subida de Journey.
+ *
+ * LO MEDIDO (build propio de esta ola, Chrome, tema oscuro, 320x800, raíz a
+ * 32 px, sin `prefers-reduced-motion`, coordenadas de documento): con el deck
+ * ya linealizado, la diapositiva de la cita de cierre terminaba en 11.642 y la
+ * sección Features empezaba en 10.842 -- 800 px de solape opaco sobre la cita.
+ * Con `prefers-reduced-motion: reduce`, misma geometría, el solape medía 0.
+ *
+ * La aritmética que ata `JOURNEY_DECK_TAIL_SCREENS` con `FEATURES_OVERLAY_RISE`
+ * está escrita en `journey.layers.ts` (docblock de `JOURNEY_QUOTE_EXIT_SPAN`,
+ * que la deriva paso a paso): la cola existe para que la cortina de Features
+ * suba sobre terreno vacío. Sin pin no hay cola, y la cortina cae sobre la
+ * cita.
+ */
 export const ScJourneyTrack = styled.div`
   position: relative;
   height: ${JOURNEY_DECK_TRACK_HEIGHT};
 
-  /* D12: sin pin, la pista deja de necesitar recorrido de scroll propio --
-     vuelve a medir lo que mide su contenido, en flujo normal, con las 8
-     diapositivas apiladas una debajo de otra (ver ScJourneySlide). */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     height: auto;
+  `)}
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[${DECK_FIT_ATTRIBUTE}="${DECK_DOES_NOT_FIT}"] {
+      padding-block-end: calc(
+        ${JOURNEY_DECK_TAIL_SCREENS} * ${JOURNEY_DARK_HEIGHT}
+      );
+    }
   }
 `;
 
@@ -64,6 +132,12 @@ export const ScJourneyTrack = styled.div`
  * PIERDE su propio overflow: hidden -- ver el comentario de ScJourney en
  * Journey.tsx para el porque (D7, cita el mismo precedente D15b/D15c de
  * este fichero).
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): el pin en sí es la primera baja --
+ * sin `position: sticky` no hay nada que despegar --, y `height: auto` deja
+ * que las 8 diapositivas, ya en flujo (ver `ScJourneyDeck`/`ScJourneySlide`),
+ * determinen el alto real. El `overflow: hidden` se conserva a propósito, y de
+ * él depende la reserva de descendente de `ScJourneyQuote`, más abajo.
  */
 export const ScJourneyStage = styled.div`
   position: sticky;
@@ -71,13 +145,10 @@ export const ScJourneyStage = styled.div`
   height: ${JOURNEY_DARK_HEIGHT};
   overflow: hidden;
 
-  /* D12: el pin en si es la primera baja -- sin position: sticky no hay
-     nada que despegar. height: auto deja que las 8 diapositivas, ya en
-     flujo (ver ScJourneyDeck/ScJourneySlide), determinen el alto real. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     position: static;
     height: auto;
-  }
+  `)}
 `;
 
 /*
@@ -89,6 +160,33 @@ export const ScJourneyStage = styled.div`
  * compensar tocando ese hook (lo comparten Story/Features/Contact). Este
  * envoltorio, por ENCIMA de la escena, devuelve esa sensacion de profundidad
  * con un transform propio gobernado por --journey-progress.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): D12, guard IMPRESCINDIBLE y nada
+ * obvio (hallazgo de la auditoría adversarial de aquella entrega). En el
+ * estado estático -- por `reduce` o porque una diapositiva no cabe --
+ * `ScJourneyStage` pasa a `position: static`: deja de ser un elemento
+ * posicionado y, con él, deja de ser el CONTAINING BLOCK de este envoltorio,
+ * que sigue siendo absoluto. El containing block sube entonces a
+ * `ScJourneyTrack` (`position: relative` incondicional), cuya altura en ese
+ * estado es `auto` -- es decir, las 8 diapositivas apiladas en flujo, varias
+ * pantallas. Sin este bloque, el `inset: 0` de arriba resolvería contra esa
+ * caja y las seis capas de la escena (`object-fit: cover`,
+ * `journeyCosmicPortal.parts.tsx`) se estirarían a 8 pantallas de alto: el
+ * arte quedaría recortado a una franja vertical con un zoom brutal. No se
+ * pierde texto -- por eso D12 se cumpliría en su letra y ningún test de
+ * contenido lo vería -- pero el fondo se rompe.
+ *
+ * El arreglo NO puede ser devolverle al stage un `position: relative` en ese
+ * estado: seguiría midiendo `height: auto`, o sea las mismas 8 pantallas, y el
+ * estiramiento sería idéntico. Lo que cierra el fallo es dar aquí una altura
+ * EXPLÍCITA de una pantalla y anclarla arriba, que es correcto sea cual sea el
+ * ancestro que acabe haciendo de containing block. La escena aparece entonces
+ * una vez, con sus proporciones intactas, detrás de la primera diapositiva; el
+ * resto del recorrido queda sobre el `background-color` de la sección, que es
+ * exactamente el `secondary[1100]` del encargo. Se prefiere eso a
+ * `display: none`: lo que se degrada es el MOVIMIENTO, no la identidad visual
+ * de la sección. Y `will-change: auto` porque sin recorrido que animar,
+ * promover la capa solo gasta memoria de compositor.
  */
 export const ScJourneySceneWrap = styled.div`
   position: absolute;
@@ -127,45 +225,13 @@ export const ScJourneySceneWrap = styled.div`
      para el que existe will-change). */
   will-change: transform;
 
-  /*
-   * D12, guard IMPRESCINDIBLE y nada obvio (hallazgo de la auditoria
-   * adversarial de esta entrega). Bajo reduce, ScJourneyStage pasa a
-   * position: static (mas arriba): deja de ser un elemento posicionado y,
-   * con el, deja de ser el CONTAINING BLOCK de este envoltorio, que sigue
-   * siendo absoluto. El containing block sube entonces a ScJourneyTrack
-   * (position: relative incondicional), cuya altura bajo reduce es auto --
-   * es decir, las 8 diapositivas apiladas en flujo, varias pantallas. Sin
-   * este bloque, el inset: 0 de arriba resolveria contra esa caja y las seis
-   * capas de la escena (object-fit: cover, journeyCosmicPortal.parts.tsx) se
-   * estirarian a 8 pantallas de alto: el arte quedaria recortado a una
-   * franja vertical con un zoom brutal. No se pierde texto -- por eso D12 se
-   * cumpliria en su letra y ningun test de contenido lo veria -- pero el
-   * fondo se rompe.
-   *
-   * El arreglo NO puede ser devolverle al stage un position: relative bajo
-   * reduce: seguiria midiendo height: auto, o sea las mismas 8 pantallas, y
-   * el estiramiento seria identico. Lo que cierra el fallo es dar aqui una
-   * altura EXPLICITA de una pantalla y anclarla arriba, que es correcto sea
-   * cual sea el ancestro que acabe haciendo de containing block. La escena
-   * aparece entonces una vez, con sus proporciones intactas, detras de la
-   * primera diapositiva; el resto del recorrido queda sobre el
-   * background-color de la seccion, que es exactamente el secondary[1100]
-   * del encargo. Se prefiere eso a display: none: bajo reduce se degrada el
-   * MOVIMIENTO, no la identidad visual de la seccion.
-   *
-   * SIN BACKTICKS en este comentario, a proposito: vive DENTRO del template
-   * literal de styled-components, donde un backtick lo cierra y rompe el
-   * build (leccion del repo, task/lessons.md 2026-07-25).
-   */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     top: 0;
     bottom: auto;
     height: ${JOURNEY_DARK_HEIGHT};
     transform: none;
-    /* Sin recorrido que animar, promover la capa solo gasta memoria de
-       compositor. */
     will-change: auto;
-  }
+  `)}
 `;
 
 /*
@@ -177,6 +243,97 @@ export const ScJourneySceneWrap = styled.div`
  * el stage. z-index: 1 lo sube por encima de ScJourneySceneWrap (que no
  * declara ninguno, asi que participa del orden normal del documento) sin
  * necesitar tocar la escena.
+ *
+ * LA PISTA SE DECLARA, Y CON MINIMO CERO (critica externa #19, 2026-09-04,
+ * WCAG 1.4.4). Sin `grid-template-columns` la unica columna es implicita y
+ * `auto`, cuyo minimo automatico es el `min-content` de lo que contiene -- y con
+ * la preferencia de tamano de texto del usuario al 200 % ese minimo deja de
+ * caber. Medido en Chrome real sobre el build de produccion, raiz a 32px con
+ * `Page.setFontSizes` y viewport de 320 px: la caja de contenido de este deck
+ * mide 144 px (320 menos sus dos railes, escritos en `rem` y por tanto tambien
+ * escalados) y la pista salia de 279,39 px, asi que la diapositiva entera
+ * --titulo, cuerpo, los seis pasos y la cita-- se salia 23,39 px por la derecha.
+ * Y salirse aqui es perderse: `GlobalStyles` declara
+ * `html, body { overflow-x: clip }`, de modo que `scrollWidth` no se mueve y
+ * esos pixeles no se alcanzan con ningun gesto ni tecla.
+ *
+ * `minmax(0, 1fr)` deja que la pista baje del contenido; la division la resuelve
+ * el `overflow-wrap` que la seccion ya declara. La diapositiva
+ * (`ScJourneySlide`) sigue con `width: 100%`, asi que ocupa la pista entera pese
+ * al `place-items: center`.
+ *
+ * Los dos docblocks que siguen viven FUERA del template a proposito: lo que se
+ * escribe DENTRO de un template de styled-components es CSS, viaja al bundle y
+ * se paga en el presupuesto de JavaScript de la home. Lo vigila el candado
+ * `src/test/css-template-comments.test.ts`.
+ *
+ * ---------------------------------------------------------------------------
+ * `padding-inline`: RELLENO DEL EJE INLINE ACOTADO AL VIEWPORT (`inlineSpace`,
+ * no `space`) -- critica externa #20, 2026-09-05. Mismo defecto, mismo arreglo
+ * y mismo motivo que en ScDeck (`story.deck.tsx`), donde vive el razonamiento
+ * completo: los dos decks son gemelos declarados (deuda "Decks Story/Journey
+ * gemelos", `RULES.md`) y comparten esta geometria entera.
+ *
+ * Medido el 2026-09-05 sobre el build de produccion con la fuente al 200 %
+ * (raiz 32 px) y 320 px de viewport: este relleno y el canal de
+ * `padding-inline-end` se doblaban con la fuente mientras el viewport no, y la
+ * copia del deck quedaba en 144 px de 320 -- la cita de esta seccion, de 80 px,
+ * salia en 142,7 px de alto repartidos en 12 lineas. `inlineSpace[6]` es
+ * `min(2rem, 10vw)`: vale EXACTAMENTE `space[6]` con la raiz por defecto
+ * desde 320 px (la composicion no cambia ni un pixel) y se detiene en 32 px
+ * por lado a raiz 32 px y 320 px de ancho. Solo se acota el AIRE del eje
+ * inline; la tipografia crece siempre (acotarla seria el patron de fallo
+ * F94 de WCAG 1.4.4) y `padding-block` no compite con el viewport.
+ *
+ * ---------------------------------------------------------------------------
+ * `padding-inline-end`: CANAL DEL RAIL (critica externa #16, hallazgo L1).
+ * MISMA suma, mismo motivo y mismo orden de declaracion que en ScDeck
+ * (`story.deck.tsx`) -- los dos decks son gemelos declarados (deuda "Decks
+ * Story/Journey gemelos", `RULES.md`) y el rail de esta seccion tiene
+ * exactamente la misma geometria: inset `inlineSpace[5]`, diana de `space[5]`
+ * y un canal libre de `inlineSpace[2]` -- los 8 px que el propio hallazgo fija
+ * como umbral, y ni uno mas, porque cada pixel de canal sobrante se paga en
+ * medida de lectura a 390 px (el porque completo, con la version de 6rem que
+ * se descarto, en el docblock de ScDeck). Los dos terminos de AIRE se acotan
+ * al viewport (critica #20) y el del medio no, porque es el ANCHO REAL de la
+ * marca del rail y acotarlo reservaria menos canal del que el rail ocupa al
+ * 200 % de texto: tambien ese razonamiento vive entero en ScDeck. Con la raiz
+ * por defecto la suma sigue valiendo 3.5rem / 56 px, sin mover un pixel.
+ * La medicion que abre el hallazgo se tomo sobre Story, pero el defecto es
+ * estructural, no de una copia concreta: cualquier linea que llegue al borde
+ * de la caja de contenido entra en la banda del rail. Se duplica aqui en vez
+ * de importarse de alla, mismo criterio que ScScrollHint y el propio rail:
+ * este fichero es una hoja estructural sin ninguna dependencia de la seccion
+ * hermana.
+ *
+ * ---------------------------------------------------------------------------
+ * SIN RAIL VISIBLE NO HAY CANAL QUE RESERVAR (verificador de producto de la
+ * ola R, 2026-09-05, P3). MISMO defecto, mismo arreglo y mismo reordenado de
+ * bloques que en ScDeck (`story.deck.tsx`), donde vive el razonamiento
+ * completo: los dos decks son gemelos declarados (deuda "Decks Story/Journey
+ * gemelos", `RULES.md`) y los dos railes desaparecen bajo
+ * `prefers-reduced-motion: reduce` con la misma regla.
+ *
+ * Las cifras de esta seccion, medidas a 320 px con la preferencia activa sobre
+ * el build de produccion: la columna de copia era de 232 px a la raiz por
+ * defecto y de 208 px con la fuente al 200 %, con 56 y 80 px reservados
+ * respectivamente para un rail que no se pinta. Con el relleno simetrico pasa a
+ * 256 px en las dos.
+ *
+ * Y el ORDEN importa igual que alli: el bloque de `reduce` se declara ANTES del
+ * bloque `lg` para que el hueco de composicion de pantalla ancha -- que no
+ * tiene nada que ver con el rail -- siga ganando por encima de su escalon.
+ *
+ * ---------------------------------------------------------------------------
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba). D12: sin grid ya no hace falta apilar
+ * las 8 diapositivas en la MISMA celda -- se dejan caer una debajo de otra,
+ * todas visibles (ver `ScJourneySlide`, más abajo) -- y el relleno del lado del
+ * rail vuelve a ser simétrico porque el rail no se pinta. A diferencia de
+ * `ScDeck` en `story.deck.tsx`, aquí no hay ninguna cancelación de scrub que
+ * declarar: Journey no consume `direction`, así que este componente no tiene
+ * selector `[data-dir]` ni `@keyframes` de rebobinado bajo
+ * `prefers-reduced-motion: no-preference` que pudiera seguir corriendo sobre el
+ * deck ya linealizado.
  */
 export const ScJourneyDeck = styled.div`
   position: relative;
@@ -186,8 +343,21 @@ export const ScJourneyDeck = styled.div`
   max-width: ${JOURNEY_CONTENT_MAX_WIDTH};
   margin-inline: auto;
   display: grid;
+  /* Pista con minimo cero (WCAG 1.4.4, critica #19): ver el docblock. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  padding-inline: ${({ theme }) => theme.data.space[6]};
+  padding-inline: ${({ theme }) => theme.data.inlineSpace[6]};
+
+  padding-inline-end: calc(
+    ${({ theme }) => theme.data.inlineSpace[5]} +
+      ${({ theme }) => theme.data.space[5]} +
+      ${({ theme }) => theme.data.inlineSpace[2]}
+  );
+  ${deckStatic(css`
+    display: block;
+    height: auto;
+    padding-inline-end: ${({ theme }) => theme.data.inlineSpace[6]};
+  `)}
 
   /*
    * Hueco extra a la derecha SOLO en pantallas grandes (mismo recurso que
@@ -200,18 +370,6 @@ export const ScJourneyDeck = styled.div`
    */
   @media ${({ theme }) => theme.data.breakPoint.lg} {
     padding-inline-end: ${JOURNEY_DECK_PADDING_INLINE_END};
-  }
-
-  /* D12: sin grid ya no hace falta apilar las 8 diapositivas en la MISMA
-     celda -- se dejan caer una debajo de otra, todas visibles (ver
-     ScJourneySlide, mas abajo, donde reduce fuerza opacity/transform al
-     estado final). D6: a diferencia de ScDeck en story.deck.tsx, este bloque
-     no lleva ningun caracter de "rewind" -- Journey no consume direction,
-     asi que no hay selector [data-dir] ni @keyframes de scrub que declarar
-     bajo prefers-reduced-motion: no-preference. */
-  @media (prefers-reduced-motion: reduce) {
-    display: block;
-    height: auto;
   }
 `;
 
@@ -227,6 +385,69 @@ export const ScJourneyDeck = styled.div`
  * El estado base (sin data-state="current"/"past") es el de una diapositiva
  * que TODAVIA no ha llegado ("next"): opacity 0 + desplazada hacia abajo.
  * "past" invierte el signo del desplazamiento; "current" limpia los dos.
+ *
+ * SIN `visibility` -- REVERSION MEDIDA de la mitad del fix wave A, hallazgo
+ * A1, que aqui nunca llego a proteger nada real. Historia completa, porque
+ * este punto ya se ha decidido dos veces en sentidos opuestos:
+ *
+ * 1. Fix wave A (2026-08-12) anadio `visibility: hidden` al reposo y
+ *    `visibility: visible` a `[data-state="current"]` copiando el arreglo de
+ *    ScSlide (story.deck.tsx), donde SI cerraba una trampa de foco invisible
+ *    real: la Task 6 habia metido un enlace de Discord dentro de una
+ *    diapositiva de Story. Aqui se aplico de forma PREVENTIVA -- el propio
+ *    docblock declaraba que ninguna diapositiva de Journey monta nada
+ *    focalizable -- y su coste quedo escrito como aceptable ("un lector de
+ *    pantalla solo anuncia la diapositiva current, exactamente lo mismo que
+ *    ve un usuario con vista").
+ * 2. La critica externa #10 (2026-08-18) MIDIO ese coste, y no era el que
+ *    aquel razonamiento suponia. `ariaSnapshot()` de la seccion a scroll 0
+ *    devolvia solo el h2 y el parrafo de intro: `textContent` 730 caracteres
+ *    frente a `innerText` 184. Los seis pasos y la cita no aparecian NUNCA
+ *    salvo de uno en uno al scrollear a su posicion exacta, y un cursor
+ *    virtual saltaba de la intro directamente a la seccion siguiente.
+ *
+ * DONDE FALLABA EL RAZONAMIENTO DE 2026-08-12, y es lo que hay que recordar:
+ * decia que el contenido "sigue alcanzable exactamente por el mismo mecanismo
+ * (scroll) por el que ya lo era visualmente". Eso NO es cierto para un lector
+ * de pantalla: su cursor virtual recorre el ARBOL DE ACCESIBILIDAD, no
+ * produce eventos de scroll y por tanto no hace avanzar el deck. Un usuario
+ * con vista puede llegar a las 8 diapositivas girando la rueda; con
+ * `visibility: hidden` en las no actuales, un usuario de lector de pantalla
+ * no podia llegar a 7 de las 8 por ningun medio. No era "la misma experiencia
+ * que un usuario vidente": era perder el contenido entero.
+ *
+ * POR QUE `opacity: 0` SOLO ES SUFICIENTE, Y CORRECTO: `opacity` no
+ * interviene en el arbol de accesibilidad (solo lo hacen `display: none`,
+ * `visibility: hidden/collapse`, `aria-hidden`, el atributo `hidden` e
+ * `inert`), asi que la diapositiva sigue invisible a la vista y presente para
+ * la tecnologia asistiva -- que es exactamente la linearizacion que ya
+ * entrega el camino de `prefers-reduced-motion` (D12) y que ese camino NO
+ * pierde con este cambio.
+ *
+ * LA MITAD DE A1 QUE SIGUE VIVA, y como se ata ahora: `opacity: 0` y
+ * `pointer-events: none` NO sacan del orden de tabulacion. La garantia de que
+ * no hay trampa de foco invisible es que ninguna diapositiva de Journey
+ * contiene un elemento focalizable -- una condicion de ESTRUCTURA, no de
+ * CSS -- y esa condicion pasa a estar atada por un test (Journey.test.tsx,
+ * describe "critica #10 hallazgo A", ultimo it). Si manana alguien mete un
+ * enlace o un boton en una diapositiva, ese candado cae en rojo y obliga a
+ * resolver el foco de forma explicita (tabIndex -1 atado a data-state, o el
+ * atributo inert, los dos con el mismo criterio) en vez de reintroducir un
+ * `visibility: hidden` que volveria a vaciar el arbol de accesibilidad de la
+ * seccion entera. Los dos controles interactivos que la rama oscura SI monta
+ * -- los botones del rail (ScJourneyRailMark, mas abajo) -- viven fuera del
+ * deck y estan visibles siempre, asi que no entran en este problema.
+ *
+ * BLOQUE ESTÁTICO (`deckStatic`, arriba): D12, todas visibles a la vez, en
+ * flujo -- perder 7 de 8 diapositivas sería perder CONTENIDO, no solo
+ * movimiento. Ya no necesita revertir ninguna `visibility`: el reposo dejó de
+ * declararla (ver arriba).
+ *
+ * NOTA DE ALCANCE (cerrada): ScSlide (story.deck.tsx) tenia el MISMO defecto,
+ * agravado por un enlace real dentro. Se arreglo el mismo dia en la tarea
+ * derivada de esta ola: misma reversion de `visibility`, con la compuerta de
+ * foco movida al propio enlace (ScDeckNoteLink, Story.tsx) porque alli la
+ * estructura SI admite un focalizable -- ver su docblock.
  */
 export const ScJourneySlide = styled.div`
   grid-area: 1 / 1;
@@ -250,26 +471,40 @@ export const ScJourneySlide = styled.div`
     transform: translateY(calc(${JOURNEY_SLIDE_SHIFT} * -1));
   }
 
-  /* D12: todas visibles a la vez, en flujo -- perder 7 de 8 diapositivas
-     seria perder CONTENIDO, no solo movimiento. */
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
     opacity: 1;
     transform: none;
     pointer-events: auto;
-  }
+  `)}
 `;
 
 /*
- * Rail de progreso decorativo (D13): aria-hidden, refleja data-slide del
- * stage (un ANCESTRO de ScJourneyRailMark) por selector descendiente. Se
- * retira en reduce: sin pin ni avance atado al scroll, "por donde voy" deja
- * de tener sentido -- las 8 diapositivas ya estan a la vista a la vez.
+ * Rail de progreso (D13): refleja data-slide del stage (un ANCESTRO de
+ * ScJourneyRailMark) por selector descendiente. Se retira en el bloque estatico
+ * (`deckStatic`, arriba), o sea por las dos causas: sin pin ni avance atado al
+ * scroll, "por donde voy" deja de tener sentido -- las 8 diapositivas ya estan
+ * a la vista a la vez.
+ *
+ * DEJO DE SER aria-hidden en la critica externa #10 (hallazgo A, 2026-08-18):
+ * sus marcas son ahora botones reales (ver ScJourneyRailMark, abajo), asi que
+ * ocultarlo del arbol de accesibilidad esconderia ocho controles operables.
+ * El nombre del grupo lo pone Journey.tsx via aria-label + role group: ocho
+ * botones sueltos sin agrupar se anuncian como ocho controles sin relacion
+ * entre si.
+ *
+ * `inset-inline-end`: separacion del borde ACOTADA AL VIEWPORT (critica
+ * externa #20), gemela de la de ScRail en `story.deck.tsx`. Es el primer
+ * sumando del canal que ScJourneyDeck reserva en su `padding-inline-end` y los
+ * dos tienen que moverse juntos: si el inset se doblara con la fuente (48 px a
+ * raiz 32) y el canal no, el rail se meteria en la copia. Es aire puro; el
+ * ANCHO de la marca (ScJourneyRailMark) NO se acota, y el porque esta en el
+ * docblock del canal de ScDeck.
  */
 export const ScJourneyRail = styled.div`
   position: absolute;
   inset-block: 0;
-  inset-inline-end: ${({ theme }) => theme.data.space[5]};
+  inset-inline-end: ${({ theme }) => theme.data.inlineSpace[5]};
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -277,37 +512,226 @@ export const ScJourneyRail = styled.div`
   justify-content: center;
   gap: ${({ theme }) => theme.data.space[2]};
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     display: none;
-  }
+  `)}
 `;
 
-export const ScJourneyRailMark = styled.span<{ $index: number }>`
-  width: ${({ theme }) => theme.data.space[2]};
-  height: ${({ theme }) => theme.data.space[2]};
+/*
+ * ROTULO DE POSICION DEL RAIL (critica externa #16, decision del dueno: «hacer
+ * visible el rotulo del paso activo en el rail», en los DOS decks). Fraccion
+ * apilada, `aria-hidden`, gemela exacta de ScRailStatus (story.deck.tsx) --
+ * leer su docblock es releer este: alli estan el defecto que cierra, el motivo
+ * geometrico de que la fraccion se apile en vez de ir en linea, y por que este
+ * rotulo NO se anuncia.
+ *
+ * En esta seccion el ultimo argumento pesa el doble, y conviene dejarlo
+ * escrito aqui tambien: la numeracion hablada de Journey ya se decidio dos
+ * veces. La critica #10 hizo que cada marca del rail se llamara "Ir a la
+ * diapositiva N de 8" y la #12 lo midio contra el "Paso N de 6" que las
+ * propias diapositivas anuncian (`Home.journey.stepPosition`, VisuallyHidden,
+ * en las dos ramas), encontro un desfase de uno y retiro la numeracion del
+ * rail. Este rotulo cuenta PARADAS DEL RAIL, que son ocho porque incluyen la
+ * apertura y el cierre; anunciarlo devolveria a un lector de pantalla las dos
+ * numeraciones desalineadas que aquella ronda quito. Visible cuenta lo que se
+ * ve -- ocho puntos --, hablado sigue contando pasos.
+ */
+export const ScJourneyRailStatus = styled.p`
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  margin-block-end: ${({ theme }) => theme.data.space[3]};
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.caption.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.caption.weight};
+  line-height: ${({ theme }) => theme.data.type.scale.caption.lineHeight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.caption.tracking};
+  /* Cifras de ancho fijo: sin esto, pasar de "1" a "4" mueve la barra de la
+     fraccion un pixel a cada cambio de diapositiva. */
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+`;
+
+/* El numerador: la parada activa, en el color de texto pleno. Gemelo de
+   ScRailStatusCurrent (story.deck.tsx). */
+export const ScJourneyRailStatusCurrent = styled.span`
+  color: ${({ theme }) => theme.data.semantic.text};
+`;
+
+/* El denominador, con la barra de la fraccion como borde superior en el mismo
+   token que las marcas inactivas del rail. Gemelo de ScRailStatusTotal
+   (story.deck.tsx), donde vive el porque de que la barra sea geometria y no un
+   caracter salido de i18n. */
+export const ScJourneyRailStatusTotal = styled.span`
+  border-block-start: 1px solid
+    ${({ theme }) => theme.data.semantic.borderStrong};
+  padding-block-start: ${({ theme }) => theme.data.space[1]};
+  margin-block-start: ${({ theme }) => theme.data.space[1]};
+`;
+
+/*
+ * Marca del rail (critica externa #10, hallazgo A, P2 que puntua en la
+ * heuristica 7 de Nielsen). Hasta esta tarea era un `span` decorativo con
+ * `tabIndex -1` heredado del `aria-hidden` del rail: se veia "por donde vas"
+ * pero no se podia ir a ningun sitio, y encima apenas se veia -- los
+ * inactivos pintaban `semantic.border` (neutral 800) a `opacity: 0.4` sobre
+ * la escena casi negra del portal.
+ *
+ * TRES CAMBIOS, cada uno cerrando una mitad distinta del hallazgo:
+ *
+ * 1. ELEMENTO: `button` real, no `span`. Journey.tsx le pone `type="button"`,
+ *    `aria-label` de i18n y `aria-current` en el activo, y engancha el salto
+ *    a `scrollToSlide` (`useSlideDeck`), que invierte la geometria de la
+ *    pista. Al ser un boton nativo trae foco, Enter/Espacio y rol sin nada
+ *    que sincronizar a mano.
+ *
+ * 2. DIANA: el punto sigue midiendo space[2] (8px) -- la decision visual del
+ *    rail no cambia -- pero se dibuja con `::before` DENTRO de una caja de
+ *    space[5] (24px), que es el minimo de WCAG 2.5.8 (Target Size, AA en
+ *    WCAG 2.2). Un boton de 8x8 es inoperable con el dedo y casi con el
+ *    raton. La caja es transparente: no se ve, solo se toca.
+ *
+ * 3. CONTRASTE: los inactivos pasan de `semantic.border` al 40% de opacidad
+ *    a `semantic.borderStrong` OPACO. La opacidad desaparece de la
+ *    declaracion y de la lista de `transition` -- ya no hay nada que
+ *    interpolar en ese eje. WCAG 1.4.11 pide 3:1 para un componente de
+ *    interfaz frente a lo que tiene detras; el candado que lo mide contra el
+ *    void real de la escena vive en Journey.test.tsx (describe "critica #10
+ *    hallazgo A -- rail"). El activo conserva `semantic.brand` y su
+ *    `scale(1.5)`: la jerarquia entre activo e inactivo sigue viniendo de
+ *    color MAS tamano, no de que el inactivo sea invisible.
+ *
+ * EL SELECTOR DESCENDIENTE `[data-slide="N"] &` NO CAMBIA de forma (regla 35
+ * de RULES.md): sigue leyendo el estado desde el ANCESTRO -- el `data-slide`
+ * que ScJourneyStage ya escribe con el index de useSlideDeck -- y no desde un
+ * atributo del propio boton. `aria-current` se anade en el JSX como senal
+ * para tecnologia asistiva, no como fuente del estilo: dos fuentes de verdad
+ * para lo mismo pueden divergir, y la que ya estaba probada es esta.
+ */
+export const ScJourneyRailMark = styled.button<{ $index: number }>`
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: ${({ theme }) => theme.data.space[5]};
+  height: ${({ theme }) => theme.data.space[5]};
   border-radius: ${({ theme }) => theme.data.radius.full};
-  background-color: ${({ theme }) => theme.data.semantic.border};
-  opacity: 0.4;
-  transform: scale(1);
-  transition:
-    opacity ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    transform ${({ theme }) => theme.data.motion.duration.base}
-      ${({ theme }) => theme.data.motion.easing.standard},
-    background-color ${({ theme }) => theme.data.motion.duration.base}
+  color: ${({ theme }) => theme.data.semantic.borderStrong};
+  cursor: pointer;
+  transition: color ${({ theme }) => theme.data.motion.duration.base}
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  /* El punto visible. Hereda currentColor para que el color viva en UNA sola
+     declaracion (la del boton) y el estado activo no tenga que repetirlo
+     sobre dos elementos. SIN BACKTICKS en este comentario, a proposito: vive
+     DENTRO del template literal de styled-components, donde un backtick lo
+     cierra y rompe el build (leccion del repo, task/lessons.md 2026-07-25). */
+  &::before {
+    content: "";
+    display: block;
+    width: ${({ theme }) => theme.data.space[2]};
+    height: ${({ theme }) => theme.data.space[2]};
+    border-radius: ${({ theme }) => theme.data.radius.full};
+    background-color: currentColor;
+    transform: scale(1);
+    transition: transform ${({ theme }) => theme.data.motion.duration.base}
       ${({ theme }) => theme.data.motion.easing.standard};
+  }
+
+  &:hover {
+    color: ${({ theme }) => theme.data.semantic.text};
+  }
+
+  /* AQUI VIVIO un halo de foco propio: outline: none mas un box-shadow de
+     3px contra semantic.focus al 45%. Era el tercer vocabulario de anillo
+     del sitio -- y el unico SUSTITUTIVO -- y ademas dejaba esta marca sin
+     ningun indicador de foco bajo forced-colors, donde el navegador fuerza
+     box-shadow: none y el outline: none ya habia apagado el anillo global.
+     Retirado el 2026-09-02 (critica externa #14, P1 de Craft): el anillo
+     unico se declara en GlobalStyles.tsx con la geometria de
+     src/theme/tokens/focus.ts. El boton es redondo y outline adopta el
+     border-radius del elemento, asi que el anillo sigue saliendo redondo sin
+     declarar nada aqui. */
 
   ${({ $index, theme }) => css`
     [data-slide="${$index}"] & {
-      opacity: 1;
+      color: ${theme.data.semantic.brand};
+    }
+
+    [data-slide="${$index}"] &::before {
       transform: scale(1.5);
-      background-color: ${theme.data.semantic.brand};
     }
   `}
 
-  @media (prefers-reduced-motion: reduce) {
+  ${deckStatic(css`
     transition: none;
+
+    &::before {
+      transition: none;
+    }
+  `)}
+`;
+
+/*
+ * Pista de scroll del deck (Task 4, plan
+ * `2026-08-10-implementacion-plan-premium-f1-f5`), MISMA TECNICA que
+ * `ScScrollHint` en `story.deck.tsx` -- leer su docblock es releer este --
+ * duplicada aqui a proposito y no importada de alli, mismo criterio que
+ * `stepColor` mas abajo: este fichero es una hoja estructural sin ninguna
+ * dependencia de la seccion hermana.
+ *
+ * `aria-hidden`, y desde la critica externa #10 es el UNICO de los dos adornos
+ * del stage que lo es: el rail de al lado dejo de serlo al convertirse en ocho
+ * botones operables (ver `ScJourneyRail`, arriba), mientras que esta pista no
+ * gana nada al anunciarse -- no es un control y no dice "por donde voy", solo
+ * "puedes seguir bajando". Reutiliza `data-slide`, que `ScJourneyStage`
+ * (Journey.tsx) YA escribe con el `index` de `useSlideDeck` -- SIN listener
+ * nuevo. Visible en la diapositiva 0, desvanecida en cuanto `data-slide`
+ * deja de ser "0" (selector descendiente sobre el mismo ancestro que ya lee
+ * `ScJourneyRailMark`).
+ *
+ * `opacity` es la UNICA propiedad animada. `DECK.exitDurationMs` (200ms,
+ * `vocabulary.ts`, rol "salida de un velo o capa de la presentacion")
+ * consigue aqui su primer consumidor real, igual que en Story.
+ *
+ * En el bloque estatico se retira POR COMPLETO (`display: none`), mismo
+ * tratamiento y mismo motivo que `ScJourneyRail`: sin pin, las 8 diapositivas
+ * ya estan todas en flujo a la vez, y "puedes seguir bajando DENTRO del deck"
+ * deja de tener sentido. Decision de la spec ("se muestra estatico o no se
+ * muestra"): aqui se elige NO MOSTRAR, coherente con el rail.
+ */
+export const ScJourneyScrollHint = styled.p`
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: ${({ theme }) => theme.data.space[6]};
+  z-index: 1;
+  margin: 0;
+  text-align: center;
+  font-family: ${({ theme }) => theme.data.type.fontBody};
+  font-size: ${({ theme }) => theme.data.type.scale.overline.size};
+  font-weight: ${({ theme }) => theme.data.type.scale.overline.weight};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.overline.tracking};
+  color: ${({ theme }) => theme.data.semantic.textMuted};
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity ${DECK.exitDurationMs}ms
+    ${({ theme }) => theme.data.motion.easing.standard};
+
+  [data-slide]:not([data-slide="0"]) & {
+    opacity: 0;
   }
+
+  ${deckStatic(css`
+    display: none;
+  `)}
 `;
 
 /*
@@ -333,9 +757,10 @@ function stepColor(
  * equivalente (registro 2026-07-28, task/lessons.md):
  *
  * 1) Desacople de la rama clara: si estas piezas reutilizaran los
- *    styled(Typography) de la rama clara de Journey.tsx (ScKicker aparte,
- *    que SI se reutiliza tal cual porque no cambia de tamano), cualquier
- *    ajuste de tamano aqui se filtraria tambien al tema claro.
+ *    styled(Typography) de la rama clara de Journey.tsx, cualquier ajuste de
+ *    tamano aqui se filtraria tambien al tema claro. (Hasta Task 11,
+ *    2026-08-09, el kicker `ScKicker` era la unica excepcion reutilizada tal
+ *    cual entre las dos ramas -- se retiro de las dos, asi que ya no aplica.)
  * 2) styled(Typography) con un `as` que cambie el elemento de salida pierde
  *    TODA la escala tipografica de Typography en styled-components v6 (el
  *    prop `as` lo CONSUME el propio wrapper): estas piezas no necesitan
@@ -348,18 +773,20 @@ function stepColor(
  * cuyo ROL sustituye cada pieza (documentado pieza a pieza mas abajo), SALVO
  * donde el propio docblock de la pieza declare una excepcion explicita:
  * ScJourneyStepLabel y ScJourneyQuote toman su font-weight de una constante
- * PROPIA (900), no del token h5/600 que sustituyen -- excepcion deliberada a
+ * PROPIA (900), no del token h4/600 que sustituyen -- excepcion deliberada a
  * type.scale (se detiene en 800), spec 2026-08-02-journey-deck-tipografia-
  * design.md, T3/T6. La UNICA excepcion de COLOR -- ScJourneyStepIconBox, que
  * SI toma el color de la rampa del paso en vez de semantic.text -- sigue el
  * mismo precedente que ScPillarNumber en Story.tsx (un marcador por item, no
  * texto de cartel generico) y esta documentada en su propio docblock, mas
  * abajo. Hasta 2026-08-02 habia una SEGUNDA excepcion, ScJourneyStepNumber
- * (el numero de paso "01".."06" de la diapositiva): se retiro por completo,
- * junto con su constante de tamano (JOURNEY_DECK_STEP_NUMBER_SIZE,
- * journey.layers.ts), al quitar la numeracion de esta rama por encargo
- * explicito del usuario -- la rama clara de Journey conserva la suya, sin
- * cambios.
+ * (el numero de paso "01".."06" de la diapositiva a escala de cartel,
+ * JOURNEY_DECK_STEP_NUMBER_SIZE): se retiro por completo, junto con su
+ * constante de tamano, al quitar la numeracion de esta rama por encargo
+ * explicito del usuario (D16). Sigue sin volver: la Task 16 llego a montar
+ * un ordinal pequeno aqui y el dueno lo retiro el mismo dia -- ver la lapida
+ * mas abajo, donde tambien esta como se resuelve hoy la senal de posicion
+ * (texto solo para lector de pantalla, sin pieza visible).
  */
 export const ScJourneyDeckTitle = styled.h2`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -389,8 +816,6 @@ export const ScJourneyIntroBody = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
   margin-block-start: ${({ theme }) => theme.data.space[5]};
   max-width: ${({ theme }) => theme.data.grid.prose};
 `;
@@ -422,6 +847,25 @@ export const ScJourneyStepIconBox = styled.span<{
 `;
 
 /*
+ * AQUI VIVIO ScJourneyStepOrdinal, la linea pequena con el "01".."06" que la
+ * Task 16 monto en esta rama para igualar el contenido con la clara. Retirada
+ * el mismo dia por decision del DUENO (fix round de la revision): la spec
+ * 2026-08-02-journey-deck-8-diapositivas-design.md, D16, recoge que se le
+ * pregunto explicitamente por la asimetria clara/oscura de la numeracion y
+ * respondio "solo la rama oscura" -- la asimetria VISIBLE es deliberada, no un
+ * descuido, y vuelve intacta.
+ *
+ * Lo que SI se acepto del hallazgo es la mitad de accesibilidad: el rail de
+ * progreso (ScJourneyRail, mas abajo) es aria-hidden, asi que sin ninguna otra
+ * senal quien navega con lector de pantalla no sabia por que paso de la
+ * secuencia iba. Eso se resuelve ahora con texto SOLO para lector de pantalla
+ * (VisuallyHidden con "Paso N de 6", ver JourneyDeckDark en Journey.tsx): la
+ * informacion llega a quien la necesitaba sin devolver ningun numero a la
+ * pantalla. Por eso no hace falta ninguna pieza styled aqui -- VisuallyHidden
+ * (src/components/ui/) ya trae su propia caja de 1x1 recortada.
+ */
+
+/*
  * Etiqueta de una sola palabra del paso ("Descubre".."Evoluciona", D11):
  * antes iba pegada al numero dentro del mismo nodo de texto
  * (ScStepLabel/ScDarkStepLabel); ahora es la pieza de cartel que se lleva
@@ -435,19 +879,19 @@ export const ScJourneyStepIconBox = styled.span<{
  * pilar de Story (tope 3rem) a ser el elemento DOMINANTE de la diapositiva
  * (tope 11rem, literal del encargo -- ver el docblock de la constante en
  * journey.layers.ts para lo medido sobre en que viewport se alcanza el
- * tope). El peso deja de seguir el token h5 (600) y pasa a
+ * tope). El peso deja de seguir el token h4 (600) y pasa a
  * JOURNEY_DECK_STEP_LABEL_WEIGHT (900, constante propia y no un token --
  * type.scale se detiene en 800, ver su docblock).
  *
  * line-height CAMBIADO, y esto NO lo pide el encargo -- hay que explicarlo:
- * type.scale.h5.lineHeight vale 1.35, un factor UNITLESS, y a 11rem eso
+ * type.scale.h4.lineHeight vale 1.35, un factor UNITLESS, y a 11rem eso
  * resuelve a ~14.9rem de caja de linea para una palabra de una sola linea --
  * unos 4rem de aire muerto que empujarian el subtitulo fuera de la
  * composicion. Es el MISMO problema y la MISMA solucion que ScDeckNote
  * (story.deck.tsx) ya documento al subir a 8rem: se reutiliza
  * type.scale.display.lineHeight (1.03), el valor ya calibrado del sistema
  * para texto de cartel, en vez de inventar un numero nuevo para esta pieza.
- * letter-spacing SIGUE el de h5 -- no hay motivo medido para cambiarlo.
+ * letter-spacing SIGUE el de h4 -- no hay motivo medido para cambiarlo.
  *
  * margin-block-start SUBIDO de space[2] a space[4] (2026-08-02, al retirar
  * ScJourneyStepNumber junto con la numeracion de esta rama): NO es un
@@ -457,8 +901,10 @@ export const ScJourneyStepIconBox = styled.span<{
  * margin-block-start: space[4] separandolo a EL del icono. Al desaparecer
  * el numero, esta etiqueta pasa a seguir directamente al icono, y el hueco
  * que le corresponde es el que el icono tenia reservado (space[4]), no el
- * space[2] pensado para separar dos textos entre si. Sin cambios en esta
- * entrega.
+ * space[2] pensado para separar dos textos entre si. La Task 16 lo bajo a
+ * space[2] durante unas horas, mientras el ordinal visible existio; con
+ * aquel retirado (ver la lapida mas arriba), vuelve a space[4] -- el texto
+ * oculto que lo sustituye no ocupa caja, asi que no cambia ningun ritmo.
  */
 export const ScJourneyStepLabel = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -466,7 +912,7 @@ export const ScJourneyStepLabel = styled.p`
   font-size: ${JOURNEY_DECK_STEP_LABEL_SIZE};
   font-weight: ${JOURNEY_DECK_STEP_LABEL_WEIGHT};
   line-height: ${({ theme }) => theme.data.type.scale.display.lineHeight};
-  letter-spacing: ${({ theme }) => theme.data.type.scale.h5.tracking};
+  letter-spacing: ${({ theme }) => theme.data.type.scale.h4.tracking};
   margin-block-start: ${({ theme }) => theme.data.space[4]};
 `;
 
@@ -485,6 +931,20 @@ export const ScJourneyStepLabel = styled.p`
  * clamp(1rem, 1.4vw, 1.115rem)), y tampoco cambian peso/interlineado/
  * tracking (siguen los de `body`, no los de `caption`) ni el color
  * (textMuted, texto de acompanamiento, no el titular).
+ *
+ * `max-width` (Task 22, tipografia de lectura, plan premium F1-F5): NUEVO con
+ * esta tarea. El detector de craft midio en runtime, en los dos gates, que
+ * este parrafo no declaraba tope de ancho propio y heredaba la capacidad
+ * completa de su contenedor -- 97,9-112ch a 1280px
+ * (`JOURNEY_CONTENT_MAX_WIDTH`, `journey.layers.ts`, 1280px de contenido).
+ * Con el copy actual ninguna instancia llega a envolver a ese ancho -- es
+ * riesgo ESTRUCTURAL latente, no un defecto visible hoy -- pero un copy mas
+ * largo se extenderia sin freno. `theme.data.grid.prose` (56ch desde la critica #13; 52ch desde
+ * 2026-08-17, ~65 caracteres reales;
+ * `theme/tokens/grid.ts`) es el token que el sistema ya reserva para este
+ * rol -- mismo arreglo y mismo token que `ScDeckPillarSubtitle`/
+ * `ScDeckPillarBody` en `story.deck.tsx`, la misma tarea -- y cae dentro del
+ * objetivo de legibilidad de 60-75ch del encargo.
  */
 export const ScJourneyStepSubtitle = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -493,10 +953,47 @@ export const ScJourneyStepSubtitle = styled.p`
   font-weight: ${({ theme }) => theme.data.type.scale.body.weight};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   letter-spacing: ${({ theme }) => theme.data.type.scale.body.tracking};
-  text-wrap: balance;
-  text-wrap-style: balance;
+  max-width: ${({ theme }) => theme.data.grid.prose};
   margin-block-start: ${({ theme }) => theme.data.space[3]};
 `;
+
+/**
+ * Semi-interlineado que `line-height: 1.03` NO cubre, por debajo de la ultima
+ * linea de la cita, expresado en `em` para que siga al tamano de la propia
+ * pieza y no a la raiz del documento.
+ *
+ * POR QUE EXISTE ESTE NUMERO. `type.scale.display.lineHeight` (1.03) es un
+ * interlineado de CARTEL: mas apretado que el area de contenido de la familia
+ * de la marca, que mide ~1.30 em (ascendente + descendente). La diferencia --
+ * ~0.27 em -- se reparte arriba y abajo como semi-interlineado NEGATIVO, asi
+ * que la caja en linea de cada linea sobresale por fuera de la caja del
+ * parrafo. Dentro de un bloque de texto no se nota, porque la linea siguiente
+ * ocupa ese espacio; en la ULTIMA linea el sobrante cuelga por debajo del
+ * parrafo, y esta pieza es lo ultimo que hay dentro de ScJourneyStage, que
+ * recorta con `overflow: hidden`.
+ *
+ * DE DONDE SALE EL VALOR. Medido en Chrome sobre el build de produccion, tema
+ * oscuro y `prefers-reduced-motion: reduce`, comparando el rect del span de la
+ * cita con el de su parrafo (ancho x raiz -> px de sobrante / la misma cifra en
+ * em de la fuente resuelta):
+ *
+ *   320x16 ->  4,81 px / 0,1203 em      390x16 ->  5,81 px / 0,1355 em
+ *   320x32 -> 10,61 px / 0,1326 em      390x32 -> 10,61 px / 0,1326 em
+ *  1000x16 -> 14,70 px / 0,1337 em     1280x16 -> 17,17 px / 0,1342 em
+ *  1280x32 -> 18,98 px / 0,1348 em
+ *
+ * El sobrante es una fraccion CONSTANTE del tamano de fuente -- 0,1203 a 0,1355
+ * em en siete combinaciones de ancho y raiz -- y por eso la reserva se declara
+ * en `em` y no en `rem` ni en un peldano de `space`: entre 320 px y 1280 px la
+ * cita se dimensiona con el termino en `vw` de su `clamp()`, que no sigue a la
+ * raiz, asi que una reserva en `rem` se quedaria corta justo en las pantallas
+ * medianas (a 1000 px de ancho harian falta 14,70 px y `space[2]` daria 8).
+ *
+ * 0.16 em cubre el peor caso medido con ~18 % de margen, que es el colchon para
+ * las metricas de la fuente de respaldo cuando la de la marca todavia no ha
+ * cargado o no esta disponible.
+ */
+export const JOURNEY_QUOTE_DESCENT_RESERVE = "0.16em";
 
 /*
  * Cita de cierre (ultima diapositiva). Envuelve a ScQuoteText (Journey.tsx,
@@ -526,6 +1023,80 @@ export const ScJourneyStepSubtitle = styled.p`
  * letter-spacing SIN TOCAR (type.scale.bodySm.tracking, 0): tampoco lo pide
  * el encargo de esta entrega, mismo motivo que antes (no introducir un
  * tracking que nadie pidio).
+ *
+ * ---
+ *
+ * SALIDA ANTES DEL RELEVO CON FEATURES (critica externa #15, hallazgo A P2-1,
+ * 2026-09-02). El porque completo -- la secuencia medida, las dos vias
+ * descartadas y de donde sale el numero -- vive en el docblock de
+ * JOURNEY_QUOTE_EXIT_SPAN (journey.layers.ts); aqui va lo que hace falta para
+ * leer la declaracion:
+ *
+ * - La rampa se ancla en `progress = 1`, que NO es un instante cualquiera: es,
+ *   por construccion del sistema T = R = 1, el mismo frame en el que Features
+ *   empieza a subir como cortina. Con la rampa terminada ahi, la cortina cruza
+ *   una escena vacia en vez de una frase a medias.
+ * - `opacity` es la UNICA propiedad que cambia, y cambia por VARIABLE, no por
+ *   transition: `--journey-progress` ya llega frame a frame desde useSlideDeck,
+ *   asi que declarar una duracion aqui superpondria un segundo reloj al del
+ *   scroll (mismo criterio que ScJourneySceneWrap, arriba en este fichero, que
+ *   tampoco declara transition para su translateY ligado a la misma variable).
+ * - La forma es una rampa lineal recortada: vale 1 mientras queda mas de un
+ *   tramo de salida por recorrer, y baja a 0 al llegar al final. El valor por
+ *   defecto de la variable es 0, asi que sin JS -- o antes del primer frame del
+ *   hook -- la cita se pinta opaca, nunca invisible.
+ *
+ * EL GUARD DEL BLOQUE ESTATICO ES OBLIGATORIO, no simetria decorativa: bajo
+ * `reduce` useSlideDeck se desmonta como presentacion y deja de escribir sus variables,
+ * pero NO borra las que ya escribio (son estilo en linea sobre el stage). Un
+ * usuario que active la preferencia con la pista terminada se quedaria con
+ * `--journey-progress: 1.0000` pegado y la cita invisible para siempre, en el
+ * mismo camino que D12 existe para linealizar. Con el guard, la cita se pinta
+ * entera junto al resto de diapositivas en flujo.
+ *
+ * LO QUE NO SE DESVANECE, y es deliberado: el rail (ScJourneyRail, arriba). Sus
+ * marcas son BOTONES reales desde la critica #10, y bajarles la opacidad los
+ * dejaria invisibles pero focalizables -- exactamente la trampa de foco que el
+ * docblock de ScJourneySlide documenta al revertir su `visibility`. Un control
+ * operable no se apaga con opacity.
+ *
+ * ---
+ *
+ * LA CITA CABE EN SU ESCENARIO (verificador de producto de la ola R,
+ * 2026-09-05, P3). El `padding-block-end` del bloque estatico no es simetria
+ * decorativa: cierra un recorte medido.
+ *
+ * EL DEFECTO. En el estado estatico, ScJourneyStage pasa a `height: auto` y su
+ * ultima caja en flujo es esta cita, a ras del borde por el que el escenario
+ * recorta (`overflow: hidden`). Con `line-height: 1.03` la caja en linea de la
+ * ultima linea cuelga por debajo de la caja del parrafo, asi que el descendente
+ * de esa linea cae fuera del recorte: medido en Chrome sobre el build de
+ * produccion, tema oscuro, 320 px de ancho, 4,81 px a la raiz por defecto y
+ * 10,61 px con la fuente al 200 %. El razonamiento de la metrica y las siete
+ * medidas completas viven en el docblock de JOURNEY_QUOTE_DESCENT_RESERVE,
+ * arriba.
+ *
+ * POR QUE NO PASA EN STORY, que declara el MISMO tamano y el MISMO
+ * interlineado en ScDeckNote (`story.deck.tsx`): alli la nota no es lo ultimo
+ * de la diapositiva de cierre -- debajo va el enlace de comunidad
+ * (ScDeckNoteLink, Story.tsx), con interlineado de cuerpo, y su caja absorbe el
+ * sobrante antes de llegar al recorte del escenario. Aqui la cita esta sola.
+ *
+ * POR QUE SOLO EN EL ESTADO ESTATICO, y no siempre: mientras el escenario esta
+ * pinado mide una pantalla y centra la diapositiva, asi que el sobrante cae
+ * dentro de la holgura vertical y no se recorta -- comprobado a 320 px con las
+ * dos raices sobre el mismo build. Declararlo sin condicion moveria la
+ * composicion por defecto (la cita crece 6,4 px a la raiz por defecto y, al
+ * estar centrada, se desplazaria 3,2 px hacia arriba) para cerrar un defecto
+ * que ahi no existe.
+ *
+ * Y ESA CONDICION SE ENSANCHA CON LA CRITICA #19: el estado estatico ya no
+ * llega solo por `prefers-reduced-motion`. Cuando una diapositiva no cabe
+ * (`data-deck-fit="false"`, `useDeckFit`), el escenario pasa por el mismo
+ * `height: auto` con el mismo `overflow: hidden` y la cita vuelve a quedar a
+ * ras del borde -- el mismo recorte, por la otra puerta. El helper `deckStatic`
+ * emite este guard en las dos, que es justo lo que evita que un arreglo medido
+ * en 2026-09-05 se pierda en el camino nuevo.
  */
 export const ScJourneyQuote = styled.p`
   font-family: ${({ theme }) => theme.data.type.fontBody};
@@ -536,4 +1107,10 @@ export const ScJourneyQuote = styled.p`
   letter-spacing: ${({ theme }) => theme.data.type.scale.bodySm.tracking};
   text-wrap: balance;
   text-wrap-style: balance;
+  opacity: ${JOURNEY_QUOTE_EXIT_OPACITY};
+
+  ${deckStatic(css`
+    opacity: 1;
+    padding-block-end: ${JOURNEY_QUOTE_DESCENT_RESERVE};
+  `)}
 `;

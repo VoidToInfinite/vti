@@ -10,6 +10,8 @@ interface MockIntersectionObserver {
 
 let mockInstances: MockIntersectionObserver[] = [];
 let ioTrigger: (isIntersecting: boolean) => void;
+/** Lote de VARIAS entradas en UNA invocacion (ver el candado del final). */
+let ioLote: (isIntersecting: boolean[]) => void;
 
 function stubMatchMedia(reducedMatches: boolean): void {
   vi.stubGlobal(
@@ -106,6 +108,7 @@ beforeEach(() => {
       disconnect = vi.fn();
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         ioTrigger = (v) => cb([{ isIntersecting: v }]);
+        ioLote = (vs) => cb(vs.map((v) => ({ isIntersecting: v })));
         mockInstances.push(this as unknown as MockIntersectionObserver);
       }
     },
@@ -200,6 +203,39 @@ describe("useSceneParallax", () => {
     for (const cb of batch) cb(0);
 
     expect(layer.style.transform).toContain("scale(1.06");
+  });
+
+  it("el scale se queda fijo en overscan aunque scrollProgress no sea cero (Task 7, plan premium F1-F5: congelar el scale)", () => {
+    // Hasta esta tarea el scale variaba `overscan + scrollProgress * depth *
+    // 0.05` -- un cambio de escala en CADA frame de scroll que fuerza al
+    // compositor a re-rasterizar la capa (a diferencia de una traslacion
+    // pura). Congelado, el scale es SIEMPRE `overscan`, sin importar cuanto
+    // haya avanzado el scroll. `rect.top: -400` (con `innerHeight` 768 de
+    // jsdom) deja `scrollProgress` en ~0.52 -- no trivial -- y `depth: 1` es
+    // el maximo que la formula antigua multiplicaba, para que un candado que
+    // se relajara por error lo detecte con el mayor margen posible.
+    let pending: FrameRequestCallback[] = [];
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (cb: FrameRequestCallback) => (pending.push(cb), pending.length),
+    );
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    scene.getBoundingClientRect = () => ({ top: -400 }) as DOMRect;
+    const layer = document.createElement("div");
+    const targets = [targetOf(layer, 1)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioTrigger(true));
+    const batch = pending;
+    pending = [];
+    for (const cb of batch) cb(0);
+
+    expect(layer.style.transform).toContain(
+      `scale(${OPTS.overscan.toFixed(4)})`,
+    );
   });
 
   it("tras superar idleMs sin movimiento de puntero, usa la deriva en vez del ultimo target de puntero", () => {
@@ -657,5 +693,30 @@ describe("useSceneParallax", () => {
     const actualChange = Math.abs(x2 - x1);
     expect(actualChange).toBeGreaterThan(0); // sigue habiendo movimiento
     expect(actualChange).toBeLessThan(fullJump * 0.3); // muy lejos del salto completo
+  });
+
+  /*
+   * CANDADO DEL LOTE MULTIPLE (P0 de la critica externa #21, ola U,
+   * 2026-09-08). Misma raiz que en `useReveal` y `useSlideDeck`: cuando el
+   * maquetado se mueve entre el `observe()` y la primera entrega -- la
+   * correccion del punto de lectura del conmutador de tema --, el navegador
+   * entrega los DOS registros en UNA invocacion, el obsoleto primero.
+   * Leyendo `entries[0]` la escena entraba en `release()` con la escena
+   * DENTRO del viewport: parallax detenido (medido sobre
+   * `journeyCosmicPortal ScScene` tras conmutar claro -> oscuro).
+   */
+  it("lee la entrada VIGENTE del lote: [obsoleta false, vigente true] en UNA invocacion arranca el rAF", () => {
+    const raf = vi.fn().mockReturnValue(7);
+    vi.stubGlobal("requestAnimationFrame", raf);
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    const targets = [targetOf(document.createElement("div"), 0.5)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useSceneParallax(sceneRef, targets, OPTS));
+
+    act(() => ioLote([false, true]));
+
+    expect(raf).toHaveBeenCalled();
   });
 });

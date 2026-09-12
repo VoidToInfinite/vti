@@ -5,16 +5,14 @@ import { ROUTES } from "./site";
 describe("links de CTA", () => {
   it("expone todos los destinos que el viaje necesita", () => {
     expect(Object.keys(links).sort()).toEqual([
-      "accessibility",
       "discord",
-      "docs",
       "email",
       "github",
-      "guides",
       "legalNotice",
+      "linkedin",
       "playground",
       "privacy",
-      "terms",
+      "sdk",
     ]);
   });
 
@@ -24,32 +22,42 @@ describe("links de CTA", () => {
     expect(links.email).toBe("mailto:hello@voidtoinfinite.com");
   });
 
-  it("playground, docs y guides apuntan al dominio de desarrollo ya confirmado", () => {
-    expect(links.playground).toBe("https://dev.voidtoinfinite.com");
-    expect(links.docs).toBe("https://dev.voidtoinfinite.com");
-    expect(links.guides).toBe("https://dev.voidtoinfinite.com");
+  /* El perfil del titular, aportado al cerrar la Fase 0 (2026-08-13). Se ata
+     el valor EXACTO, igual que sus hermanos: es el destino que el aviso legal
+     usa como vía de comprobación de quién responde del sitio, así que apuntar
+     a otro perfil sería un defecto de identificación, no una errata. */
+  it("linkedin apunta al perfil del titular declarado en el aviso legal", () => {
+    expect(links.linkedin).toBe("https://www.linkedin.com/in/demosquerag/");
   });
 
   /*
-   * Privacy, terms, accessibility y legalNotice DEJARON de ser marcadores el
-   * 2026-08-05: esta entrega creó las cuatro páginas reales. Los dos tests
-   * que afirmaban que contenían `por-completar` y `example.invalid` ya no
-   * describen el repo, así que se sustituyen -- y NO se relajan, siguiendo
-   * exactamente la doctrina que este mismo fichero fijó al sustituir los de
-   * `playground`/`docs`/`guides`: se asevera el valor EXACTO, no algo
-   * genérico tipo "es una ruta válida", que dejaría la puerta abierta a
-   * cambiar un destino sin revisión.
-   *
-   * La aserción se hace contra `ROUTES`, no contra la cadena literal, porque
-   * lo que hay que atar es que los dos ficheros NO PUEDAN divergir: si
-   * alguien cambia el slug en `site.ts` y olvida el pie, el sitemap y los
-   * enlaces apuntarían a sitios distintos sin que nada fallara. El candado
-   * del valor literal de cada slug vive en `site.test.ts`, que es su dueño.
+   * `docs` y `guides` desaparecieron de la lista el 2026-08-05 junto con sus
+   * dos únicos consumidores (los enlaces «Documentación» y «Guías» de la
+   * columna de Recursos del pie). Las dos apuntaban a la MISMA URL que
+   * `playground` y que la nueva `sdk`; el test de arriba, que compara el
+   * conjunto COMPLETO de claves, es el que impide que vuelvan a colarse sin
+   * que nadie lo decida.
    */
-  it("los cuatro legales apuntan a las rutas internas reales", () => {
+  it("playground y sdk apuntan al dominio de desarrollo ya confirmado", () => {
+    expect(links.playground).toBe("https://dev.voidtoinfinite.com");
+    expect(links.sdk).toBe("https://dev.voidtoinfinite.com");
+  });
+
+  /*
+   * Los legales DEJARON de ser marcadores el 2026-08-05, cuando se crearon
+   * las páginas reales. La aserción se hace contra `ROUTES`, no contra la
+   * cadena literal, porque lo que hay que atar es que los dos ficheros NO
+   * PUEDAN divergir: si alguien cambia el slug en `site.ts` y olvida el pie,
+   * el sitemap y los enlaces apuntarían a sitios distintos sin que nada
+   * fallara. El candado del valor literal de cada slug vive en
+   * `site.test.ts`, que es su dueño.
+   *
+   * Son DOS desde el 2026-08-08: `terms` y `accessibility` se retiraron con
+   * sus páginas. El test del conjunto completo de claves, arriba, es el que
+   * impide que vuelvan a colarse sin que nadie lo decida.
+   */
+  it("los dos legales apuntan a las rutas internas reales", () => {
     expect(links.privacy).toBe(ROUTES.privacy);
-    expect(links.terms).toBe(ROUTES.terms);
-    expect(links.accessibility).toBe(ROUTES.accessibility);
     expect(links.legalNotice).toBe(ROUTES.legalNotice);
   });
 

@@ -1,0 +1,72 @@
+name: CI
+
+# Gate de calidad del repo (typecheck + lint + format + detector de
+# anti-patrones + tests) en cada push a main y en cada pull request. NO
+# incluye check-spelling: parcialmente corregido (Task 24 -- comentario de
+# cabecera desactualizado corregido 2026-08-12, fix wave C, revision final de
+# rama). Task 25 (2026-08-12) instalo el diccionario espanol real que
+# faltaba (@cspell/dict-es-es) y amplio su cobertura a todo tipo de fichero:
+# cae de 111.199 avisos en 264 ficheros a 2.627 en 221 (-97,6%), sobre todo
+# jerga propia del repo sin diccionario, no errores reales. Sigue fuera del
+# gate a proposito -- 2.627 sigue siendo demasiado ruido para un gate no
+# interactivo sin curar antes esa lista de terminos propios -- por eso el
+# script `ci` de package.json no lo invoca, y este workflow tampoco lo anade
+# por su cuenta.
+#
+# SIEMPRE `pnpm run ci`, NUNCA `pnpm ci` a secas: aunque el script `ci`
+# exista en package.json, `pnpm ci` ejecuta el clean-install interno de
+# pnpm (compatibilidad con `npm ci`) y sale 0 SIN correr el gate -- medido
+# el 2026-08-08 en este mismo repo.
+#
+# DESPUES DEL GATE VAN `pnpm build` Y `pnpm measure:js`, en ese orden y como
+# dos pasos separados (anadidos 2026-09-05). El censo del bundle
+# (`scripts/home-js-baseline.<plataforma>.json`) se puede recortar y volver a sellar sin
+# tocar el build: el sello se calcula con una funcion pura sobre el propio
+# JSON, asi que un recorte coordinado -- borrar una fila, restar su peso y
+# bajar en el mismo gesto la constante que las cuenta -- salia en verde en
+# `pnpm run ci`. La unica comprobacion que contrasta el censo contra el
+# artefacto es el bloque de integracion de `scripts/measure-home-js.test.mjs`,
+# y ese se salta donde no hay `out/`, que hasta ahora era justo aqui. La unica
+# verdad de referencia contra la que un censo se puede contrastar es el
+# artefacto, asi que el candado se ejecuta donde hay artefacto: se construye y
+# se mide. `pnpm measure:js` sale con codigo 1 si falla cualquiera de sus nueve
+# candados, y que sean dos pasos y no uno hace que el registro diga cual de los
+# dos cayo. `scripts/build-pipeline.test.mjs` ata que sigan estando, y en este
+# orden.
+#
+# CORREGIDO 2026-09-12: la primera ejecución confirmó el riesgo declarado el
+# 2026-09-05. Turbopack asigna identificadores numéricos de módulo distintos en
+# Windows y Linux, y esos identificadores forman la firma del chunk. El
+# instrumento selecciona ahora un censo versionado por `process.platform`;
+# este runner compara exclusivamente contra `home-js-baseline.linux.json`,
+# generado en Ubuntu con Node 22. El censo Windows conserva el gate local sin
+# mezclar identidades de dos compiladores materialmente distintos.
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            # corepack ANTES de setup-node: el repo fija el gestor de paquetes via
+            # "packageManager" en package.json (pnpm@11.10.0), y corepack es lo que
+            # lee esa clave para instalar la version exacta -- si setup-node fuera
+            # primero, su cache de pnpm no encontraria el binario todavia.
+            - run: corepack enable
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: "pnpm"
+
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm run ci
+
+            # El censo del bundle se compara contra el artefacto, no contra si
+            # mismo: ver el bloque "DESPUES DEL GATE" de la cabecera.
+            - run: pnpm build
+            - run: pnpm measure:js

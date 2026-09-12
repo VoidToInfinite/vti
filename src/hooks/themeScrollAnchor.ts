@@ -1,0 +1,437 @@
+/**
+ * ANCLA DE LECTURA DEL CAMBIO DE TEMA: qué sección está leyendo la persona
+ * en el instante del click, y dónde queda ESA MISMA sección después de que
+ * las dos ramas de tema hayan re-maquetado la página entera.
+ *
+ * ## Por qué existe este módulo (el dato, no la intuición)
+ *
+ * Las cuatro secciones de la home ramifican VEHÍCULO por tema (tarjeta
+ * acotada en claro contra deck de diapositivas a sangre en oscuro,
+ * `DESIGN.md` §4), y un deck mide varias pantallas donde la tarjeta mide
+ * una. Consecuencia medida, no supuesta:
+ *
+ * - Review final de rama, 2026-08-12 (`docs/qa-3d-pendiente.md`, entrada
+ *   "Divergencia de longitud de scroll entre temas"): la home mide 5.827 px
+ *   en claro contra 12.821 px en oscuro a 1280x720 (x2,20), y 9.255 contra
+ *   14.877 en móvil 375x812 (x1,61). 8 de 8 escenarios de toggle REAL
+ *   dejaban al lector en una sección distinta de la que estaba mirando.
+ * - Crítica externa #8, 2026-08-17: el mismo defecto reportado por los tres
+ *   evaluadores por separado, con la página de hoy (docH claro ~6.700 px,
+ *   oscuro ~16.300 px): el punto de lectura pasa del 50 % del documento al
+ *   18,4 %, y quien estaba en Features aterriza en Story.
+ *
+ * La causa raíz es geométrica y se enuncia en una línea: **el contenido que
+ * queda POR ENCIMA del lector cambia de alto**, así que conservar el mismo
+ * `scrollY` en píxeles absolutos (lo que hace el sitio desde la Task 17)
+ * conserva la posición pero NO el contenido. La corrección exacta de ese
+ * arrastre es la diferencia entre dónde empezaba la sección que se está
+ * leyendo ANTES y dónde empieza DESPUÉS: eso, y solo eso, es lo que este
+ * módulo calcula.
+ *
+ * ## Qué cuenta como ancla, y por qué se excluyen las secciones anidadas
+ *
+ * Ancla = `<section>` con `id` que NO vive dentro de otra `<section [id]>`.
+ * El caso concreto que obliga a la exclusión es `#statement`: hasta la
+ * crítica externa #15 (2026-09-02, C10) en la rama clara era una sección
+ * hermana de `#story` (posición de documento estable, ancla legítima) y
+ * solo en la oscura estaba anidada; desde esa ronda cuelga de `#story` en
+ * los DOS temas, y en la oscura es además la última DIAPOSITIVA del deck de
+ * Story (`Story.tsx`, `<ScSlide as="section" id="statement">`), es decir un
+ * hijo de un `ScStage` con `position: sticky`. Consecuencia buscada: deja
+ * de ser ancla válida también en claro, así que este módulo se comporta
+ * igual en los dos temas. La caja de un elemento
+ * pegado se mueve CON el scroll: su "top de documento" no es una propiedad
+ * del documento sino del instante en que se mide, así que como ancla
+ * mentiría. La regla estructural ("no anidada") describe exactamente esa
+ * diferencia sin tener que preguntar por `position` computada.
+ *
+ * ## Criterio de ancla: el MISMO que `useActiveSection.ts`, desde la crítica
+ * externa #13 (2026-08-18)
+ *
+ * **Contrato, en una frase: el ancla es la sección que el sitio ya considera
+ * activa** — la que CONTIENE el punto de referencia del viewport (su centro),
+ * con la superficie visible como respaldo solo cuando ese punto cae en un
+ * hueco entre secciones. Es literalmente la regla de `resolveAmongCandidates`
+ * en `useActiveSection.ts`, empate incluido: contención sobre el intervalo
+ * SEMIABIERTO `[top, bottom)` y, en el respaldo, gana la de MÁS ABAJO.
+ *
+ * HASTA ESA FECHA ESTE MÓDULO USABA OTRA REGLA: la sección con MÁS superficie
+ * visible, con el empate exacto resuelto al revés (`>`, ganaba la primera del
+ * documento). El argumento escrito entonces era que un reposicionamiento
+ * CORRECTIVO quiere el desplazamiento mínimo, y que en una franja de
+ * transición "con la saliente ocupando el 90 % de la pantalla" anclar a la
+ * entrante mandaría al lector al principio de una sección que todavía no
+ * lee. Ese argumento se sostiene sobre un ejemplo que no distingue nada: con
+ * la saliente al 90 %, el centro del viewport TAMBIÉN cae dentro de la
+ * saliente, así que las dos reglas responden lo mismo. Las dos solo divergen
+ * en una franja estrecha alrededor del 50/50 — y ahí divergen en el sentido
+ * PEOR, porque el desempate estaba invertido respecto al del scrollspy.
+ *
+ * EL DEFECTO MEDIDO (integrador de la crítica #13, 1440x900, criterio "qué
+ * sección ocupa el CENTRO del viewport"):
+ *
+ *   claro y=1200 (story)    -> oscuro y=1200  (story)    conserva
+ *   claro y=4200 (features) -> oscuro y=14453 (features) conserva
+ *   claro y=3000 (features) -> oscuro y=13253 (journey)  SALTA una sección
+ *
+ * Reconstruida la geometría del caso que falla, sale una sola solución: el
+ * lector estaba en el punto EXACTO en que Features empieza en el centro de la
+ * pantalla (top de documento 3450 = 3000 + 900/2). Ahí Journey y Features
+ * enseñan 450 px cada una — empate perfecto de superficie —, así que la regla
+ * vieja anclaba a Journey por ser la primera, mientras la barra de navegación
+ * anunciaba Features por contener el centro. Dos módulos del mismo sitio
+ * respondiendo distinto a "¿qué sección está leyendo esta persona?", y el
+ * lector aterrizando en la que el sitio decía que ya había dejado atrás.
+ *
+ * Nota de método, porque explica una discrepancia de informes y no un fallo
+ * de nadie: un evaluador midió ESTE MISMO caso con el criterio de "sección
+ * dominante" y lo dio por correcto. Los dos tenían razón dentro de su propia
+ * definición; el problema era justo ese, que había dos definiciones. Por eso
+ * la corrección no es "elegir la definición que mejor puntúa", sino dejar UNA
+ * sola en todo el repo.
+ *
+ * POR QUÉ GANA LA DEL SCROLLSPY, y no al revés:
+ *
+ * 1. Es la que el lector ya tiene delante. `aria-current="location"` en el
+ *    navbar sale de ella; si el ancla usara otra, el sitio devolvería a la
+ *    persona a una sección distinta de la que él mismo acaba de anunciar.
+ * 2. Da una GARANTÍA que la dominancia no puede dar. Con contención del
+ *    centro, el desplazamiento capturado (`scrollY - topDoc`, que es
+ *    `-rect.top`) cumple siempre `offset >= -viewport/2`; al restituirlo, el
+ *    centro cae en `offset + viewport/2 >= 0` respecto al inicio del ancla,
+ *    es decir DENTRO de ella. Con dominancia no hay cota: una sección puede
+ *    dominar la pantalla asomando solo por abajo, y entonces el centro
+ *    aterriza fuera. La propiedad "tras el salto, la sección bajo el centro
+ *    es la misma" pasa de aspiración a consecuencia aritmética (su candado
+ *    vive en `themeScrollAnchor.test.ts`).
+ * 3. El argumento del "desplazamiento mínimo" no se pierde: lo entrega
+ *    `anchoredScrollY` conservando el desplazamiento DENTRO de la sección,
+ *    no la elección de sección. Con el ancla inmóvil la corrección sigue
+ *    siendo exactamente cero.
+ *
+ * LO QUE SIGUE SIENDO DISTINTO, y es correcto que lo sea: `useActiveSection`
+ * solo mira las secciones de `NAV_GROUPS` (Story, Journey, Features, Contact
+ * y, desde la ola K de la crítica #15, About) y responde `null` en el Hero; este módulo mira toda `section[id]`
+ * de primer nivel, porque necesita un ancla también para quien cambia de tema
+ * mirando el hero. La REGLA es la misma; el CONJUNTO de candidatas no.
+ */
+
+/** Selector único de ancla. Se declara aquí (y no en el hook que lo consume)
+ *  porque la definición de "ancla" es de este módulo. */
+export const SECTION_ANCHOR_SELECTOR = "section[id]";
+
+/** Geometría mínima de una sección, medida contra el viewport (`rect.top`
+ *  y `rect.height` tal cual los devuelve `getBoundingClientRect`). */
+export interface SectionViewportGeometry {
+  readonly id: string;
+  readonly top: number;
+  readonly height: number;
+}
+
+/**
+ * Punto del viewport contra el que se decide qué sección se está leyendo,
+ * como fracción de su alto: 0,5 = el centro vertical.
+ *
+ * INVARIANTE QUE CRUZA DOS FICHEROS (regla 41): tiene que valer lo mismo que
+ * `VIEWPORT_REFERENCE_FRACTION` en `useActiveSection.ts`, o el ancla y el
+ * `aria-current` del navbar volverían a contestar cosas distintas a la misma
+ * pregunta — el defecto exacto que la crítica #13 midió. Se duplica en vez de
+ * importarse por la misma razón que `isElementVisible` duplica
+ * `intersectsViewport` en `useThemeScrollReset.ts`: son módulos hermanos sin
+ * dependencia compartida hoy y la constante es un número. Lo que NO se deja a
+ * la memoria de nadie es la igualdad: un candado de FUENTE en
+ * `themeScrollAnchor.test.ts` lee el otro fichero y compara los dos valores.
+ */
+export const VIEWPORT_REFERENCE_FRACTION = 0.5;
+
+/**
+ * `id` de la sección que el lector está leyendo, con la MISMA regla que
+ * `resolveAmongCandidates()` en `useActiveSection.ts` (ver el docblock de
+ * cabecera para el porqué del cambio y para el caso medido que lo motivó):
+ * gana la que CONTIENE el punto de referencia del viewport y, solo si ese
+ * punto cae en un HUECO entre secciones, la de mayor superficie visible.
+ * `null` si ninguna interseca el viewport (el lector está en un tramo sin
+ * ancla: la 404, o cualquier página que no monte ninguna sección).
+ *
+ * Las dos mitades desempatan hacia la sección de MÁS ABAJO, igual que allí:
+ * la contención se prueba sobre el intervalo SEMIABIERTO `[top, bottom)`, así
+ * que dos secciones que comparten un borde exacto no lo contienen las dos —
+ * lo contiene la de abajo, la que se está entrando; y el respaldo compara con
+ * `>=` recorriendo en orden de documento, así que gana la última empatada.
+ *
+ * El respaldo exige superficie ESTRICTAMENTE positiva (`visible > 0`) y esa
+ * condición no sobra: a diferencia de `useActiveSection`, aquí la lista de
+ * candidatas NO viene pre-filtrada por intersección, así que sin ella una
+ * sección completamente fuera de pantalla (solape 0 o negativo) ganaría el
+ * respaldo y este módulo dejaría de poder devolver `null`.
+ */
+export function readingAnchorSectionId(
+  sections: readonly SectionViewportGeometry[],
+  viewportHeight: number,
+): string | null {
+  const reference = viewportHeight * VIEWPORT_REFERENCE_FRACTION;
+  let containsId: string | null = null;
+  let fallbackId: string | null = null;
+  let bestVisible = 0;
+
+  for (const section of sections) {
+    const bottom = section.top + section.height;
+    if (section.top <= reference && reference < bottom) containsId = section.id;
+
+    const visible = Math.min(bottom, viewportHeight) - Math.max(section.top, 0);
+    if (visible > 0 && visible >= bestVisible) {
+      bestVisible = visible;
+      fallbackId = section.id;
+    }
+  }
+
+  return containsId ?? fallbackId;
+}
+
+/** Entrada de `anchoredScrollY`: todo en coordenadas de DOCUMENTO salvo
+ *  `viewportHeight`, para que la función no tenga que saber nada de scroll
+ *  actual mientras la calcula. */
+export interface AnchoredScrollInput {
+  /** `window.scrollY` en el instante del click. */
+  readonly scrollYBefore: number;
+  /** Top de documento del ancla ANTES del cambio de tema. */
+  readonly anchorTopBefore: number;
+  /** Top de documento de la MISMA ancla tras el re-maquetado. */
+  readonly anchorTopAfter: number;
+  /** Alto del ancla ANTES del cambio de tema. Solo se usa para saber si la
+   *  sección encogió -- ver el techo en el docblock de `anchoredScrollY`. */
+  readonly anchorHeightBefore: number;
+  /** Alto del ancla tras el re-maquetado. */
+  readonly anchorHeightAfter: number;
+  readonly viewportHeight: number;
+  /**
+   * `false` cuando el ancla capturada dejó de ser un ancla válida en la
+   * rama nueva y se cayó a su sección contenedora (caso `#statement`, ver
+   * el docblock de cabecera): el desplazamiento DENTRO de la vieja no
+   * significa nada dentro de la nueva, así que se aterriza en su inicio.
+   */
+  readonly preserveOffset: boolean;
+}
+
+/**
+ * `scrollY` al que hay que saltar para que el lector siga viendo la misma
+ * sección, en el mismo punto de ella que estaba leyendo.
+ *
+ * Conserva el DESPLAZAMIENTO DENTRO DE LA SECCIÓN (`scrollY - topAntes`) en
+ * vez de aterrizar siempre en su inicio, por dos motivos medibles:
+ *
+ * 1. Cuando la sección no se movió (el caso de Story, primera tras un hero
+ *    que mide lo mismo en los dos temas), el desplazamiento conservado hace
+ *    que la cuenta dé EXACTAMENTE el `scrollY` de partida -- corrección
+ *    cero. Aterrizar siempre en el inicio introduciría un tirón nuevo justo
+ *    donde hoy no hay ningún defecto.
+ * 2. Cuando sí se movió, el resultado equivale a `scrollY + (topDespués -
+ *    topAntes)`: se compensa el arrastre exacto que causó el defecto, ni un
+ *    píxel más.
+ *
+ * El techo `alto - viewport` cubre el sentido contrario (la sección ENCOGE
+ * al cambiar de tema, oscuro -> claro): sin él, un desplazamiento de 4.000
+ * px heredado de un deck se saldría por el final de la tarjeta que lo
+ * sustituye y volvería a dejar al lector en otra sección. Con la sección
+ * más corta que el viewport el techo resuelve a 0, que es su inicio.
+ *
+ * SOLO SE APLICA SI LA SECCIÓN ENCOGIÓ, y esa condición no es cosmética:
+ * un techo incondicional rompe la propiedad (1) para cualquier sección que
+ * mida EXACTAMENTE un viewport, que es el caso del hero (`min-height:
+ * 100dvh`). Con `alto - viewport = 0`, un lector 200 px dentro del hero
+ * -- que sigue siendo la sección dominante -- saltaría a `top: 0` al
+ * cambiar de tema aunque el hero mida lo mismo en las dos ramas y nada se
+ * hubiera movido: exactamente el "vuelve al principio" que la Task 17
+ * retiró, reintroducido por una aritmética demasiado prudente. Si la
+ * sección creció o mide lo mismo, el desplazamiento capturado sigue siendo
+ * válido por construcción y no hay nada que recortar.
+ *
+ * NO HAY SUELO, y esa ausencia es una decisión, no un olvido: el
+ * desplazamiento capturado puede ser NEGATIVO con toda normalidad --
+ * significa que la sección del lector empieza por debajo del borde superior
+ * del viewport, que es el estado de cualquier franja de transición entre
+ * dos secciones. Recortarlo a 0 "por prudencia" rompería la propiedad más
+ * importante de esta función: que con el ancla inmóvil la cuenta devuelva
+ * EXACTAMENTE el `scrollY` de partida. Con un suelo en 0, un lector parado
+ * en esa franja recibiría un tirón de hasta un viewport entero al cambiar
+ * de tema aunque nada se hubiera movido -- un defecto nuevo, del mismo
+ * tamaño que el que esta función existe para arreglar.
+ *
+ * Y ese negativo no se puede desbocar, con una cota EXACTA desde la crítica
+ * #13 (2026-08-18): el ancla la elige `readingAnchorSectionId` por contención
+ * del centro del viewport, así que `rect.top <= viewport/2` siempre y por
+ * tanto `offset = -rect.top >= -viewport/2`. De ahí sale la garantía que el
+ * criterio anterior (dominancia) no podía dar: al restituir, el centro cae en
+ * `offset + viewport/2 >= 0` respecto al inicio del ancla -- DENTRO de ella.
+ * Las dos únicas fugas posibles están declaradas, no tapadas: una sección que
+ * al encoger mida MENOS de medio viewport no puede contener el centro desde
+ * ninguna posición (imposibilidad geométrica, no un fallo de la fórmula), y
+ * el `Math.max(0, ...)` del final puede recortar el destino contra el inicio
+ * del documento. El candado de la garantía vive en el test de este módulo.
+ */
+export function anchoredScrollY(input: AnchoredScrollInput): number {
+  const {
+    scrollYBefore,
+    anchorTopBefore,
+    anchorTopAfter,
+    anchorHeightBefore,
+    anchorHeightAfter,
+    viewportHeight,
+    preserveOffset,
+  } = input;
+
+  if (!preserveOffset) return Math.max(0, anchorTopAfter);
+
+  const rawOffset = scrollYBefore - anchorTopBefore;
+  const shrank = anchorHeightAfter < anchorHeightBefore;
+  const offset = shrank
+    ? Math.min(rawOffset, Math.max(0, anchorHeightAfter - viewportHeight))
+    : rawOffset;
+
+  return Math.max(0, anchorTopAfter + offset);
+}
+
+/** Lo que hay que recordar del instante del click para poder corregir
+ *  después. Todo son números y un `id`: NUNCA una referencia al elemento,
+ *  que el cambio de rama de tema puede desmontar y volver a montar. */
+export interface ReadingAnchor {
+  readonly id: string;
+  readonly topDoc: number;
+  readonly height: number;
+  readonly scrollY: number;
+}
+
+function isTopLevelSectionAnchor(el: Element): boolean {
+  if (el.id === "") return false;
+  const parent = el.parentElement;
+  return parent === null || parent.closest(SECTION_ANCHOR_SELECTOR) === null;
+}
+
+/**
+ * Sección que el lector está leyendo AHORA, con su posición de documento.
+ * `null` si ninguna ancla interseca el viewport (el lector está en un tramo
+ * sin sección: la 404, o cualquier página que no monte ninguna).
+ *
+ * Se llama DENTRO de un manejador de click, nunca durante el render: lee
+ * `getBoundingClientRect`/`window.scrollY`, y leer geometría en render
+ * rompe el export estático (mismo motivo que ya documenta
+ * `useThemeScrollReset.ts` para `willCrossfade`).
+ */
+export function captureReadingAnchor(): ReadingAnchor | null {
+  const anchors = Array.from(
+    document.querySelectorAll<HTMLElement>(SECTION_ANCHOR_SELECTOR),
+  ).filter(isTopLevelSectionAnchor);
+
+  const geometries: SectionViewportGeometry[] = anchors.map((el) => {
+    const rect = el.getBoundingClientRect();
+    return { id: el.id, top: rect.top, height: rect.height };
+  });
+
+  const id = readingAnchorSectionId(geometries, window.innerHeight);
+  if (id === null) return null;
+
+  const anchored = geometries.find((geometry) => geometry.id === id);
+  if (anchored === undefined) return null;
+
+  const scrollY = window.scrollY;
+  return {
+    id,
+    topDoc: anchored.top + scrollY,
+    height: anchored.height,
+    scrollY,
+  };
+}
+
+/** Resultado de volver a encontrar el ancla tras el re-maquetado.
+ *  `exact: false` significa "esta ya no es un ancla válida y se cayó a su
+ *  contenedora" -- ver `preserveOffset` en `AnchoredScrollInput`. */
+interface ResolvedAnchor {
+  readonly el: HTMLElement;
+  readonly exact: boolean;
+}
+
+function resolveAnchorElement(id: string): ResolvedAnchor | null {
+  const el = document.getElementById(id);
+  if (el === null) return null;
+  if (isTopLevelSectionAnchor(el)) return { el, exact: true };
+
+  const container =
+    el.parentElement?.closest<HTMLElement>(SECTION_ANCHOR_SELECTOR) ?? null;
+  return container === null ? null : { el: container, exact: false };
+}
+
+/**
+ * Devuelve al lector a su ancla tras el re-maquetado, o `false` si no hubo
+ * nada que corregir (el valor de retorno existe para que el consumidor
+ * pueda distinguir "no hacía falta" de "no se pudo", y para poder aseverar
+ * la ausencia de salto sin espiar `scrollTo`).
+ *
+ * `behavior: "instant"`, NUNCA `"auto"` y mucho menos `"smooth"`: esto es
+ * una corrección de posición, no un viaje que el lector haya pedido -- y
+ * `"auto"` no serviría, porque resuelve al `scroll-behavior` computado del
+ * elemento de scroll, que en este sitio es `smooth` para todo el mundo
+ * salvo bajo `prefers-reduced-motion` (`GlobalStyles.tsx`, `html { scroll-
+ * behavior: smooth }`). Un reposicionamiento animado de hasta 10.000 px
+ * sería precisamente el defecto que la Task 17 midió y retiró.
+ *
+ * Bajo `prefers-reduced-motion: reduce` NO se hace nada distinto y es
+ * correcto: un salto instantáneo no es una animación, y la alternativa
+ * (dejar al lector desplazado) le costaría exactamente igual que a
+ * cualquier otro. La preferencia pide quitar movimiento, no quitar
+ * corrección.
+ *
+ * Umbral de 1 px para no llamar a `scrollTo`: por debajo de un píxel la
+ * corrección no es observable y sí lo es su coste (un evento `scroll`
+ * sintético que despierta a `useScrolled`/`useNavDetach`/`BackToTop`). Es
+ * también el camino del lector que está en el Hero -- el hero mide lo mismo
+ * en los dos temas, así que su ancla no se mueve y la cuenta da 0.
+ */
+export function restoreReadingAnchor(anchor: ReadingAnchor): boolean {
+  const resolved = resolveAnchorElement(anchor.id);
+  if (resolved === null) return false;
+
+  const rect = resolved.el.getBoundingClientRect();
+  const target = anchoredScrollY({
+    scrollYBefore: anchor.scrollY,
+    anchorTopBefore: anchor.topDoc,
+    anchorTopAfter: rect.top + window.scrollY,
+    anchorHeightBefore: anchor.height,
+    anchorHeightAfter: rect.height,
+    viewportHeight: window.innerHeight,
+    preserveOffset: resolved.exact,
+  });
+
+  if (Math.abs(target - window.scrollY) < 1) return false;
+
+  window.scrollTo({ top: target, behavior: "instant" });
+  return true;
+}
+
+/** Posición de lectura anotada: el ancla, o `null` si ninguna sección
+ *  intersecaba el viewport, y el `scrollY` como respaldo para ese caso. */
+export interface ReadingPositionSnapshot {
+  readonly scrollY: number;
+  readonly anchor: ReadingAnchor | null;
+}
+
+/**
+ * Devuelve al lector a una posición anotada. Es la MISMA regla para la recarga
+ * (`useReloadLanding`) y para los recorridos del historial dentro del
+ * documento (`useHistoryScrollRestoration`), y por eso vive aquí una sola vez.
+ *
+ * Con ancla, decide `restoreReadingAnchor` y su `false` NO se recupera con el
+ * píxel guardado: significa "no hacía falta" o "el ancla ya no existe", y en
+ * los dos casos mover la página a un número viejo sería peor que no hacer
+ * nada. Sin ancla, el píxel es lo único a lo que agarrarse, con el mismo
+ * umbral de 1 px y el mismo `behavior: "instant"`.
+ */
+export function applyStoredReadingPosition(
+  position: ReadingPositionSnapshot,
+): void {
+  if (position.anchor !== null) {
+    restoreReadingAnchor(position.anchor);
+    return;
+  }
+  if (Math.abs(window.scrollY - position.scrollY) < 1) return;
+  window.scrollTo({ top: position.scrollY, behavior: "instant" });
+}

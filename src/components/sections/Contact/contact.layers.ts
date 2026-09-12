@@ -5,17 +5,25 @@
  * tokens semánticos del sistema (D10, spec
  * `docs/superpowers/specs/2026-07-28-landing-v2-secciones-design.md` §2/§7.4)
  * — son literales decorativos de UNA composición concreta, no roles de UI
- * que deban cambiar con el tema (Contact solo se monta en tema claro, vía
- * `HomeSections`). Se copian VERBATIM del mockup aprobado
+ * que deban cambiar con el tema. Se copian VERBATIM del mockup aprobado
  * (`Landing v2.dc.html`, sección `#contact`, líneas 212-238) y se citan aquí
  * con su línea de origen para que un futuro retoque compare contra la
- * fuente, no contra un número sin contexto.
+ * fuente, no contra un número sin contexto. (La frase "Contact solo se monta
+ * en tema claro" que encabezaba este párrafo caducó el 2026-08-03, cuando la
+ * sección estrenó rama oscura propia: lo que sigue siendo cierto es que
+ * ESTAS constantes describen la composición CLARA; las de la oscura son las
+ * de más abajo, con el sufijo `_DARK` o nombre propio.)
  *
- * Los colores que SÍ resuelven a un rol de token existente (kicker ->
- * `semantic.brandText`, el degradado del CTA -> `palette.primary[600]`/
- * `palette.secondary[600]`, borde del chip -> `semantic.border`) se
- * referencian directamente desde `Contact.tsx` contra el tema, sin
+ * Los colores que SÍ resuelven a un rol de token existente (fallback del
+ * degradado de acento sin `background-clip: text` -> `semantic.brandText`,
+ * los acentos de las tarjetas de canal -> `palette.secondary[*]` por rama)
+ * se referencian directamente desde `Contact.tsx` contra el tema, sin
  * duplicarlos aquí — mismo criterio que ya aplica `Story.tsx`/`Hero.tsx`.
+ * (Hasta Task 11, 2026-08-09, el kicker también resolvía contra
+ * `semantic.brandText`; se retiró de las dos ramas de Contacto. Hasta Task
+ * 16, 2026-08-11, el degradado del CTA de sección resolvía contra
+ * `palette.primary[600]`/`palette.secondary[600]`; ese CTA se retiró con el
+ * chip — ver `Contact.tsx`.)
  *
  * Mapeo de rol de texto (el mockup usa un design system externo no incluido
  * en el HTML, `_ds/.../tokens/colors.css`, cuyas variables no están
@@ -25,66 +33,68 @@
  * criterio de mapeo por rol, no por nombre literal, que ya usa el resto del
  * repo (p. ej. `accent()` en `Button.tsx`).
  */
+import { grid } from "@/theme/tokens/grid";
 
-/** Borde y sombra de la tarjeta (mockup L213). El fondo del propio degradado
- * pastel de la tarjeta va en `CONTACT_CARD_GRADIENT`. */
+/** Borde de la tarjeta (mockup L213). El fondo del propio degradado
+ * pastel de la tarjeta va en `CONTACT_CARD_GRADIENT`.
+ *
+ * Task 12 (dieta de ornamento B, 2026-08-09, ghost-card): `CONTACT_CARD_SHADOW`
+ * (la sombra de 44px que acompañaba a este borde) se retira -- ver el
+ * docblock de `ScCard` en `Contact.tsx` para la regla completa (borde O
+ * sombra, nunca los dos) y por qué esta tarjeta concreta se queda con el
+ * borde. */
 export const CONTACT_CARD_BORDER = "oklch(0.88 0.04 270)";
 export const CONTACT_CARD_GRADIENT =
   "linear-gradient(110deg, #EFF4FC 0%, #F5F2FB 55%, #F9F0F7 100%)";
-/** Color de sombra; la geometría (offset/blur) vive junto al selector que la usa. */
-export const CONTACT_CARD_SHADOW = "oklch(0.6 0.1 265 / 0.1)";
 
-/**
- * Degradado de texto de "infinito." (mockup L216): tres paradas propias
- * (`235`, `255`, `292`), distintas de los hue de `palette.primary`
- * (`235.851`) / `palette.secondary` (`311.928`) del sistema — el hue 235 es
- * casi idéntico al primario, pero 255/292 no lo son, así que no es
- * sustituible por un paso de `palette.*`. Al igual que `STORY_ACCENT_GRADIENT`
- * (`story.layers.ts`), el mockup no le aplica `vtiGradientShift` a este span
- * (solo al "ToInfinite" del hero), así que se declara estático, sin animación.
+/*
+ * AQUI VIVIERON CONTACT_TITLE_ACCENT_GRADIENT_LIGHT/_DARK, el degradado de
+ * texto de "infinito." (mockup L216). Retirados en Task 12 (dieta de
+ * ornamento B, auditoria premium 2026-08-08, 2026-08-09): `ScAccent`
+ * (Contact.tsx) pasa a color solido (`semantic.brandText`, el mismo rol que
+ * ya usaba como fallback de `@supports not (background-clip: text)`) para
+ * poder medir su contraste con `contrast.ts` -- un degradado de texto no es
+ * medible. Medicion completa en el docblock de `ScAccent`, Contact.tsx, y en
+ * Contact.test.tsx, describe "Task 12".
  */
-export const CONTACT_TITLE_ACCENT_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.52 0.13 235), oklch(0.66 0.15 255), oklch(0.72 0.15 292))";
 
 /**
- * Variante oscura del degradado (2026-07-30, mismo criterio que
- * `STORY_ACCENT_GRADIENT_DARK`/`JOURNEY_QUOTE_GRADIENT_DARK`): misma familia
- * de hue (235/255/292), luminosidad mucho mayor para legibilidad sobre el
- * negro de la escena de fondo. Los valores no cambian con el arte: se
- * calibraron contra el `#02040e` de `ContactNeonGalaxy` y siguen valiendo
- * contra el `#0d0416` de `ContactCosmicGuardian` (2026-08-04), que es un
- * pelo MÁS claro — OKLCH L 0.137 frente a 0.111, medido, no estimado — así
- * que el margen de legibilidad solo puede haber bajado unas centésimas
- * sobre un contraste que ya era holgado.
- */
-export const CONTACT_TITLE_ACCENT_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 292))";
-
-/**
- * Fondo translúcido del chip de email (mockup L219): blanco con alfa sobre
- * el degradado pastel de la tarjeta — no es un rol semántico
- * (`semantic.surface` es opaco), es la superposición específica de esta
- * pieza.
+ * Fondo translúcido de las superficies de la rama CLARA que se apoyan sobre
+ * el degradado pastel de la tarjeta (mockup L219): blanco con alfa — no es
+ * un rol semántico (`semantic.surface` es opaco), es la superposición
+ * específica de esta composición.
  *
- * Ya no tiene pareja oscura, y el sufijo `_LIGHT` describe el único caso que
- * queda. Existía `CONTACT_CHIP_BG_DARK` (`rgba(2, 4, 14, 0.55)`, el void de
- * la escena saliente con alfa) para cuando la rama oscura de la sección
- * también montaba el chip. Dejó de montarlo el 2026-08-03, cuando esa rama
- * pasó a tres tarjetas de contacto y un formulario (D12/D14): desde
- * entonces `ScChip` solo se renderiza dentro de `chipAndCta`, que solo vive
- * en el `return` de la rama CLARA, así que el ternario contra
- * `theme.data.isLight` tenía una rama inalcanzable. Se retira en la entrega
- * del arte nuevo (2026-08-04), que además la habría dejado describiendo un
- * void que ya no existe.
+ * RENOMBRADO en la Task 16 (unificación de contenido parte 2, 2026-08-11),
+ * de `CONTACT_CHIP_BG_LIGHT` a `CONTACT_PANEL_BG_LIGHT`, con el MISMO valor.
+ * El chip que le daba nombre era el recuadro con borde e icono de sobre que
+ * la rama clara pintaba donde va un campo de captura: se retira entero (una
+ * crítica independiente lo señaló como el problema #1 del sitio — «en tema
+ * claro no existe formulario de contacto, y lo que hay simula serlo»), y la
+ * rama clara pasa a montar el formulario REAL y las dos tarjetas de salida
+ * de la rama oscura. La superficie translúcida sobrevive porque sigue
+ * haciendo el mismo trabajo — separar un panel del degradado pastel sin
+ * romperlo con un blanco opaco — pero ahora bajo `ScForm`/`ScCardLink`, no
+ * bajo un chip. Conservar el nombre viejo habría dejado una constante que
+ * describe una pieza inexistente (regla 16 de RULES.md).
+ *
+ * Historia de su pareja oscura, sin borrar: existió `CONTACT_CHIP_BG_DARK`
+ * (`rgba(2, 4, 14, 0.55)`, el void de la escena saliente con alfa) para
+ * cuando la rama oscura también montaba el chip. Dejó de montarlo el
+ * 2026-08-03, cuando esa rama pasó a tarjetas de contacto y formulario
+ * (D12/D14), y se retiró en la entrega del arte nuevo (2026-08-04) — que
+ * además la habría dejado describiendo un void que ya no existe.
  */
-export const CONTACT_CHIP_BG_LIGHT = "rgba(255, 255, 255, 0.82)";
+export const CONTACT_PANEL_BG_LIGHT = "rgba(255, 255, 255, 0.82)";
 
-/** Sombra de hover del CTA (mockup L223, `style-hover`): mismo hue que
- * `palette.secondary` (311.928) pero con croma 0.233, distinto del 0.243 que
- * produce `palette.secondary[600]` en este sistema — se copia verbatim en
- * vez de derivarse del token para no introducir un valor calculado que el
- * mockup no pidió. */
-export const CONTACT_CTA_HOVER_SHADOW = "oklch(0.66 0.233 311.928 / 0.38)";
+/*
+ * AQUI VIVIO CONTACT_CTA_HOVER_SHADOW, la sombra de hover del CTA de sección
+ * de la rama clara (mockup L223, `style-hover`). Retirada en la Task 16
+ * (2026-08-11) junto con su único consumidor, `ScCta` (`Contact.tsx`): con
+ * el formulario real montado también en claro, el botón de envío ES el
+ * camino a `mailto:` en las dos ramas, y un ancla aparte que abre el mismo
+ * cliente de correo era una segunda salida al mismo sitio presente en un
+ * solo tema — contenido redundante, no arte. Ver el docblock de `Contact()`.
+ */
 
 /** Halo radial detrás de la figura (mockup L228): violeta frío que no
  * coincide con los hue de marca del sistema — pieza de arte propia. */
@@ -115,7 +125,7 @@ export const CONTACT_RING_B_RIGHT = "52px";
 /** Geometría de la figura que saluda (mockup L233/234). */
 export const CONTACT_FIGURE_HEIGHT = "560px";
 export const CONTACT_FIGURE_LEFT = "8px";
-export const CONTACT_FIGURE_TOP = "-44px";
+export const CONTACT_FIGURE_TOP = "80px";
 
 /**
  * Flotación (mockup: keyframe `vtiFloat4`, definido en el `<style>` de
@@ -129,6 +139,34 @@ export const CONTACT_FIGURE_TOP = "-44px";
  * `document.styleSheets`, nunca `getComputedStyle`).
  */
 export const CONTACT_FLOAT_AMPLITUDE = "-4px";
+/**
+ * NO ES UN `AMBIENT.floatMs` MAL ESCRITO. Medido y decidido en la crítica
+ * externa #18 (2026-09-04), que unificó el resto del ritmo de flotación del
+ * repo y dejó este número donde estaba.
+ *
+ * QUÉ SE MIDIÓ. En esa ola se cerró que `STORY_FIGURE_FLOAT_MS` (9000) era un
+ * gemelo literal de `AMBIENT.floatMs` y pasó a derivar de él. La pregunta
+ * legítima es si este 8000 es el mismo rol escrito con otro número: la figura
+ * de Story y la de Contacto son las dos una figura decorativa que levita con
+ * el MISMO keyframe (`translateY(0)` en 0/100 %, un desplazamiento negativo al
+ * 50 %), en secciones distintas de la misma página.
+ *
+ * POR QUÉ SE QUEDA. Los dos valores no son una coincidencia sin dueño: cada
+ * uno viene VERBATIM de un keyframe distinto del mockup aprobado —
+ * `vtiFloat6` para Story (amplitud −6px, 9 s) y `vtiFloat4` para Contacto
+ * (amplitud −4px, 8 s)—, es decir, el mockup declaraba una familia de
+ * flotaciones parametrizada por amplitud, con su periodo emparejado. Eso es
+ * evidencia EXTERNA al código, del mismo tipo que conserva `space[10]` y del
+ * que a `zIndex.toast` le faltaba. Y fundirlos CAMBIARÍA lo que se pinta hoy
+ * (el periodo de esta figura, un 12,5 % más lento), que es una decisión de
+ * diseño; nombrar una medida repetida no lo es — mismo criterio que el
+ * docblock de `type.scale.wordmark` deja escrito.
+ *
+ * QUÉ LO CAMBIARÍA: que el dueño decida que las dos figuras deben latir al
+ * mismo ritmo. En ese momento esta constante pasa a leer `AMBIENT.floatMs`,
+ * como ya hace la de Story, y el par amplitud/periodo del mockup deja de
+ * gobernar. No es un refactor de vocabulario: se ve.
+ */
 export const CONTACT_FIGURE_FLOAT_MS = 8000;
 
 /**
@@ -188,8 +226,29 @@ export const CONTACT_OVERLAY_RISE = "100dvh";
  * reutilizarla escondería el cambio de sujeto. Mismo criterio y mismas
  * palabras que `FEATURES_CONTENT_MAX_WIDTH` (`features.layers.ts`) cuando
  * reemplazó a `FEATURES_DARK_MAX_WIDTH`.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-18) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`: una constante de valor idéntico repetida en
+ * dos secciones es un token de tema, no dos constantes).
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `Contact.tsx`: sigue siendo el nombre con el que ESTA sección se refiere a
+ * su propio tope de contenido, y conservarla deja el día de mañana abierto a
+ * que Contacto diverja del resto sin tocar a nadie más. Mismo patrón y mismo
+ * precedente que `JOURNEY_DECK_TITLE_SIZE` (`journey.layers.ts`), que deriva
+ * su tamaño de un peldaño de la escala tipográfica desde la crítica #11
+ * (`deckTitle` entonces; `type.scale.h2` desde la crítica #14, que retiró
+ * aquel peldaño al unificar el h2 dentro del tema oscuro). El candado de que el número no vuelva a escribirse a mano se
+ * observa en la FUENTE (`Contact.test.tsx`), porque token y literal resuelven
+ * a la misma cadena y ningún candado de valor puede distinguirlos
+ * (`task/lessons.md`, 2026-08-12).
  */
-export const CONTACT_CONTENT_MAX_WIDTH = "1280px";
+export const CONTACT_CONTENT_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Tope de ancho de la PAREJA de columnas (copia + tarjeta de formulario)
@@ -257,8 +316,10 @@ export const CONTACT_CONTENT_PAIR_MAX = "800px";
  * junto al `@media` que consume estas dos constantes. **El corte es `lg` y
  * no `md`**: entre 768 y 991 las dos columnas siguen apiladas, así que un
  * régimen lateral ahí dejaba texto a ancho completo sin velo — medido a
- * 768×900, el peor píxel bajo el kicker daba 1.83:1. Con el corte en `lg`,
- * 10.16:1.
+ * 768×900, el peor píxel de la cabecera daba 1.83:1 (medición previa a Task
+ * 11, 2026-08-09, con el kicker todavía presente encima del h2 -- pendiente
+ * reverificar en navegador que el peor píxel sigue en el mismo punto tras su
+ * retirada). Con el corte en `lg`, 10.16:1.
  */
 export const CONTACT_CONTENT_PAIR_MAX_VW = "58vw";
 
@@ -273,7 +334,15 @@ export const CONTACT_CARD_BORDER_DARK = "oklch(1 0 0 / 0.12)";
  *  translúcido que las tarjetas de contacto pero con su propia alfa de fondo
  *  (`.04` frente a `.05`) — constante independiente aunque el borde coincida
  *  numéricamente con `CONTACT_CARD_BORDER_DARK`, para no acoplar dos piezas
- *  que el mockup declara por separado. */
+ *  que el mockup declara por separado.
+ *
+ *  El censo de color de la crítica externa #17 (2026-09-03) encontró una
+ *  TERCERA aparición del mismo `oklch(1 0 0 / 0.12)`: `glassLight.border`
+ *  (`src/theme/tokens/glass.ts`). Tampoco es el token que estas dos piezas
+ *  necesitan, y por eso siguen siendo literales: ese es el borde del cristal
+ *  del tema CLARO, mientras estas dos visten la rama OSCURA, cuyo cristal
+ *  (`glassDark.border`) usa alfa `.08`. La coincidencia queda anotada en los
+ *  dos sitios; ver el docblock de `glass.ts` para el otro lado. */
 export const CONTACT_FORM_BG = "oklch(1 0 0 / 0.04)";
 export const CONTACT_FORM_BORDER = "oklch(1 0 0 / 0.12)";
 
@@ -292,7 +361,10 @@ export const CONTACT_TOP_GLOW_HEIGHT = "140px";
 export const CONTACT_TOP_GLOW_BLUR = "24px";
 
 /** Duración de `glowPulse` (mockup L28/L52: `animation:glowPulse 7s
- *  ease-in-out infinite`). Infinita — se declara solo bajo
+ *  ease-in-out infinite`; de esa declaración se toma la DURACIÓN, no la
+ *  curva — desde la crítica externa #9, 2026-08-17, `Contact.tsx` resuelve
+ *  la curva contra `motion.easing.standard`, ver su comentario in situ).
+ *  Infinita — se declara solo bajo
  *  `prefers-reduced-motion: no-preference` en `Contact.tsx`, con su propio
  *  `animation: none` explícito en el bloque `reduce` (mismo criterio D8 que
  *  `sectionBeam.layers.ts`). */

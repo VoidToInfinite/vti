@@ -22,6 +22,51 @@
         "weightBytes": 1392026,
         "weightNote": "1.33 MiB en las 12 imagenes, frente a 1.22 MiB de la v1 (10 imagenes) y 337 KiB de 'Astral Pathway'. El aumento sobre la v1 es la capa nueva mas el reparto distinto: 03-light-path sigue siendo la mas pesada con 665 KB de la pista de 2560."
     },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13). Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). Color NO recomprimido a proposito: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=85, method=6, alpha_quality=80) -- mismos quality/method que ya publicaba este manifest. Calibracion de que alpha_quality no toca el color verificada sobre features-celestial-orbital/02-ondas.webp (ver su manifest): chunk VP8 byte a byte identico entre alpha_quality=100 y 80.",
+        "scope": "Solo las 5 capas con ALPH > 30% (01-background es opaca, 0% ALPH).",
+        "results": "9 de 10 candidatos recomprimidos (las 5 capas x 2 anchos MENOS 06-figure.webp de 2560, ver exclusion). Peso: 1392026 -> 1266500 B (-125526 B, -9.0%). PSNR minimo entre los aplicados: alfa 58.02 dB (03-light-path-1024.webp), compuesto premultiplicado 50.78 dB (03-light-path-1024.webp).",
+        "excluded": "06-figure.webp (pista 2560, NO la de 1024): pasa el umbral de PSNR con margen (alfa 64.80dB, premultiplicado 60.65dB a alpha_quality=80) pero el fichero recomprimido pesa MAS que el original (128720 -> 129966 B, +1246 B, +0.97%) -- el alfa de esta capa concreta ya comprimia mejor en modo lossless (100) que en el esquema lossy-cuantizado de alpha_quality=80 (alfa: 74298 -> 77315 B, +3017 B). Se probo tambien alpha_quality=90 con el mismo resultado cualitativo (sigue sin reducir peso, no documentado en detalle porque el criterio de exclusion aqui es peso, no PSNR). Revertido con git checkout, fichero intacto. 06-figure-1024.webp (la pista de 1024 de la MISMA capa) SI se recomprime con exito (30368->28642 B, -1726 B) -- el efecto no es sistemico de la capa, es especifico del tamano/resolucion de esa pista.",
+        "perFile": {
+            "02-stars": {
+                "2560": "193608->170694 B, alfa 65.66dB, premult 66.42dB",
+                "1024": "53576->45704 B, alfa 64.97dB, premult 65.16dB"
+            },
+            "03-light-path": {
+                "2560": "665486->596034 B, alfa 58.60dB, premult 53.61dB",
+                "1024": "155524->140888 B, alfa 58.02dB, premult 50.78dB"
+            },
+            "04-portals": {
+                "2560": "66170->62380 B, alfa 69.77dB, premult 68.38dB",
+                "1024": "16342->14672 B, alfa 69.29dB, premult 66.62dB"
+            },
+            "05-hologram-disc": {
+                "2560": "44758->42002 B, alfa 68.46dB, premult 68.89dB",
+                "1024": "10596->9886 B, alfa 68.53dB, premult 66.16dB"
+            },
+            "06-figure": {
+                "2560": "SIN CAMBIOS (excluido por aumento de peso, ver arriba)",
+                "1024": "30368->28642 B, alfa 64.66dB, premult 59.65dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Mismo objetivo y mismo metodo que features-celestial-orbital/manifest.json (ver ese manifest para el detalle completo del test de reproducibilidad y su diagnostico): pista de 1600px generada desde la de 2560 ya desplegada (LANCZOS a 1600x900 + save WEBP quality=85 method=6), porque el master de 3344px no esta versionado.",
+        "reproducibilityCheck": "Mismo resultado que en features-celestial-orbital: la reproduccion byte a byte contra el activo desplegado NO se alcanza a ninguna calidad (barrido 85-100, con y sin exact=True) porque el activo desplegado ya es una segunda generacion de perdida (encode inicial + resave de alpha_quality de la Task 13), y una recompresion de una entrada ya comprimida con perdida no es idempotente por construccion (control verificado sobre features-celestial-orbital/02-ondas.webp, mismo Pillow 12.3.0 / libwebp 1.6.0). Se valida por PSNR sobre el compuesto en su lugar.",
+        "psnrThreshold": "Mismo criterio que features-celestial-orbital: el compuesto a 1600 se compara contra el propio precedente de esta escena a 2560 (deployed.rationale: q85 en 45.17 dB contra el master v6). Medido: 46.09 dB a 1600, por encima del precedente. El '48 dB' que cita el encargo como referencia de la pasada alfa no es la cifra que documentan esos manifests (45 dB, y sobre compuesto premultiplicado por capa, una metrica distinta) -- ver la nota completa en features-celestial-orbital/manifest.json.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto, se conserva el que pese menos. 4 de las 5 capas alfa mejoran con 80; 06-figure (igual que ya le pasaba a su pista de 2560 en la pasada de alfa) NO mejora con 80 a 1600 (60744 B con el default vs 62212 B con aq=80): se conserva el default, mismo criterio de exclusion que alphaRecompression20260809.",
+        "results": "6 ficheros -1600.webp generados. Peso de la pista de 1600: 492220 B (0.47 MiB). Compuesto PSNR: 46.09 dB.",
+        "perFile": {
+            "01-background": "10134 B (opaca)",
+            "02-stars": "80786 B (aq=80 vs 89686 B default), alfa 66.39dB, premult 63.61dB",
+            "03-light-path": "291474 B (aq=80 vs 314630 B default), alfa 58.52dB, premult 49.24dB",
+            "04-portals": "28876 B (aq=80 vs 31534 B default), alfa 69.91dB, premult 65.14dB",
+            "05-hologram-disc": "20206 B (aq=80 vs 20928 B default), alfa 70.25dB, premult 64.14dB",
+            "06-figure": "60744 B (default, aq=80 da 62212 B y NO mejora -- excluido), alfa infdB, premult 58.16dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
     "motion": {
         "packageHints": {
             "pointerDepth": [0.015, 0.045, 0.09, 0.14, 0.19, 0.24],

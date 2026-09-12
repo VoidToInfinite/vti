@@ -129,14 +129,74 @@ function resolveOptions(options: SectionProgressOptions | undefined): {
  * dependencias (mismo patron que `targetsRef`/`optionsRef` de
  * `useSceneParallax`), y el efecto principal solo depende de `ref` -- lo
  * unico que de verdad debe reiniciar el bucle.
+ *
+ * DUEÑO DEL NODO Y RETRACCIÓN (crítica externa #14, P0 del scrollspy
+ * fosilizado, medido en Chrome real). Este hook es el ÚNICO que escribe
+ * `data-inview` y las dos variables `--<prefix>-*`, así que es también el
+ * único que puede borrarlas -- y hasta esta entrega no las borraba NUNCA. Los
+ * dos agujeros: la limpieza del efecto solo desconectaba el observer y paraba
+ * el bucle, y perder el elemento SIN desmontarse no estaba contemplado en
+ * absoluto. Ese segundo caso es real y es el que se midió: `Features.tsx` y
+ * `Contact.tsx` llaman al hook en las DOS ramas de tema pero solo ATAN el ref
+ * en la clara, así que al pasar a oscuro `ref.current` queda en `null`
+ * mientras React REUTILIZA el mismo `<section id="features">` (las dos ramas
+ * lo renderizan en la misma posición del árbol). El bucle seguía vivo
+ * escribiendo en el vacío -- `updateMeasurement`/`writeVars` leían
+ * `ref.current` → `null` y no escribían nada --, y el último valor escrito en
+ * claro se quedaba FOSILIZADO en el nodo: tras conmutar a oscuro con la
+ * lectura en Características, `features` conservaba `data-inview="true"` y
+ * `contact` `"false"` en las cinco posiciones de scroll barridas (Story y
+ * Viaje sí quedaban limpias: sus decks oscuros son componentes distintos y
+ * remontan nodos nuevos). `useActiveSection` leía esa señal muerta y
+ * `aria-current` -- con él el enlace de idioma que lo consume -- anunciaba
+ * «Características» en toda la página.
+ *
+ * INVARIANTE NUEVO, lo único que hay que respetar al tocar esto: el hook
+ * observa y escribe siempre sobre el MISMO nodo (`observed`, capturado al
+ * atarse), y `observed` solo puede ser el nodo al que apuntaba `ref.current`
+ * en el último commit. En cuanto dejan de coincidir, RETRACTA sobre
+ * `observed` -- borra las dos variables y el atributo, dejando el nodo como
+ * estaba antes de que este hook lo tocara --, deja de observarlo y para el
+ * bucle. Tres caminos lo garantizan, y hacen falta los tres:
+ *
+ * 1. `syncTarget()`, llamado desde el efecto sin dependencias, cubre los dos
+ *    sentidos (soltar el nodo y volver a atarlo) porque un ref solo cambia de
+ *    valor en un commit y todo commit del consumidor ejecuta ese efecto. El
+ *    sentido de VUELTA (oscuro → claro, el mismo nodo otra vez) no tiene otro
+ *    camino: el efecto principal depende solo de `[ref]`, estable de por vida,
+ *    así que no se re-ejecuta y nadie volvería a observar el nodo.
+ * 2. Las guardas de `tick()` y de la notificación del `IntersectionObserver`,
+ *    para el consumidor que desate el ref sin que el dueño del hook
+ *    re-renderice (una rama montada por un hijo con su propio `useTheme`).
+ * 3. La limpieza del efecto, que retracta al desmontar.
+ *
+ * Un consumidor que NO ate el ref (la rama oscura) queda así exactamente como
+ * si el hook no existiera: sin bucle, sin observer y sin rastro en el DOM.
  */
 export function useSectionProgress(
   ref: RefObject<HTMLElement | null>,
   options?: SectionProgressOptions,
 ): void {
   const optionsRef = useRef(options);
+  /**
+   * Puente hacia el `syncTarget()` del efecto principal (ver "DUEÑO DEL NODO"
+   * en el JSDoc del hook): lo publica ese efecto al arrancar y lo retira su
+   * limpieza, así que solo puede apuntar a la instancia viva.
+   */
+  const syncTargetRef = useRef<(() => void) | null>(null);
+
+  /*
+   * Efecto SIN dependencias: corre tras CADA render del consumidor.
+   * Sincroniza `options` (regla 6) y, desde el arreglo del scrollspy
+   * fosilizado, es además el LATIDO que vuelve a mirar `ref.current`. Es la
+   * granularidad exacta que hace falta y ni una más: el valor de un ref solo
+   * cambia como consecuencia de un commit de React, y todo commit del
+   * consumidor ejecuta este efecto -- sin listeners nuevos, sin un frame extra
+   * y sin exigirle memoización a nadie.
+   */
   useEffect(() => {
     optionsRef.current = options;
+    syncTargetRef.current?.();
   });
 
   useEffect(() => {
@@ -147,6 +207,14 @@ export function useSectionProgress(
     // se escribe nada al primer aviso de `isIntersecting: false`) de "acaba
     // de dejar de intersectar" (si hay que escribir el reposo).
     let hasEntered = false;
+
+    /**
+     * El nodo que este efecto observa Y sobre el que escribe -- el único, y
+     * la fuente de verdad de todo el efecto (nadie vuelve a leer `ref.current`
+     * salvo para COMPARARLO con esto). `null` mientras el consumidor no ate el
+     * ref: la rama oscura de Features/Contact vive permanentemente así.
+     */
+    let observed: HTMLElement | null = null;
 
     // Geometria cacheada, actualizada solo por `scroll`/`resize` (ver JSDoc
     // del motor): el `tick` de cada frame lee esto en vez de forzar un
@@ -200,8 +268,28 @@ export function useSectionProgress(
       }
     };
 
+    /**
+     * Deja el elemento EXACTAMENTE como estaba antes de que este hook lo
+     * tocara (ver "DUEÑO DEL NODO" en el JSDoc del hook): las dos variables
+     * fuera y el atributo fuera, no un valor "neutro" escrito encima. La
+     * diferencia importa río abajo: `useActiveSection` distingue "el atributo
+     * no está" (no hay señal en el árbol -> resuelve por geometría) de "el
+     * atributo dice false" (el lector está en el Hero, la rama clara SÍ opinó).
+     * También se limpia la caché de escritura, o el nodo siguiente heredaría
+     * un `lastInViewText` que le impediría volver a escribir el mismo valor.
+     */
+    const retract = (el: HTMLElement): void => {
+      const { prefix } = resolveOptions(optionsRef.current);
+      el.style.removeProperty(`--${prefix}-enter`);
+      el.style.removeProperty(`--${prefix}-progress`);
+      delete el.dataset.inview;
+      lastEnterText = "";
+      lastProgressText = "";
+      lastInViewText = "";
+    };
+
     const updateMeasurement = (): void => {
-      const el = ref.current;
+      const el = observed;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       lastTop = rect.top;
@@ -218,9 +306,120 @@ export function useSectionProgress(
       return { enter, progress };
     };
 
+    // Geometria cacheada EN EL INSTANTE en que `start()` la confirmo (ver el
+    // docblock de `tick()`, justo abajo): punto de referencia para medir
+    // cuanto se ha movido `lastTop` desde entonces, no solo SI se ha movido.
+    let topAtStart = 0;
+
+    /**
+     * Margen de tolerancia del respaldo de salida (fix wave E, hallazgo E1),
+     * en píxeles. Absorbe el sub-píxel de la PRIMERA actualización real de
+     * `onScroll` tras `start()` -- medido en Chrome real: el primer evento
+     * `scroll` de una animación `scroll-behavior: smooth` recién arrancada
+     * puede mover el elemento menos de 1-2px (el tramo de aceleración de la
+     * curva de easing), así que "¿se ha movido ALGO?" no basta -- un simple
+     * `true`/`false` seguía dejando pasar ese primer paso minúsculo como
+     * "movimiento real" y disparaba el respaldo contra la MISMA geometría
+     * boundary que el observer real ya había confirmado. 8px es un margen
+     * amplio frente al paso de 1-6px medido en ese primer evento, y minúsculo
+     * frente a cualquier cruce real de sección (cientos de píxeles) -- no
+     * hay tensión entre proteger la entrada reciente y detectar una salida
+     * genuina.
+     */
+    const SETTLE_TOLERANCE_PX = 8;
+
+    /**
+     * Respaldo de salida (fix wave E, hallazgo E1 -- evaluador de navegador
+     * real, 2026-08-13), medido en Chrome real, sin CPU throttling: la
+     * MISMA fórmula de "¿intersecta?" que ya usa el resto del repo
+     * (`rect.top < vh && rect.bottom > 0` -- ver `intersectsViewport` en
+     * `useActiveSection.ts`), aplicada sobre la geometría CACHEADA
+     * (`lastTop`/`lastHeight`/`lastVh`, ya fresca por `onScroll`/`onResize`
+     * mientras el bucle corre) en vez de un nuevo `getBoundingClientRect`.
+     *
+     * DIAGNÓSTICO (instrumentando `IntersectionObserver` de verdad en el
+     * navegador, no supuesto): tras un gesto de scroll hacia arriba de
+     * varios pasos (`page.mouse.wheel`, 12 muescas realistas, o el
+     * equivalente `window.scrollTo(behavior:"instant")`) que atraviesa una
+     * sección de punta a punta -- entra por un lado, sale por el otro --, el
+     * `IntersectionObserver` entregó la notificación de ENTRADA
+     * (`isIntersecting: true`, capturado por el log instrumentado) pero
+     * NUNCA la de SALIDA: el cruce final quedó a un pelo del borde exacto
+     * del viewport, y sin un evento adicional que reevaluara la geometría
+     * después de ese último frame, el navegador simplemente no volvió a
+     * comprobar. Esto NO es el mismo defecto que el fix de
+     * `useActiveSection.ts` (que reevalúa CUÁNDO re-leer `data-inview`) --
+     * este es más profundo: `data-inview` mismo se queda mal escrito, porque
+     * `tick()` (mientras `running` siga `true`) escribía `inView: true`
+     * INCONDICIONALMENTE en cada frame, sin volver a comprobar si la
+     * sección seguía intersecando de verdad. Con `running` nunca puesto a
+     * `false` (porque `pause()` solo lo hace desde `onIntersectExit`, que
+     * nunca llegó a dispararse), el bucle -- y la señal falsa -- corrían
+     * para siempre.
+     *
+     * `onScroll`/`onResize` SIGUEN corriendo durante todo ese tramo (activos
+     * mientras `running === true`, que es justo la ventana en la que el
+     * aviso se perdió), así que `lastTop`/`lastHeight`/`lastVh` YA reflejan
+     * la geometría real y fresca en cada frame -- verificar contra ellos
+     * aquí no añade ningún listener, `Observer` ni layout forzado nuevo:
+     * reutiliza el mismo dato que `computeTargets()`, dos líneas más abajo,
+     * ya iba a leer. Si la caché dice que ya no intersecta, se trata
+     * exactamente como si el observer hubiera avisado -- mismo camino
+     * (`onIntersectExit`), sin duplicar la lógica de reposo.
+     *
+     * `topAtStart`/`SETTLE_TOLERANCE_PX` (dos hallazgos adicionales,
+     * atrapados por el propio candado antes de darlos por buenos -- las dos
+     * fórmulas anteriores de este respaldo, "sáltate solo el primer `tick`"
+     * y luego "sáltate hasta el primer `scroll` real", NO bastaban):
+     *
+     * Esta sección -- como cualquiera que llegue justo después de un Hero a
+     * pantalla completa, `min-height: 100dvh` -- puede empezar a intersecar
+     * con `rect.top` EXACTAMENTE igual a `innerHeight` (el borde justo, cero
+     * píxeles de solape real). Medido en Chrome real: el propio
+     * `IntersectionObserver` considera ESE borde exacto como
+     * `isIntersecting: true` (así llamó a `start()`), y la geometría se
+     * queda clavada en ese mismo valor durante varios `tick()` -- a veces
+     * varios frames enteros -- hasta que la animación de scroll suave emite
+     * su primer evento `scroll` real. Ese primer evento, medido, puede mover
+     * el elemento tan solo 1-2px (el arranque de la curva de easing) --
+     * seguir sin cruzar de forma clara el límite ambiguo. Con un simple
+     * `true`/`false` (intento anterior), ese primer paso minúsculo ya
+     * contaba como "algo se movió" y activaba la fórmula estricta contra una
+     * geometría que seguía, en la práctica, siendo la misma que el observer
+     * real ya había validado -- deshaciendo la entrada, de forma
+     * intermitente según cuántos px trajera ese primer evento (de ahí la
+     * inconsistencia entre corridas: 1px de más o de menos decidía si el
+     * candado se disparaba).
+     *
+     * La distinción real entre los dos casos no está en la geometría en sí
+     * (los dos pueden compartir el MISMO `rect.top === innerHeight` exacto)
+     * sino en CUÁNTO se ha alejado la geometría de la que el observer
+     * confirmó por última vez: `topAtStart` guarda esa foto original, y el
+     * respaldo solo se activa una vez que `lastTop` se ha separado de ella
+     * más de `SETTLE_TOLERANCE_PX` -- lo bastante para no ser ruido de
+     * arranque de la animación, lo bastante poco para no retrasar la
+     * detección de una salida real (que implica cientos de píxeles de
+     * scroll, no unos pocos).
+     */
     const tick = (): void => {
-      const el = ref.current;
+      // Guarda de propiedad (ver "DUEÑO DEL NODO" en el JSDoc del hook): si el
+      // consumidor desató el ref, este bucle ya no describe nada -- retracta
+      // sobre el nodo que sí observaba y se para, en vez de seguir girando
+      // sobre `null` como hacía antes.
+      if (ref.current !== observed) {
+        detachTarget();
+        return;
+      }
+      const el = observed;
       if (el) {
+        if (Math.abs(lastTop - topAtStart) > SETTLE_TOLERANCE_PX) {
+          const stillIntersecting =
+            lastTop < lastVh && lastTop + lastHeight > 0;
+          if (!stillIntersecting) {
+            onIntersectExit();
+            return;
+          }
+        }
         const { enter: targetEnter, progress: targetProgress } =
           computeTargets();
         const { smooth } = resolveOptions(optionsRef.current);
@@ -235,10 +434,11 @@ export function useSectionProgress(
     const onResize = (): void => updateMeasurement();
 
     const start = (): void => {
-      if (running) return;
+      if (running || !observed) return;
       running = true;
       hasEntered = true;
       updateMeasurement();
+      topAtStart = lastTop;
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onResize, { passive: true });
       // Primer frame SINCRONO (mismo patron que `measure()` en
@@ -267,7 +467,7 @@ export function useSectionProgress(
     // refrescarse si el usuario dejo de scrollear antes de que la seccion
     // cruzara del todo -- para decidir el lado exacto por el que salio.
     const rest = (): void => {
-      const el = ref.current;
+      const el = observed;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const exitedAbove = rect.bottom <= 0;
@@ -288,14 +488,31 @@ export function useSectionProgress(
     // incondicional, no depende de `hasEntered`.
     const stopForReduced = (): void => {
       pause();
-      const el = ref.current;
+      const el = observed;
       if (!el) return;
       appliedEnter = 1;
       appliedProgress = 0;
       writeVars(el, 1, 0, true);
     };
 
-    const observer = new IntersectionObserver(([entry]) => {
+    const observer = new IntersectionObserver((entries) => {
+      // La ULTIMA entrada del lote, no la primera: ver el porque completo en
+      // `useReveal.ts` (P0 de la critica externa #21, 2026-09-08). Aqui el
+      // precio de leer la obsoleta era `onIntersectExit()` con la seccion
+      // DENTRO del viewport y, con la guarda `hasEntered` puesta, no escribir
+      // NADA: medido tras conmutar oscuro a claro, `--story-progress` y
+      // `--story-enter` no llegaban a escribirse nunca. Este observador
+      // vigila un solo nodo (`observed`), asi que todas las entradas del lote
+      // son suyas y la ultima es el estado vigente.
+      const entry = entries[entries.length - 1];
+      // Misma guarda de propiedad que `tick()`: una notificación sobre un nodo
+      // que el consumidor ya soltó no describe la sección que este hook
+      // pretende publicar.
+      if (!observed) return;
+      if (ref.current !== observed) {
+        detachTarget();
+        return;
+      }
       if (entry.isIntersecting) start();
       else onIntersectExit();
     });
@@ -304,23 +521,73 @@ export function useSectionProgress(
     // intersecta Y no hay reduced-motion (mismo criterio que
     // `useSceneParallax`/`useSlideDeck`). Bajo `reduce` se desconecta el
     // observer entero.
-    const evaluate = (): void => {
+    const applyReducedPreference = (): void => {
+      const el = observed;
+      if (!el) return;
       if (reducedQuery.matches) {
         observer.disconnect();
         stopForReduced();
       } else {
-        const el = ref.current;
-        if (el) observer.observe(el);
+        observer.observe(el);
       }
     };
 
-    evaluate();
-    reducedQuery.addEventListener("change", evaluate);
+    /**
+     * Soltar el nodo: parar, dejar de observarlo y RETRACTAR sobre él. El
+     * estado interno vuelve al que tenía antes de atarse (`hasEntered` y los
+     * valores aplicados del lerp), porque el siguiente atado -- aunque sea al
+     * MISMO nodo tras volver al tema claro -- es una entrada nueva y no debe
+     * heredar ni un reposo escrito ni la posición del lerp de la otra rama.
+     */
+    const detachTarget = (): void => {
+      const el = observed;
+      if (!el) return;
+      pause();
+      // `disconnect()` y no `unobserve(el)`: este observer vigila UN solo nodo
+      // por construcción (lo ata `attachTarget`, lo suelta esta función), así
+      // que las dos llamadas son equivalentes aquí -- y `disconnect` es además
+      // la que el hook ya usaba, la que el resto del repo mockea en sus tests.
+      observer.disconnect();
+      retract(el);
+      observed = null;
+      hasEntered = false;
+      appliedEnter = 0;
+      appliedProgress = 0;
+    };
+
+    /** Atar el nodo: `observe()` entrega su primer aviso de forma asíncrona
+     *  antes del siguiente pintado, así que es él quien arranca el bucle con
+     *  el estado REAL de intersección -- también en el camino de vuelta
+     *  (oscuro → claro), sin que este hook tenga que suponer nada. */
+    const attachTarget = (el: HTMLElement): void => {
+      observed = el;
+      applyReducedPreference();
+    };
+
+    /** Reconcilia `observed` con `ref.current`. Idempotente y baratísima (una
+     *  comparación de identidad) cuando no hay nada que hacer, que es el caso
+     *  de la inmensa mayoría de renders. */
+    const syncTarget = (): void => {
+      const el = ref.current;
+      if (el === observed) return;
+      detachTarget();
+      if (el) attachTarget(el);
+    };
+
+    syncTarget();
+    reducedQuery.addEventListener("change", applyReducedPreference);
+    syncTargetRef.current = syncTarget;
 
     return () => {
-      reducedQuery.removeEventListener("change", evaluate);
-      observer.disconnect();
+      syncTargetRef.current = null;
+      reducedQuery.removeEventListener("change", applyReducedPreference);
+      // Retracta al desmontar: el nodo puede SOBREVIVIR al desmontaje de quien
+      // ata el ref (React reutiliza `<section id="features">` entre ramas de
+      // tema), y un atributo sin dueño es exactamente el defecto que se
+      // arregla aquí.
+      detachTarget();
       pause();
+      observer.disconnect();
     };
   }, [ref]);
 }

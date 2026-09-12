@@ -7,15 +7,17 @@ import {
 } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import enHome from "@/i18n/locales/en/home.json";
-import { AURA_SURFACE } from "@/components/aura/aura.layers";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { AURA_SURFACE } from "@/components/scenes/aura/aura.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { Button } from "@/components/ui/Button/Button";
+import { AMBIENT } from "@/motion/vocabulary";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { color } from "@/theme/tokens/color";
+import { grid } from "@/theme/tokens/grid";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
+import { zIndex } from "@/theme/tokens/zIndex";
 import { type as typeTokens } from "@/theme/tokens/type";
-import { StageProvider } from "@/motion/StageProvider";
 import { Hero } from "./Hero";
 
 /**
@@ -36,24 +38,14 @@ function stubMatchMedia(): void {
 }
 
 /*
- * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
- *
- * Ninguno de los casos de este archivo mide la opacidad de la copia ni del
- * navbar (miden color, fontSize, contraste, existencia de reglas CSS, altura
- * del pie...): la fase de pagina se queda en "backdrop" a secas, sin forzar
- * "chrome" con la sonda de markBackdropRevealed() -- no hace falta, porque
- * nada de lo que se asevera aqui depende de que el intro de la copia haya
- * arrancado.
+ * `Hero` ya no consume `useStage()` desde la revision 2026-08-11 (Task 10:
+ * su intro de carga es CSS estatico), y `HeroBackdrop` -- que `Hero` monta
+ * -- tampoco desde la Task 27 (misma fecha): la maquina de fases del stage
+ * (`useStage()`/`StageProvider`) se retiro entera. Se renderiza `<Hero />`
+ * directamente, sin ningun envoltorio de proveedor propio de este archivo.
  */
 function renderHero(): RenderResult {
-  return renderWithProviders(
-    <StageProvider>
-      <Hero />
-    </StageProvider>,
-  );
+  return renderWithProviders(<Hero />);
 }
 
 beforeEach(() => {
@@ -105,17 +97,19 @@ function remDe(size: string): number {
 const sinEspacios = (s: string): string => s.replace(/\s+/g, "");
 
 describe("Hero (lente funcional)", () => {
-  it("la escala decrece de titulo a subtitulo a apoyo, incluso en el peor caso del clamp", () => {
+  it("la escala decrece de titulo a subtitulo a linea, incluso en el peor caso del clamp", () => {
     // jsdom no resuelve clamp()/min()/rem, asi que el ordenamiento en pixeles
     // no es aseverable aqui; SI lo es a nivel de token, que es la fuente de
     // verdad del CSS. Se toma el extremo INFERIOR del clamp del display (el
-    // caso mas desfavorable para la jerarquia).
+    // caso mas desfavorable para la jerarquia). "linea" es ScTagline (Task
+    // 14): ocupa la misma posicion y el mismo token (variant=body) que el
+    // ScSupport retirado.
     const titulo = remDe(typeTokens.scale.display.size);
     const subtitulo = remDe(typeTokens.scale.h3.size);
-    const apoyo = remDe(typeTokens.scale.body.size);
+    const linea = remDe(typeTokens.scale.body.size);
 
     expect(titulo).toBeGreaterThan(subtitulo);
-    expect(subtitulo).toBeGreaterThan(apoyo);
+    expect(subtitulo).toBeGreaterThan(linea);
     expect(typeTokens.scale.display.weight).toBeGreaterThan(
       typeTokens.scale.h3.weight,
     );
@@ -124,41 +118,64 @@ describe("Hero (lente funcional)", () => {
     );
   });
 
-  it("el contenedor del titulo usa el clamp literal del usuario, no el token display (oscuro: 8vw)", () => {
+  it("el contenedor del titulo usa el clamp literal del usuario, no el token display, con el factor vw resuelto por variable CSS", () => {
     // REESCRITO (Flujo 3): ScHeroBrand paso de
     // min(theme.data.type.scale.display.size, 10vw) a un clamp(34px, 8vw,
     // 258px) literal explicito del usuario -- se documenta como excepcion en
     // el propio Hero.tsx, no se corrige a la escala. La asercion de
     // line-height SIGUE leyendo el token (B2 no la toca).
-    window.localStorage.setItem("vti-theme", "dark");
+    //
+    // REESCRITO OTRA VEZ (Task 9, anti-flash de tema): el factor vw ya NO
+    // sale de un prop `$light` interpolado por React -- ahora es
+    // var(--hero-title-vw, 7vw), la MISMA declaracion CSS sea cual sea el
+    // tema (ver el docblock de ScHeroBrand en Hero.tsx). jsdom no resuelve
+    // var() (no hace layout, tampoco cascada de custom properties), asi que
+    // getComputedStyle(...).fontSize devuelve el texto CRUDO de la
+    // declaracion, sin sustituir la variable -- exactamente lo que este test
+    // aprovecha para demostrar la propiedad que Task 9 persigue: la
+    // declaracion NO cambia con el tema (candado de "sin re-maquetacion").
     const { container } = renderHero();
     const titulo = container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
 
+    // Los dos extremos pasan a `rem` el 2026-09-05 (WCAG 1.4.4): 2.125rem =
+    // 34px y 16.125rem = 258px con la raiz por defecto, la conversion exacta
+    // del literal que este test ataba antes en pixeles. Lo que el test
+    // protege sigue siendo lo mismo: que la declaracion sea el literal del
+    // usuario con el factor vw resuelto por variable CSS.
     expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
-      sinEspacios("clamp(34px, 8vw, 258px)"),
+      sinEspacios("clamp(2.125rem, var(--hero-title-vw, 7vw), 16.125rem)"),
     );
     expect(getComputedStyle(titulo).lineHeight).toBe(
       String(typeTokens.scale.display.lineHeight),
     );
   });
 
-  it("el contenedor del titulo baja a 7vw en claro: la columna estrecha (min(prose, 40%)) no sostiene 8vw", () => {
-    // El factor mas bajo es un pedido explicito del usuario, no una medida:
-    // en claro la copia comparte ancho con el marco del arte (spec S3.6) y
-    // queda limitada a min(prose, 40%), mas estrecha que en oscuro.
-    const { container } = renderHero();
-    const titulo = container.querySelector(
+  it("el clamp del titulo es IDENTICO con o sin tema oscuro en storage: ya no hay re-maquetacion tras la correccion de ThemeProvider", () => {
+    // Candado directo del objetivo de Task 9 (CLS 0,0799 medido en el
+    // arranque oscuro de escritorio -> ~0): antes de esta tarea, el efecto
+    // post-montaje de ThemeProvider recalculaba este MISMO nodo con un
+    // literal de CSS distinto (7vw -> 8vw), lo que generaba una clase nueva
+    // de styled-components y, con ella, el shift. Si volviera a divergir
+    // (alguien reintroduce `${'$light'} &&` en vez de la variable CSS), este
+    // test lo detecta sin necesidad de medir CLS en un navegador real.
+    window.localStorage.setItem("vti-theme", "dark");
+    const conStorageDark = renderHero();
+    const tituloDark = conStorageDark.container.querySelector(
       '[data-testid="hero-title"]',
     ) as HTMLElement;
+    const fontSizeDark = getComputedStyle(tituloDark).fontSize;
+    conStorageDark.unmount();
+    window.localStorage.clear();
 
-    expect(sinEspacios(getComputedStyle(titulo).fontSize)).toBe(
-      sinEspacios("clamp(34px, 7vw, 258px)"),
-    );
-    expect(getComputedStyle(titulo).lineHeight).toBe(
-      String(typeTokens.scale.display.lineHeight),
-    );
+    const sinStorage = renderHero();
+    const tituloClaro = sinStorage.container.querySelector(
+      '[data-testid="hero-title"]',
+    ) as HTMLElement;
+    const fontSizeClaro = getComputedStyle(tituloClaro).fontSize;
+
+    expect(sinEspacios(fontSizeDark)).toBe(sinEspacios(fontSizeClaro));
   });
 
   it("el subtitulo usa el clamp literal del usuario, no el token h3", () => {
@@ -167,12 +184,21 @@ describe("Hero (lente funcional)", () => {
       '[data-testid="hero-subtitle"]',
     ) as HTMLElement;
 
+    // Mismo cambio de unidad que el titular (2026-09-05): 0.9375rem = 15px y
+    // 1.375rem = 22px con la raiz por defecto.
     expect(sinEspacios(getComputedStyle(subtitulo).fontSize)).toBe(
-      sinEspacios("clamp(15px, 2vw, 22px)"),
+      sinEspacios("clamp(0.9375rem, 2vw, 1.375rem)"),
     );
   });
 
-  it("el titulo del hero sigue siendo un unico <h1> con el texto exacto 'VoidToInfinite'", () => {
+  /*
+   * El h1 vuelve a ser EXACTAMENTE la marca: la tagline que lo acompaño
+   * durante la auditoria SEO del 2026-08-08 se retiro por decision del
+   * usuario ese mismo dia. Afirmar el texto exacto (y no un `toContain`)
+   * es lo que convierte esto en un candado: cualquier nodo de texto que se
+   * cuele dentro del encabezado principal lo pone en rojo.
+   */
+  it("el titulo del hero es un unico <h1> con la marca y nada mas", () => {
     const { container } = renderHero();
     const encabezados = container.querySelectorAll("h1");
     expect(encabezados).toHaveLength(1);
@@ -241,8 +267,8 @@ describe("Hero (lente funcional)", () => {
       expect(screen.getByTestId("hero-subtitle")).toHaveTextContent(
         enHome.Home.hero.subtitle,
       );
-      expect(screen.getByTestId("hero-support")).toHaveTextContent(
-        enHome.Home.hero.support,
+      expect(screen.getByTestId("hero-tagline")).toHaveTextContent(
+        enHome.Home.hero.tagline,
       );
     } finally {
       await act(async () => {
@@ -328,16 +354,42 @@ describe("Hero (lente funcional)", () => {
     expect(opacity).toBe("1");
   });
 
+  /*
+   * Crítica externa #10 (2026-08-18), hallazgo C — lado CONSUMIDOR de la
+   * tokenización del tope de columna. El candado de FUENTE (más abajo, en el
+   * segundo describe) prueba que el número ya no se escribe a mano; este
+   * prueba lo complementario, que es lo que de verdad se ve: lo que llega al
+   * CSS renderizado sigue siendo el MISMO ancho de antes.
+   *
+   * Se afirma contra el token importado, nunca contra el literal (regla 38, y
+   * mismo patrón que `Journey.test.tsx`/`Story.test.tsx` ya usan con
+   * `grid.prose`): si algún día el token cambia de valor, este candado no
+   * miente sobre lo que el hero pinta, cambia con él.
+   */
+  it("crítica #10: tagline y subtítulo topan su ancho en grid.heroCopyMax, el mismo valor que declaraban a mano", () => {
+    renderHero();
+    const tagline = reglasDe(screen.getByTestId("hero-tagline")).join("\n");
+    const subtitulo = reglasDe(screen.getByTestId("hero-subtitle")).join("\n");
+
+    expect(tagline).toContain(`max-width: ${grid.heroCopyMax}`);
+    expect(subtitulo).toContain(`max-width: ${grid.heroCopyMax}`);
+  });
+
   describe("CTAs animados del hero (Flujo 3)", () => {
     /*
-     * heroGradient (BrandName.tsx, reutilizado por ScCtaPrimary/
-     * ScCtaSecondary) tiene 4 paradas: semantic.text (L .985), brandText
-     * (primary[300], L .86), palette.secondary[300] (L .86) y semantic.text
-     * de nuevo. Las dos paradas NO blancas (brandText y secondary[300]) son
-     * el "punto mas oscuro" del recorrido -- se mide el contraste contra
-     * esas dos, no solo contra el extremo claro.
+     * ctaGradient (BrandName.tsx, desde la Task 33 -- antes heroGradient,
+     * ver su docblock para el porqué del split) tiene 4 paradas:
+     * semantic.text, brandText, la parada de 65% (secondary[300] en oscuro,
+     * secondary[700] en claro desde la Task 33) y semantic.text de nuevo.
+     * Este test SOLO cubría tema oscuro -- el hueco exacto que dejó pasar el
+     * hallazgo del evaluador independiente (gate F4, 2026-08-12): la parada
+     * de 65% en CLARO (antes secondary[300], L .86) daba 1.69:1 contra el
+     * texto blanco del botón, muy por debajo de AA. La cobertura completa
+     * (las 3 paradas distintas, en los 2 temas, calculando los extremos del
+     * recorrido) vive en `BrandName.contrast.test.ts`, describe "Task 33" --
+     * este test se queda como red de regresión del caso oscuro que ya tenía.
      */
-    it("el label del CTA primario (onBrand) pasa AA contra las dos paradas mas oscuras del degradado", () => {
+    it("el label del CTA primario (onBrand) pasa AA contra las dos paradas mas oscuras del degradado (tema oscuro)", () => {
       expect(
         contrastRatio(semanticDark.onBrand, semanticDark.brandText),
       ).toBeGreaterThanOrEqual(4.5);
@@ -346,30 +398,102 @@ describe("Hero (lente funcional)", () => {
       ).toBeGreaterThanOrEqual(4.5);
     });
 
-    it("el borde animado del CTA secundario pasa el umbral no textual (3:1, WCAG 1.4.11) contra el lienzo", () => {
+    /*
+     * Task 33: candado por RENDER (no solo por token) atado al código real
+     * de `Hero.tsx` -- si `ScCtaPrimary` alguna vez revirtiera a
+     * `heroGradient` (o a cualquier otro color suelto) en la parada de 65%,
+     * este test lo detectaría leyendo el CSS INYECTADO de verdad, no una
+     * copia recalculada a mano. `reglasDe` (no `getComputedStyle`): el
+     * degradado vive bajo `@media (prefers-reduced-motion: no-preference)`,
+     * que jsdom no evalúa (regla 5.2 del CLAUDE.md del repo) -- solo el
+     * TEXTO de la regla inyectada es inspeccionable.
+     */
+    it("Task 33: el degradado renderizado del CTA primario en tema CLARO pasa AA en sus 3 paradas distintas", () => {
+      renderHero(); // por defecto: claro (sin localStorage)
+      const acciones = screen.getByTestId("hero-actions");
+      const enlace = acciones.querySelector("a") as HTMLElement;
+      const css = reglasDe(enlace).join("\n");
+
+      // Se aisla la declaracion `background-image: linear-gradient(...);`
+      // en vez de acotar por @media (que aparece dos veces en este
+      // elemento: el propio de ctaGlow, sin colores, y el del degradado) --
+      // asi la extraccion de oklch() no depende de en que orden el CSSOM
+      // haya insertado cada regla, solo de que la declaracion exista.
+      const declaracionesDeGradiente =
+        css.match(/background-image:\s*linear-gradient\([^;]*\);/g) ?? [];
       expect(
-        contrastRatio(semanticDark.brandText, EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(3);
+        declaracionesDeGradiente.length,
+        "no se encontro ninguna declaracion background-image: linear-gradient(...)",
+      ).toBeGreaterThan(0);
+
+      const paradas = Array.from(
+        new Set(
+          declaracionesDeGradiente.flatMap(
+            (decl) => decl.match(/oklch\([^)]*\)/g) ?? [],
+          ),
+        ),
+      );
       expect(
-        contrastRatio(color.secondary[300], EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(3);
+        paradas.length,
+        "se esperaban 3 colores de parada distintos (semantic.text, semantic.brandText, ctaGradientMidStop)",
+      ).toBe(3);
+
+      paradas.forEach((parada) => {
+        const ratio = contrastRatio(semanticLight.onBrand, parada);
+        expect(
+          ratio,
+          `parada ${parada} da ${ratio.toFixed(3)}:1 contra onBrand, por debajo de AA (4.5:1)`,
+        ).toBeGreaterThanOrEqual(4.5);
+      });
+
+      // Sonda de no-vacuidad: secondary[300] (la parada VIEJA) NO puede
+      // aparecer entre las paradas renderizadas en tema claro -- si
+      // apareciera, seria la prueba de que ctaGradient revirtio a
+      // heroGradient sin que el resto del test lo hubiera detectado ya.
+      expect(paradas).not.toContain(color.secondary[300]);
     });
 
-    it("el label del CTA secundario ghost (brandSolid sobre el lienzo) pasa AA", () => {
-      // El texto del CTA secundario NO esta sobre el degradado (solo el
-      // borde lo esta): en variant="ghost" el color del label es el accent
-      // (brandSolid para intent="primary", el default de Button), y el
-      // fondo real detras es el lienzo del ojo.
-      expect(
-        contrastRatio(semanticDark.brandSolid, EYE_SURFACE),
-      ).toBeGreaterThanOrEqual(4.5);
+    /*
+     * Task 19 (motion core, punto 7 del brief -- gate F2: AMBIENT con cero
+     * consumidores): gradientShift pasa de un literal escrito a mano
+     * (9000ms) a `${AMBIENT.floatMs}ms` (@/motion/vocabulary) -- mismo valor
+     * numerico resultante, asi que el CSS renderizado no distingue
+     * "literal" de "token" por texto; lo que SI prueba que es el token es
+     * que Hero.tsx importa y usa AMBIENT.floatMs de verdad
+     * (src/test/vocabulary-consumers.test.ts). Validado con el bug inyectado
+     * a proposito (ver informe de la tarea): cambiando temporalmente
+     * AMBIENT.floatMs a 9999 en vocabulary.ts, este test se puso en rojo;
+     * restaurado, volvio a verde. BrandName.tsx/Contact.tsx tienen su propio
+     * candado equivalente sobre este mismo gradientShift.
+     */
+    it("Task 19: el degradado animado del CTA primario renderiza AMBIENT.floatMs (9000ms)", () => {
+      renderHero();
+      const acciones = screen.getByTestId("hero-actions");
+      const enlace = acciones.querySelector("a") as HTMLElement;
+      const css = reglasDe(enlace).join("\n");
+
+      expect(css).toContain("prefers-reduced-motion: no-preference");
+      expect(css).toContain(`${AMBIENT.floatMs}ms linear infinite alternate`);
     });
 
-    it("renderiza los dos CTA como enlaces (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
+    /*
+     * COBERTURA RETIRADA con el CTA secundario (encargo 2026-08-08): dos
+     * pruebas median su borde animado (brandText/secondary[300] >= 3:1
+     * contra EYE_SURFACE, WCAG 1.4.11) y su label ghost (brandSolid >= 4.5:1
+     * contra EYE_SURFACE). Ese boton ya no existe -- el hero tiene un solo
+     * CTA, el primario -- asi que las dos aserciones no describen ningun
+     * pixel real. Los pares que seguian importando NO se pierden: brandText
+     * contra EYE_SURFACE lo sigue midiendo "los colores del hero pasan AA
+     * sobre el negro del lienzo", mas arriba en este mismo archivo (el
+     * degradado del titular sigue recorriendo esa parada), y el par
+     * onBrand/degradado lo mide el test del CTA primario, justo encima.
+     */
+
+    it("renderiza el CTA como enlace (forwardedAs preserva la logica de Button, a diferencia de as)", () => {
       renderHero();
       const acciones = screen.getByTestId("hero-actions");
       const enlaces = acciones.querySelectorAll("a");
-      expect(enlaces).toHaveLength(2);
+      expect(enlaces).toHaveLength(1);
       enlaces.forEach((enlace) => {
         // Si `as` hubiera sustituido a `forwardedAs`, Button entero se
         // descartaria y el <a> no llevaria ninguna clase de ScButton (ver
@@ -383,13 +507,14 @@ describe("Hero (lente funcional)", () => {
     it.each(["solid", "soft", "outline", "ghost"] as const)(
       "un Button base fuera del hero en variant='%s' no hereda el degradado ni la mascara de los CTA del hero",
       (variant) => {
+        // Sin `intent` explícito: `primary` es el valor por defecto de
+        // `Button` y era lo único que este control necesitaba. La prop se
+        // retira de aquí en la crítica externa #10 (2026-08-18), donde el
+        // union se recortó a `primary`/`neutral`: escribir el propio valor
+        // por defecto hacía pasar por call site de producción algo que solo
+        // era ruido de test.
         const { container } = renderWithProviders(
-          <Button
-            variant={variant}
-            intent="primary"
-          >
-            Boton de control
-          </Button>,
+          <Button variant={variant}>Boton de control</Button>,
         );
         const boton = container.querySelector("button") as HTMLElement;
         const css = reglasDe(boton).join("\n");
@@ -399,6 +524,242 @@ describe("Hero (lente funcional)", () => {
           "linear-gradient(100deg",
         );
       },
+    );
+  });
+});
+
+/*
+ * Candados de FUENTE (Task 9, anti-flash de tema), no de render: la lección
+ * de la casa (RULES.md #37) es que `createGlobalStyle` no inyecta nada bajo
+ * jsdom + Vitest, así que las reglas ESTÁTICAS de `GlobalStyles.tsx`
+ * (`:root[data-theme="dark"] { --hero-title-vw: 8vw; ... }`) no aparecen
+ * nunca en `document.styleSheets` de un test, monte lo que monte. El test de
+ * arriba ("el clamp del titulo es IDENTICO...") ya prueba, por render, que
+ * `Hero.tsx` dejó de depender de React para este valor; lo que falta cerrar
+ * -- y solo se puede cerrar leyendo el FICHERO, mismo patrón que
+ * `app/RootDocument.test.ts` (era `app/layout.test.ts` hasta el 2026-09-06)
+ * -- es que el FALLBACK de la variable (el valor claro,
+ * el que hornea el build) y el OVERRIDE oscuro (el que activa el script
+ * pre-pintado) sean los literales correctos, no huérfanos entre sí.
+ */
+describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado de fuente)", () => {
+  async function leerFuente(...segments: string[]): Promise<string> {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { dirname, join } = await import("node:path");
+    const here = dirname(fileURLToPath(import.meta.url));
+    return readFileSync(join(here, ...segments), "utf-8");
+  }
+
+  /*
+   * Despoja comentarios ANTES de buscar. Dos motivos, los dos ya pagados por
+   * el repo (task/lessons.md, 2026-08-11): que una cita en prosa de un
+   * docblock no gane la búsqueda por aparecer antes que el código real, y
+   * sobre todo que una línea COMENTADA no pueda pasar por línea activa -- un
+   * `toContain` sobre fuente cruda se queda en VERDE si el candado se
+   * desactiva con `//`, que es exactamente el bug inyectado con el que se
+   * valida este bloque.
+   */
+  function despojarComentarios(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  /*
+   * Extrae un bloque CSS del FUENTE contando llaves, en vez de con una clase
+   * negada (`[^}]*`, la forma que tenía este candado hasta la crítica externa
+   * #10). Desde que `--hero-copy-maxwidth-lg` lee un token, el bloque contiene
+   * una interpolación y la primera `}` del fichero deja de ser su final: con
+   * la forma anterior el candado habría medido un bloque truncado, dando por
+   * ausentes variables que sí están. Contar llaves lo REFUERZA en vez de
+   * relajarlo -- antes bastaba con que las cinco variables aparecieran antes
+   * de la primera `}`; ahora tienen que aparecer dentro del bloque real.
+   */
+  function bloqueDe(source: string, apertura: string): string | undefined {
+    const inicio = source.indexOf(apertura);
+    if (inicio === -1) return undefined;
+    let profundidad = 0;
+    for (let i = inicio + apertura.length - 1; i < source.length; i += 1) {
+      if (source[i] === "{") profundidad += 1;
+      else if (source[i] === "}") {
+        profundidad -= 1;
+        if (profundidad === 0) return source.slice(inicio, i + 1);
+      }
+    }
+    return undefined;
+  }
+
+  it("ScHeroBrand declara el fallback CLARO (7vw): sin JS, el resultado es identico al de antes de Task 9", async () => {
+    const source = await leerFuente("Hero.tsx");
+    expect(source).toContain("var(--hero-title-vw, 7vw)");
+  });
+
+  /*
+   * Crítica externa #10 (2026-08-18), hallazgo C. `Hero.tsx` escribía a mano
+   * el tope de la columna de copia en CUATRO declaraciones (`ScCopy` en su
+   * forma centrada y dentro del `min(..., 70%)` de escritorio, `ScTagline` y
+   * `ScSubtitle`) mientras el sistema ya tenía dónde nombrarlo. Este es el
+   * único candado que puede probar la migración: el CSS RENDERIZADO es
+   * idéntico antes y después (el token resuelve al mismo valor), así que la
+   * propiedad "el número vive en el token, no en el componente" solo se
+   * observa en la FUENTE (task/lessons.md, 2026-08-12, Task 19).
+   *
+   * El recuento es cerrado a propósito (regla 39/40): si mañana alguien añade
+   * una quinta medida al hero, o devuelve una al literal, este número deja de
+   * cuadrar y hay que decidirlo a mano, no dejarlo pasar.
+   */
+  it("crítica #10: Hero.tsx ya no escribe el tope de columna a mano -- las cuatro medidas leen grid.heroCopyMax", async () => {
+    const source = despojarComentarios(await leerFuente("Hero.tsx"));
+    expect(source).not.toContain("70ch");
+    expect(source.match(/theme\.data\.grid\.heroCopyMax/g)?.length ?? 0).toBe(
+      4,
+    );
+  });
+
+  it('GlobalStyles.tsx redefine --hero-title-vw a 8vw SOLO bajo :root[data-theme="dark"]', async () => {
+    const source = despojarComentarios(
+      await leerFuente("..", "..", "..", "theme", "GlobalStyles.tsx"),
+    );
+    const bloque = bloqueDe(source, ':root[data-theme="dark"] {');
+    expect(
+      bloque,
+      'no se encontro el bloque :root[data-theme="dark"]',
+    ).not.toBeUndefined();
+    expect(bloque).toContain("--hero-title-vw: 8vw");
+    expect(bloque).toContain("--hero-align-items-lg: center");
+    expect(bloque).toContain("--hero-justify-lg: flex-end");
+    expect(bloque).toContain("--hero-text-align-lg: center");
+    // El override oscuro pasa a leer el token (crítica externa #10): lo que se
+    // afirma aquí es el CONSUMO, no el literal, porque el literal ya no vive
+    // en este fichero. Su valor lo fija `system.test.ts` -- los dos candados
+    // juntos siguen cerrando la misma propiedad de antes (que el fallback
+    // claro de Hero.tsx y el override oscuro no queden huérfanos entre sí).
+    expect(bloque).toContain("--hero-copy-maxwidth-lg: ${grid.heroCopyMax}");
+    expect(bloque).toContain("--hero-actions-justify-lg: center");
+  });
+});
+
+/*
+ * Velo de contraste de la copia del hero (D1, decision del dueno
+ * 2026-09-02). El velo es una propiedad puramente de PINTADO: jsdom no
+ * pinta, no hace layout y no compone alfa, asi que estos candados solo
+ * pueden aseverar lo que es verificable sin motor de render -- que la regla
+ * existe, que cuelga del `::before` del bloque de copia, que su color sale
+ * del token de fondo del TEMA (dos valores distintos, uno por rama: un
+ * literal escrito a mano no podria satisfacer las dos aserciones a la vez) y
+ * que no anima nada. La medida real (p05 del h1 >= 3:1 y p05 del parrafo >=
+ * 4,5:1 en los dos temas) es de navegador y queda declarada como pendiente
+ * de un humano, regla 47.
+ */
+describe("Hero: velo de contraste de la copia (D1, 2026-09-02)", () => {
+  /* Reglas de estilo (el OBJETO, no su texto) cuyo selector menciona alguna
+     de las clases del elemento: la FORMA de un selector solo se puede
+     aseverar sobre `selectorText` (regla 35). */
+  function reglasConSelectorDe(el: HTMLElement): CSSStyleRule[] {
+    const clases = Array.from(el.classList);
+    const out: CSSStyleRule[] = [];
+    const walk = (rules: CSSRuleList): void => {
+      Array.from(rules).forEach((rule) => {
+        const selector = (rule as CSSStyleRule).selectorText;
+        if (
+          selector !== undefined &&
+          clases.some((cls) => selector.includes(`.${cls}`))
+        ) {
+          out.push(rule as CSSStyleRule);
+        }
+        const anidadas = (rule as CSSGroupingRule).cssRules;
+        if (anidadas) walk(anidadas);
+      });
+    };
+    Array.from(document.styleSheets).forEach((sheet) => {
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* hoja inaccesible: no aporta */
+      }
+    });
+    return out;
+  }
+
+  /** Las reglas `::before` del bloque de copia: la del velo y su guard de
+   *  forced-colors, que comparten selector y solo se distinguen por lo que
+   *  declaran (el guard vive dentro de un @media anidado). */
+  function reglasDelVelo(): {
+    base: CSSStyleRule;
+    forcedColors: CSSStyleRule | undefined;
+  } {
+    const copia = screen.getByTestId("hero-copy");
+    const before = reglasConSelectorDe(copia).filter((regla) =>
+      regla.selectorText.endsWith("::before"),
+    );
+    const base = before.filter((r) => r.cssText.includes("radial-gradient"));
+    expect(
+      base,
+      "se esperaba exactamente una regla ::before con el degradado del velo",
+    ).toHaveLength(1);
+    return {
+      base: base[0],
+      forcedColors: before.find((r) =>
+        sinEspacios(r.cssText).includes("display:none"),
+      ),
+    };
+  }
+
+  it.each([
+    ["claro", null, semanticLight.bg],
+    ["oscuro", "dark", semanticDark.bg],
+  ] as const)(
+    "en tema %s el velo cuelga del ::before de la copia y tine con el semantic.bg de ESA rama",
+    (_nombre, storage, fondo) => {
+      if (storage) window.localStorage.setItem("vti-theme", storage);
+      renderHero();
+      const regla = reglasDelVelo().base;
+
+      // Cuelga del contenedor de la copia, no de un hijo ni del hero.
+      const copia = screen.getByTestId("hero-copy");
+      expect(
+        Array.from(copia.classList).some((cls) =>
+          regla.selectorText.includes(`.${cls}`),
+        ),
+      ).toBe(true);
+
+      // El color sale del token de fondo del tema, con alfa por color-mix:
+      // el mismo fichero renderiza DOS valores distintos segun la rama, que
+      // es justo lo que un literal escrito a mano no puede hacer.
+      const css = sinEspacios(regla.cssText);
+      expect(css).toContain("radial-gradient");
+      expect(css).toContain(sinEspacios(fondo));
+      expect(css).toContain("color-mix(inoklch");
+      // Y NO el fondo de la rama contraria.
+      const contrario = storage ? semanticLight.bg : semanticDark.bg;
+      expect(css).not.toContain(sinEspacios(contrario));
+    },
+  );
+
+  it("el velo es estatico, no captura el puntero y se retira bajo forced-colors", () => {
+    renderHero();
+    const { base, forcedColors } = reglasDelVelo();
+    const css = sinEspacios(base.cssText);
+
+    // Estatico a proposito (ver el docblock de HERO_SCRIM_ALPHA): hereda el
+    // fundido de $hidden de su contenedor y no declara canal propio.
+    expect(css).not.toContain("transition");
+    expect(css).not.toContain("animation");
+    // Ni "transition: all" ni ninguna propiedad de layout animada.
+    expect(css).not.toContain("transition:all");
+    expect(css).toContain("pointer-events:none");
+    // Detras del texto, dentro del contexto de apilamiento de ScCopy, y
+    // derivado del token: un peldano por debajo de zIndex.base.
+    expect(css).toContain(`z-index:calc(${zIndex.base}-1)`);
+
+    // El guard de forced-colors comparte selector con el velo y vive dentro
+    // de su propio @media anidado: jsdom no lo evalua (regla 36), asi que se
+    // comprueba que la regla existe y a que @media pertenece.
+    expect(
+      forcedColors,
+      "falta el guard de forced-colors del velo",
+    ).toBeDefined();
+    expect((forcedColors as CSSStyleRule).parentRule?.cssText ?? "").toContain(
+      "forced-colors: active",
     );
   });
 });

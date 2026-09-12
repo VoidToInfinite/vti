@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 /*
  * Piezas con estilo de las 4 páginas legales (D21/D22/D23 de la spec
@@ -10,22 +11,116 @@ import styled from "styled-components";
  * dos temas: ninguna pieza fija un fondo oscuro/claro propio, todas heredan
  * de `semantic.*`, que ya resuelve contra el tema activo.
  *
- * Ancho de lectura: `theme.data.grid.prose` (65ch, D21/§3 spec) en el
+ * Ancho de lectura: `theme.data.grid.prose` (56ch desde la critica #13; 52ch entre 2026-08-17 y esa fecha, ~65
+ * caracteres reales; D21/§3 spec) en el
  * artículo entero, no solo en los párrafos -- así el índice y las cabeceras
- * de sección respetan la misma medida de lectura que el propio texto.
+ * de sección respetan la misma medida de lectura que el propio texto. Quien
+ * ENTREGA esa medida es `ScMain`, y desde la crítica externa #10 la entrega
+ * de verdad: ver el porqué del `calc()` de su `max-width` ahí abajo.
  */
 
+/*
+ * `max-width`: el tope SUMA el relleno a propósito (crítica externa #10,
+ * hallazgo C). Con `box-sizing: border-box` global, un `max-width` de
+ * `grid.prose` a secas dejaba la COLUMNA REAL de texto en 465,92 - 2x24 =
+ * 417,92 px = 46,6ch: ~55 caracteres por línea medidos, por debajo de la banda
+ * 60-75 que el token persigue. El token NO es el problema -- su ratio de
+ * caracteres reales por `ch` está verificado de forma independiente, ver el
+ * docblock de `grid.ts` --: lo estaba la ENTREGA en esta caja. Sumando los dos
+ * rellenos, quien mide `grid.prose` pasa a ser la caja de CONTENIDO, que es la
+ * que porta el texto.
+ *
+ * Se elige el `calc()` y no un envoltorio nuevo que se lleve el `padding`: no
+ * añade un nodo al DOM y deja el relleno donde protege al texto del borde de
+ * la pantalla en móvil.
+ *
+ * EL TOPE SIGUE LEYENDO `space` Y EL RELLENO PASA A `inlineSpace`
+ * (2026-09-05), y los dos siguen coincidiendo allí donde el tope decide algo:
+ * `inlineSpace` es `min` del mismo peldaño y de un `vw` calibrado para valer
+ * ese peldaño a 320px, así que solo se separan cuando la raíz tipográfica
+ * crece y el viewport es estrecho -- y ahí quien manda es el `width: 100%`, no
+ * el tope, que queda muy por encima del viewport. Ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`.
+ */
 export const ScMain = styled.main`
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  /*
+   * CAUSA RAÍZ del recorte de /privacidad en todo móvil por debajo de 466 px
+   * (crítica externa #10, hallazgo A: a 320 px se perdían 122 px de página
+   * -- el 38 % de la pantalla --, con el h1 renderizando Política de
+   * privacidac; a 390 px la columna Titular de la tabla de almacenamiento
+   * quedaba entera fuera de pantalla).
+   *
+   * El mecanismo, que vive en el ANCESTRO y no aquí: GlobalStyles pasó body
+   * a display: flex con flex-direction: column en la Ola B (2026-08-16, el
+   * pie pegado al borde inferior). Con eso este main es un ítem flex, y su
+   * ANCHO es su tamaño en el eje TRANSVERSAL. Un ítem flex solo se estira al
+   * ancho del contenedor si su align-self resuelve a stretch Y NINGUNO de
+   * sus dos márgenes del eje transversal es auto (CSS Flexible Box, §8.3).
+   * Esta caja declara margin-inline: auto para centrarse, así que NUNCA se
+   * estiraba: su ancho caía al tamaño por contenido, fit-content =
+   * min(max-content, max(min-content, disponible)). Y su min-content lo
+   * fijaba el descendiente más ancho e indivisible -- la tabla de
+   * almacenamiento de 5 columnas (ScTable, table-layout auto implícito,
+   * ScTh con white-space: nowrap), ~476 px medidos --, así que en un
+   * viewport de 320 px ese max() daba 476 y lo único que lo frenaba era el
+   * max-width de esta misma caja: 466 px medidos. Todo el documento se
+   * maquetaba entonces contra 466 px y el viewport recortaba el resto.
+   * /aviso-legal, sin tabla, nunca alcanza ese min-content: por eso no
+   * sufría el defecto.
+   *
+   * Por qué min-width: 0 aquí NO cambiaba nada (probado en vivo por el
+   * evaluador): esa propiedad fija el MÍNIMO de la caja, y aquí nada topaba
+   * contra un mínimo -- la caja se estaba DIMENSIONANDO por su contenido.
+   * Y el eje principal de este contenedor es el vertical, así que el suelo
+   * automático de min-size de un ítem flex (el caso clásico que min-width: 0
+   * resuelve) ni siquiera aplica en el eje que aquí importa.
+   *
+   * width: 100% le da un ancho DEFINIDO (el de su bloque contenedor, que es
+   * el viewport), con lo que fit-content deja de intervenir; max-width sigue
+   * topando en pantallas anchas y margin-inline: auto sigue centrando. Lo
+   * único que puede exceder del viewport pasa a ser la TABLA, dentro de
+   * ScTableWrap -- justo donde su overflow-x: auto prometía que vivía el
+   * scroll.
+   */
+  width: 100%;
+  max-width: calc(
+    ${({ theme }) => theme.data.grid.prose} + 2 *
+      ${({ theme }) => theme.data.space[5]}
+  );
   margin-inline: auto;
-  padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[5]};
+  /*
+   * EL RELLENO SUPERIOR DESCUENTA LA BANDA DEL NAVBAR (2026-09-03, decisión
+   * del dueño tras la crítica externa #16). Hasta hoy las legales montaban una
+   * cabecera propia EN FLUJO, que ocupaba su propia franja y empujaba este
+   * main hacia abajo por sí sola. Desde que montan el Navbar del sitio (ver el
+   * docblock de PrivacyDocument.tsx) la cabecera es position: fixed y NO deja
+   * hueco en el flujo: sin este descuento, el enlace de vuelta y el h1
+   * nacerían justo debajo del borde superior, con la barra encima.
+   *
+   * var(--nav-height) es la MISMA variable global que fija la banda
+   * (GlobalStyles) y la misma que ya descuenta NotFoundContent por este mismo
+   * motivo desde la Task 35: si la banda cambia de alto, las tres medidas
+   * cambian juntas. El relleno inferior conserva su valor de siempre --
+   * el descuento es del borde superior, no del ritmo vertical del documento --,
+   * así que aquí se escriben las dos longitudes del eje de bloque por separado.
+   * (Sin comillas invertidas dentro del template: regla 23 de RULES.md.)
+   */
+  padding: calc(var(--nav-height) + ${({ theme }) => theme.data.space[7]})
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[7]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    padding-block: ${({ theme }) => theme.data.space[8]};
+    padding-block: calc(
+        var(--nav-height) + ${({ theme }) => theme.data.space[8]}
+      )
+      ${({ theme }) => theme.data.space[8]};
   }
 `;
 
+/* transform se añade a la lista de transition (Task 9, vocabulary.PRESS): el
+   hover de abajo solo cambia color -- sin movimiento que guardar tras
+   PRESS.hoverGuard (punto 2 del brief) --, así que la entrada nace ya con
+   los valores de PRESS, gobernando exclusivamente el press. */
 export const ScBackLink = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -33,16 +128,53 @@ export const ScBackLink = styled(Link)`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   color: ${({ theme }) => theme.data.semantic.textMuted};
   margin-bottom: ${({ theme }) => theme.data.space[5]};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  /* SUBRAYADO (Ola B, 2026-08-16), por el mismo motivo y con los mismos
+     valores que el enlace a la comunidad de Story (ver communityLinkStyles en
+     Story.tsx): GlobalStyles quita el subrayado a todo elemento a, y este
+     enlace usaba EXACTAMENTE el mismo color que el cuerpo de texto de la
+     pagina -- medido, oklch(0.86 0.004 286) en los dos, contraste 1,0:1.
+
+     Aqui pesa mas que en Story por una razon concreta que sigue en pie: los
+     enlaces del indice de la misma pagina SI se distinguen
+     (oklch(0.86 0.104 235.851)), asi que la incoherencia era interna.
+
+     Lo que este parrafo decia ademas -- que era la UNICA salida en la parte
+     alta de un documento legal de 5.198 px, porque la cabecera no llevaba
+     navegacion de secciones -- deja de ser cierto el 2026-09-03: desde la
+     decision del dueno tras la critica externa #16 estas paginas montan la
+     navegacion completa del sitio (ver el docblock de PrivacyDocument.tsx),
+     asi que este enlace ya no es el unico camino de vuelta. Se conserva de
+     todas formas: es el destino de vuelta EN EL FLUJO del documento, no en la
+     barra flotante, y su afordancia se juzga contra el indice que tiene
+     debajo, no contra la cabecera.
+
+     SIN BACKTICKS: esto vive dentro del template literal de
+     styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brandText};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -64,12 +196,18 @@ export const ScVersionMeta = styled.p`
 
 /* Índice de contenidos (D22): navegación por teclado real -- cada `<a>` es
    un enlace ancla nativo, sin JS de por medio, así que hereda foco/tabulación
-   y el anillo global de `GlobalStyles`. */
+   y el anillo global de `GlobalStyles`.
+
+   `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). El índice va anidado dentro del relleno del
+   documento, así que al 200 % los dos rellenos se sumaban contra la misma
+   columna. */
 export const ScToc = styled.nav`
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius.lg};
-  padding: ${({ theme }) => theme.data.space[5]};
+  padding: ${({ theme }) => theme.data.space[5]}
+    ${({ theme }) => theme.data.inlineSpace[5]};
   margin-bottom: ${({ theme }) => theme.data.space[7]};
 `;
 
@@ -82,6 +220,11 @@ export const ScTocHeading = styled.p`
   color: ${({ theme }) => theme.data.semantic.textSubtle};
 `;
 
+/* `padding-left`: `space` y no `inlineSpace`, a propósito. Esto no es el raíl
+   que separa el texto del borde de la pantalla, es el hueco donde el navegador
+   PINTA los números de la lista. Crece con la fuente porque el marcador crece
+   con la fuente; acotarlo al viewport dejaría los números fuera de su caja
+   justo cuando más grandes son. */
 export const ScTocList = styled.ol`
   display: flex;
   flex-direction: column;
@@ -93,27 +236,158 @@ export const ScTocItem = styled.li`
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
 
-export const ScTocLink = styled.a`
-  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+/*
+ * AFORDANCIA DE ENLACE EN PROSA LEGAL, en un solo sitio.
+ *
+ * Nació dentro de ScTocLink (crítica externa #10, hallazgo C) y se extrae a
+ * un bloque css compartido en la ola de la crítica #13 (T1), cuando apareció
+ * el SEGUNDO consumidor: ScInlineLink, el enlace que vive dentro del texto
+ * corrido (el correo de ejercicio de derechos y la AEPD). Es un bloque css y
+ * no un componente único porque los dos consumidores difieren en una
+ * propiedad real -- el índice fija su propio tamaño de cuerpo (bodySm) y el
+ * enlace en prosa hereda el del párrafo que lo contiene --, mismo criterio y
+ * mismo mecanismo que `communityLinkStyles` en Story.tsx.
+ *
+ * Las dos señales, y por qué las DOS: color propio (semantic.brandText contra
+ * el semantic.text del cuerpo) MÁS subrayado. WCAG 1.4.1 (Uso del color,
+ * nivel A) pide justo que el color no sea el único medio de transmitir
+ * información: quien no distingue ese matiz -- daltonismo, pantalla al sol,
+ * modo de alto contraste -- no vería ningún enlace. El subrayado es la
+ * afordancia nativa del enlace, que GlobalStyles retira para todo el sitio
+ * (a { text-decoration: none }), así que devolverla aquí no inventa nada.
+ * text-underline-offset separa la línea de las descendentes.
+ *
+ * La afordancia se declara EN REPOSO, no en hover: un hover no existe para
+ * quien navega con el dedo.
+ *
+ * transform nace ya con los valores de vocabulary.PRESS (Task 9), sin guard
+ * de hover -- el hover de aquí abajo es solo color.
+ *
+ * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+ * (task/lessons.md 2026-07-25 y 2026-08-16).
+ */
+const legalLinkStyles = css`
   color: ${({ theme }) => theme.data.semantic.brandText};
-  transition: color ${({ theme }) => theme.data.motion.duration.fast}
-    ${({ theme }) => theme.data.motion.easing.standard};
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  /* Task 13, punto 2 del brief: elimina el retardo de doble-tap. */
+  touch-action: manipulation;
+  transition:
+    color ${({ theme }) => theme.data.motion.duration.fast}
+      ${({ theme }) => theme.data.motion.easing.standard},
+    transform ${PRESS.durationMs}ms ${PRESS.easing};
 
   &:hover,
   &:focus-visible {
     color: ${({ theme }) => theme.data.semantic.brand};
   }
 
+  &:active {
+    transform: scale(${PRESS.activeScale});
+  }
+
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+
+    &:active {
+      transform: none;
+    }
   }
 `;
 
-/* `scroll-margin-top` propio (no depende del `:where(section[id])` global de
-   GlobalStyles, que descuenta el navbar FIJO de la home -- este header no es
-   fixed, así que no hace falta compensar nada, pero se declara un margen
-   pequeño de todos modos para que el salto de ancla no pegue el título al
-   borde superior del viewport). */
+/* Enlaces del índice: el bloque compartido de arriba más su propio tamaño de
+   cuerpo. Es la única navegación interna de un documento de 5.198 px. */
+export const ScTocLink = styled.a`
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
+  ${legalLinkStyles}
+`;
+
+/*
+ * Enlace DENTRO del texto corrido (crítica #13, T1): el correo de ejercicio
+ * de derechos y la sede de la AEPD, que hasta esta ola se pintaban como texto
+ * plano en el cuerpo de las dos páginas legales mientras el pie de esas
+ * mismas páginas sí llevaba el correo enlazado.
+ *
+ * No declara font-size a propósito: hereda el del bloque que lo contiene
+ * (párrafo, ítem de lista o `dd` de la ficha identificativa), que es lo que
+ * un enlace en prosa tiene que hacer para no romper la línea base del texto
+ * que atraviesa.
+ */
+export const ScInlineLink = styled.a`
+  ${legalLinkStyles}
+  /*
+   * EL SEGUNDO FOCO DEL MISMO DEFECTO DE ZOOM, y el que solo aparece midiendo:
+   * el arreglo de la ficha identificativa (ver el docblock de ScDl) dejo
+   * /aviso-legal limpio a 320 px con la raiz a 32 px, pero /privacidad y
+   * /en/privacy seguian perdiendo 79,11 px. El culpable era ESTE enlace -- el
+   * correo de ejercicio de derechos, dentro del texto corrido --, con el mismo
+   * token indivisible de 351 px y un mecanismo distinto: aqui no hay ninguna
+   * rejilla que encoger, es una caja EN LINEA cuya palabra no cabe en la linea
+   * y se sale del parrafo. Ninguna de las dos declaraciones de la rejilla lo
+   * habria tocado.
+   *
+   * Y no era contenido desplazable: GlobalStyles declara overflow-x: clip en
+   * html y body, asi que documentElement.scrollWidth seguia valiendo el ancho
+   * del viewport y esos pixeles no eran alcanzables de ninguna forma
+   * (WCAG 1.4.4).
+   *
+   * Va aqui y no en legalLinkStyles a proposito: el bloque compartido lo usa
+   * tambien el indice, cuyos textos son titulos de seccion con espacios de
+   * sobra. Esta regla existe para lo que este enlace porta -- correos y
+   * direcciones web --, y ese es el consumidor que la necesita.
+   *
+   * anywhere y no break-word, por el mismo motivo que en ScDd: solo anywhere
+   * reduce ademas el min-content de la caja (CSS Text 5.5).
+   *
+   * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+   * (regla 23 de RULES.md).
+   */
+  overflow-wrap: anywhere;
+`;
+
+/*
+ * `scroll-margin-top` propio: SEPARACIÓN, NO COMPENSACIÓN DE LA BARRA.
+ *
+ * ESTE COMENTARIO DECÍA UNA FALSEDAD MEDIBLE HASTA EL 2026-09-04. Decía «este
+ * header no es fixed, así que no hace falta compensar nada»: describía la
+ * cabecera legal propia que se retiró al revertirse D20. Desde la ola M
+ * (2026-09-03) estas páginas montan el `Navbar` del sitio, y lo medido en
+ * Chrome sobre el build servido, en las cuatro rutas legales y en los dos
+ * idiomas, es `getComputedStyle(header).position === "fixed"` con la banda
+ * terminando en `bottom = 64 px`. La premisa del comentario era falsa; el
+ * comportamiento, en cambio, es correcto — y conviene saber por qué, porque no
+ * es por esta línea.
+ *
+ * QUIÉN COMPENSA DE VERDAD LA BANDA: `html { scroll-padding-top: calc(
+ * var(--nav-height) + var(--nav-gap)) }` en `GlobalStyles.tsx`. Es una
+ * propiedad del CONTENEDOR DE SCROLL, así que gobierna CUALQUIER
+ * desplazamiento hacia un destino de este documento — el salto por fragmento
+ * del índice incluido — sin que el destino tenga que declarar nada. Los 24 px
+ * de aquí se SUMAN a esos 64: medido, el `<h2>` de la primera sección aterriza
+ * en `top = 88 px` (64 + 24) con la barra terminando en 64, y el de las demás
+ * en 137 px (los mismos 88 más el `padding-top` de esta caja). Cero de los 14
+ * destinos de `/privacidad` y de los 15 de `/aviso-legal` queda bajo la barra,
+ * en los dos idiomas.
+ *
+ * O sea: esta declaración NO compensa la cabecera y no debe intentarlo. Subirla
+ * a `calc(var(--nav-height) + var(--nav-gap) + ...)` compensaría DOS VECES la
+ * misma banda (128 px de hueco) porque el `scroll-padding-top` de `html` no se
+ * va a ninguna parte. Lo que aporta es el respiro entre el borde inferior de la
+ * barra y el título, que sin ella quedarían pegados.
+ *
+ * También gana al `:where(section[id])` global por especificidad — una clase de
+ * styled-components (0,1,0) contra un `:where()`, que aporta cero (0,0,0) —, así
+ * que estas secciones llevan 24 px donde las de la home llevan 64. La suma con
+ * el `scroll-padding-top` es la que hace que las dos aterricen bien; el candado
+ * que ata esa dependencia cruzada vive en `legalPage.parts.test.tsx`, que lee
+ * la fuente de `GlobalStyles.tsx` (regla 41: una invariante entre dos ficheros
+ * vive en un test que importa los dos).
+ *
+ * SIN BACKTICKS: esto vive fuera del template, pero se conserva el criterio del
+ * fichero para que mover el bloque hacia dentro no rompa el build (regla 23 de
+ * RULES.md).
+ */
 export const ScSection = styled.section`
   scroll-margin-top: ${({ theme }) => theme.data.space[5]};
   padding-top: ${({ theme }) => theme.data.space[7]};
@@ -144,6 +418,8 @@ export const ScParagraph = styled.p`
   }
 `;
 
+/* `padding-left`: mismo motivo que `ScTocList` -- es el hueco del marcador de
+   la lista, no un raíl de columna, y escala con el glifo que aloja. */
 export const ScList = styled.ul`
   display: flex;
   flex-direction: column;
@@ -163,8 +439,61 @@ export const ScListItem = styled.li`
   color: ${({ theme }) => theme.data.semantic.text};
 `;
 
+/*
+ * CAUSA RAÍZ DE LA PÉRDIDA DE CONTENIDO CON EL TEXTO AL 200 % (2026-09-04,
+ * hallazgo del frente Q-3, medido y arreglado aquí). Con la raíz del documento
+ * a 32 px -- la preferencia de tamaño de fuente del navegador al 200 %, que es
+ * lo que WCAG 1.4.4 exige soportar sin perder contenido ni funcionalidad --,
+ * las CUATRO rutas legales perdían la ficha identificativa por el borde
+ * derecho, en los dos temas y en los dos idiomas.
+ *
+ * EL MECANISMO, en tres pasos. (1) Estas dos cajas declaraban `display: grid`
+ * SIN `grid-template-columns`, así que su única pista es IMPLÍCITA y se
+ * dimensiona con `auto`. (2) La función de tamaño MÍNIMO de una pista `auto`
+ * es `min-content` (CSS Grid §7.2.3), y además un ítem de rejilla que ocupa una
+ * pista con mínimo `auto` recibe su propio suelo automático de tamaño por
+ * contenido (§6.6). El `dd` de la fila del correo contiene
+ * `hello@voidtoinfinite.com`, un token sin un solo punto de corte, así que ese
+ * min-content mide lo que mida el token entero. (3) A 32 px de raíz el token
+ * mide 351,109 px medidos, mientras la caja de contenido de `ScMain` cae a
+ * 224 / 264 / 294 px a 320 / 360 / 390 px de viewport (el relleno también
+ * escala: `space[5]` pasa de 24 a 48 px por lado).
+ *
+ * LO QUE SE PERDÍA, medido en Chrome sobre el build servido, en `/privacidad`,
+ * `/en/privacy`, `/aviso-legal` y `/en/legal-notice`, temas oscuro y claro: la
+ * fila entera terminaba en x = 399 px SIEMPRE, es decir 79,11 px fuera del
+ * viewport a 320, 39,11 px a 360 y 9,11 px a 390; 22 o 23 elementos por página
+ * (las 7 filas de la ficha con su `dt` y su `dd`). Y no era contenido
+ * desplazable sino contenido PERDIDO: `GlobalStyles` declara
+ * `html, body { overflow-x: clip }` -- para no crear un contenedor de scroll
+ * que rompa el pin de Story --, así que `documentElement.scrollWidth` seguía
+ * valiendo exactamente el ancho del viewport y no había ningún gesto ni ninguna
+ * tecla que alcanzara esos píxeles. Desde 414 px de viewport ya no se perdía
+ * nada (351 + 48 = 399 < 414).
+ *
+ * EL ARREGLO, y por qué son DOS declaraciones y no una:
+ *
+ *   - `grid-template-columns: minmax(0, 1fr)` declara la pista explícitamente
+ *     con función de tamaño mínimo `0` en vez de `auto`. Eso quita a la vez el
+ *     suelo min-content de la PISTA y, por §6.6, el suelo automático de los
+ *     ÍTEMS que la ocupan: la rejilla vuelve a poder encoger con su contenedor.
+ *     La anchura de trabajo no cambia -- una pista `auto` implícita ya se
+ *     estiraba a todo el ancho disponible, y `1fr` reparte ese mismo ancho --,
+ *     verificado midiendo el ANTES y el DESPUÉS a nueve anchos.
+ *   - `overflow-wrap: anywhere` en `ScDd` (abajo) es la otra mitad: sin
+ *     ella la pista encogería pero el token seguiría sin poder partirse y se
+ *     saldría igual, ahora de su propia caja. Se elige `anywhere` y NO
+ *     `break-word` a propósito: solo `anywhere` entra en el cálculo del
+ *     min-content (CSS Text §5.5), que es justo la medida que aquí sobra.
+ *
+ * Por qué no se resuelve con `min-width: 0` en el hijo, que es el remedio
+ * clásico: `min-width: 0` en el `dd` quitaría el suelo del ÍTEM, pero dejaría
+ * en pie el suelo min-content de la PISTA `auto` que lo contiene, y la fila
+ * seguiría sin encoger. La pista explícita cierra los dos caminos de una vez.
+ */
 export const ScDl = styled.dl`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[3]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
 
@@ -175,6 +504,7 @@ export const ScDl = styled.dl`
 
 export const ScDlRow = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[1]};
   padding-bottom: ${({ theme }) => theme.data.space[3]};
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
@@ -196,13 +526,40 @@ export const ScDd = styled.dd`
   font-size: ${({ theme }) => theme.data.type.scale.body.size};
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  /*
+   * LA OTRA MITAD DEL ARREGLO DE ZOOM (ver el docblock largo de ScDl arriba).
+   * Este es el UNICO sitio de la ficha identificativa donde entra un valor que
+   * el documento no controla -- el correo de contacto, la direccion, el NIF --,
+   * y el correo de contacto es un token de 24 caracteres sin un solo punto de
+   * corte natural: ni espacio, ni guion, ni salto suave.
+   *
+   * anywhere y no break-word: las dos parten el token al pintarlo, pero solo
+   * anywhere reduce tambien el MIN-CONTENT de la caja (CSS Text 5.5). Con
+   * break-word la fila seguiria reservando los 351 px del token entero como
+   * anchura minima y el arreglo no llegaria a servir de nada. La distincion es
+   * la razon de ser de esta linea, no un detalle de estilo.
+   *
+   * Coste en maquetacion normal: ninguno observable -- anywhere solo parte
+   * dentro de una palabra cuando ya no cabe de ninguna otra forma. Verificado
+   * midiendo los nueve anchos del barrido antes y despues.
+   *
+   * SIN BACKTICKS: esto vive dentro del template literal de styled-components
+   * (regla 23 de RULES.md, y task/lessons.md 2026-07-25 y 2026-08-16). La
+   * primera version de este comentario los llevaba y el dev server murio con
+   * "Expected a semicolon" en esta misma linea.
+   */
+  overflow-wrap: anywhere;
 `;
 
 /* Aviso destacado (bloque `note`): borde izquierdo de acento en vez de un
    fondo sólido -- funciona igual de bien en los dos temas sin necesitar un
-   color de texto distinto al del resto del documento. */
+   color de texto distinto al del resto del documento.
+
+   `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). */
 export const ScNote = styled.div`
-  padding: ${({ theme }) => theme.data.space[4]};
+  padding: ${({ theme }) => theme.data.space[4]}
+    ${({ theme }) => theme.data.inlineSpace[4]};
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
   background: ${({ theme }) => theme.data.semantic.surfaceSunken};
   border-left: 3px solid ${({ theme }) => theme.data.semantic.warning};
@@ -242,7 +599,24 @@ export const ScMark = styled.mark`
 export const ScTableWrap = styled.div`
   /* La tabla de almacenamiento puede desbordar en móvil (5 columnas): el
      scroll horizontal vive AQUÍ, nunca en el body -- misma regla que
-     cualquier tabla/bloque de código ancho del sistema. */
+     cualquier tabla/bloque de código ancho del sistema.
+
+     CORRECCIÓN 2026-08-18 (crítica externa #10, hallazgo A): esta promesa
+     era falsa hasta hoy. El desbordamiento nunca llegaba a este contenedor
+     porque el crecimiento ocurría POR ENCIMA -- ScMain se dimensionaba por
+     contenido y se inflaba hasta su propio max-width para dar cabida al
+     min-content de la tabla (ver el comentario de ScMain). Con el ancho de
+     ScMain ya definido, el sobrante cae aquí y este overflow-x actúa de
+     verdad.
+
+     QUIÉN PUEDE OPERAR ESE SCROLL (crítica #13, T2): los atributos que hacen
+     esta caja alcanzable por teclado y anunciable -- role region, aria-label
+     desde clave i18n y tabindex 0 -- los pone StorageBlock en
+     LegalDocument.tsx, que es quien tiene el texto traducido en la mano. Van
+     juntos a propósito: un tabindex sin nombre accesible deja un punto de
+     tabulación mudo, y un nombre sin tabindex deja el scroll sin teclado.
+     No hay estilo de foco propio porque GlobalStyles ya lo entrega a todo
+     [tabindex] vía :focus-visible. */
   overflow-x: auto;
   margin: 0 0 ${({ theme }) => theme.data.space[4]};
 
@@ -251,8 +625,65 @@ export const ScTableWrap = styled.div`
   }
 `;
 
+/*
+ * LA TABLA DE ALMACENAMIENTO NO PARTE PALABRAS (2026-09-06, verificación de la
+ * ola S). Docblock FUERA del template a propósito: los comentarios dentro del
+ * literal viajan al bundle (trinquete en `src/test/css-template-comments.test.ts`).
+ *
+ * QUÉ SE MIDIÓ, con Chrome sobre el build servido y las cajas de línea REALES
+ * (`Range.getClientRects()` carácter a carácter, no el proxy alto/line-height,
+ * que infla las celdas estiradas al alto de su fila). Cortes DENTRO de palabra
+ * en `/privacidad`, con la raíz por DEFECTO (16 px):
+ *
+ *     1440x900   2 cortes   «Persistent|e hasta que la borres», dos veces
+ *     390x800    5 cortes   tres de ellos en prosa («Recuerd|a si elegiste»,
+ *                           «preguntá|rtelo», «devolver|te ahí si recargas»)
+ *     320x800    5 cortes   los mismos
+ *
+ * y 3 más en `/en/privacy` a 390 y a 320. A 200 % (raíz 32 px) quedaban 2 a
+ * 1440 y 3 a 390. Ninguno es el identificador técnico: son palabras de prosa
+ * rotas por la mitad en un texto de cumplimiento.
+ *
+ * CAUSA RAÍZ, que vive en el ancestro y no aquí: `GlobalStyles` declara
+ * `overflow-wrap: anywhere` en `body`. Esa palabra clave —a diferencia de
+ * `break-word`— no solo permite el corte: REDUCE el min-content de la caja
+ * (CSS Text 5.5), y eso es exactamente lo que el reparto de columnas de
+ * `table-layout: auto` consume como suelo. Con el min-content colapsado, el
+ * algoritmo puede estrechar cualquier columna POR DEBAJO de su palabra más
+ * larga, y lo hace en cuanto la tabla va apretada: cinco columnas dentro de la
+ * medida de lectura (`grid.prose`, 502 px medidos a 1440). El `white-space:
+ * nowrap` que `ScStorageKind` estrenó el 2026-09-06 subió la columna Tipo de
+ * 58 a 118 px y agravó el apretón sobre las vecinas — la celda de Duración se
+ * quedó en 87 px —, pero no es la causa: sin él los cortes seguían existiendo,
+ * solo que en el identificador.
+ *
+ * ARREGLO: dentro de esta tabla las palabras no se parten. `overflow-wrap:
+ * normal` devuelve a cada columna un min-content igual a su palabra más larga,
+ * y el sobrante cae donde ya hay un gesto de recuperación previsto:
+ * `ScTableWrap`, con `overflow-x: auto`, `role="region"`, `aria-label` y
+ * `tabindex="0"` — el desplazamiento horizontal que WCAG 1.4.10 admite para
+ * tablas de datos, alcanzable también por teclado. No se pelea celda a celda.
+ *
+ * MEDIDO DESPUÉS, A/B en la misma sesión y sobre el mismo documento servido:
+ * CERO cortes dentro de palabra en las doce combinaciones (dos rutas × tres
+ * anchos × raíz 16 y 32). La tabla apenas engorda —452 a 491 px a 390/16, y a
+ * 1440 se queda en los mismos 502 sin estrenar desplazamiento— y
+ * `documentElement.scrollWidth` no excede el viewport en ninguna.
+ */
 export const ScTable = styled.table`
+  overflow-wrap: normal;
   width: 100%;
+  /* SUELO de ancho, no ancho de trabajo (crítica externa #10, hallazgo A).
+     Hoy el ancho real lo sigue poniendo el min-content de table-layout: auto
+     (~476 px medidos con estas 5 columnas y los th en nowrap), que por sí
+     solo ya impide que las columnas se aplasten; este mínimo explícito está
+     para que eso no pueda dejar de ser cierto. El caso concreto que cierra
+     es el atajo que TAMBIÉN hace que ScMain deje de inflarse y que por eso
+     es el primer candidato a arreglo -- table-layout: fixed con width: 100%
+     --: a 320 px daría cinco columnas de 64 px, ilegible. Con este suelo, el
+     ancho mínimo de la tabla sigue siendo la medida de lectura y lo que
+     sobre lo scrollea ScTableWrap. */
+  min-width: ${({ theme }) => theme.data.grid.prose};
   border-collapse: collapse;
   font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
 `;
@@ -264,18 +695,53 @@ export const ScCaption = styled.caption`
   font-size: ${({ theme }) => theme.data.type.scale.caption.size};
 `;
 
+/* `padding`: término INLINE en `inlineSpace`, de BLOQUE en `space` (ver su
+   docblock en `tokens/space.ts`). El relleno de la celda compite con el ancho
+   de su columna, que es la magnitud escasa de una tabla en móvil. */
 export const ScTh = styled.th`
   text-align: left;
   padding: ${({ theme }) => theme.data.space[2]}
-    ${({ theme }) => theme.data.space[3]};
+    ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 2px solid ${({ theme }) => theme.data.semantic.borderStrong};
   color: ${({ theme }) => theme.data.semantic.text};
   white-space: nowrap;
 `;
 
+/* `padding`: mismo reparto que `ScTh`, arriba -- INLINE de `inlineSpace`,
+   BLOQUE de `space`. */
 export const ScTd = styled.td`
   padding: ${({ theme }) => theme.data.space[2]}
-    ${({ theme }) => theme.data.space[3]};
+    ${({ theme }) => theme.data.inlineSpace[3]};
   border-bottom: 1px solid ${({ theme }) => theme.data.semantic.border};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+`;
+
+/*
+ * Nombre técnico de la tecnología de almacenamiento (`localStorage`,
+ * `sessionStorage`) en la columna «Tipo» de la tabla de /privacidad.
+ *
+ * Es un identificador, no una palabra: no tiene sitios legítimos por donde
+ * partirse. Medido el 2026-09-06 (ola S) por el candado de superficies con
+ * la preferencia de tamaño de texto al 200 % (raíz 32 px), en los dos temas
+ * y en los dos idiomas: la celda mide 91 px a 320 px de viewport y
+ * `sessionStorage` (14 caracteres, la entrada que la ola añadió al registro)
+ * se partía en cuatro líneas de 3,5 caracteres, por debajo del suelo de
+ * legibilidad de 4 por línea de `legibilidad-al-200-por-ciento`. Con
+ * `white-space: nowrap` la palabra ocupa una línea y el ancho sobrante lo
+ * absorbe `ScTableWrap`, que ya es el contenedor con desplazamiento
+ * horizontal alcanzable por teclado (region + tabindex): el gesto de
+ * recuperación existe y es el que WCAG 1.4.10 admite para tablas de datos.
+ * `localStorage` (12 caracteres) cabía en tres líneas de 4 y por eso el
+ * candado no lo había visto nunca.
+ *
+ * DESDE EL 2026-09-06 (tarde) NO ES LA ÚNICA REGLA QUE LO SOSTIENE: `ScTable`
+ * declara `overflow-wrap: normal`, con lo que ninguna palabra de esta tabla
+ * tiene ya por dónde partirse (ver su docblock, que además mide el apretón que
+ * esta misma regla causó sobre las columnas vecinas). Se conserva porque dice
+ * de forma explícita lo que este identificador exige por su cuenta, y su
+ * candado no se afloja: si algún día la tabla dejara de declarar aquello, el
+ * nombre técnico seguiría sin partirse.
+ */
+export const ScStorageKind = styled.span`
+  white-space: nowrap;
 `;

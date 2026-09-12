@@ -125,6 +125,8 @@ Dos constantes **se eliminan**:
 
 ### 5.3 Presupuesto total
 
+> **Enmienda 2026-08-11 (§5.5):** el bloque «Carga» de aquí abajo describe el mecanismo original (máquina de fases JS, reloj contado desde que resuelve `decode()`). Desde el 2026-08-11 la carga de la copia y del navbar es CSS estático y su reloj arranca con el **primer pintado**; el presupuesto vigente está en §5.5. El bloque «Cambio de tema» sigue vigente sin cambios.
+
 **Carga** (desde que el `decode()` resuelve):
 
 ```
@@ -158,6 +160,78 @@ La copia del hero —que incluye el `<h1>`— queda a `opacity: 0` durante ~760 
 - El presupuesto se mantiene por debajo de 1,5 s.
 
 No se mide en esta entrega (este entorno no compone frames, §8): queda anotado en `docs/qa-3d-pendiente.md` como pendiente de verificación en navegador real.
+
+---
+
+## 5.5 Enmienda 2026-08-11 — el motor de la carga pasa a CSS estático (Task 10, plan premium F1-F5)
+
+> Esta sección **no reescribe** §5.3, §5.4, §7.2 ni §7.4: las deja como el registro de lo que se decidió el 2026-07-27 y anota qué cambió, por qué y con qué medición. Todo lo que no se menciona aquí sigue vigente tal cual.
+
+**El riesgo declarado en §5.4 se midió, y era peor de lo estimado.** Chrome real sobre el build estático (`pnpm build` + `serve out`, caché fría, `PerformanceObserver` con `buffered: true`):
+
+| Escenario | FCP | LCP (antes) | Elemento LCP |
+| --- | --- | --- | --- |
+| Claro escritorio 1280×720 | 156 ms | 1268 ms | `span` de `BrandName`, dentro del `<h1>` |
+| Claro móvil 375×812 | 68 ms | 1292 ms | `<p>` de apoyo (`hero-support`) |
+| Móvil, CPU 4× + Slow 4G | 812 ms | **4520 ms** | `<p>` de apoyo (`hero-support`) |
+
+§5.4 estimaba «hasta ~1,1 s» contando **desde el arranque del stack**. El coste real se mide desde el primer pintado y encadena tres esperas más que la spec no contabilizó: descarga del bundle, hidratación de React y la carrera de `decode()` del fondo — sólo **después** empiezan a contar los `HERO_CHROME_OFFSET_MS`. El elemento LCP es siempre TEXTO del hero, nunca el arte, así que el coste caía entero sobre la métrica.
+
+**Qué cambia (el motor, no la partitura).** La coreografía de carga de la copia y del navbar deja de ser una máquina JS que escribe `data-intro` y pasa a ser `@keyframes` + `animation-delay` declaradas sin condición, presentes en el CSS del HTML exportado. El escalonado interno de 80 ms (`HERO_COPY_STEP_MS`), la duración (`motion.duration.base`), la curva (`easing.decelerate`), el recorrido de 10 px y los 320 ms del navbar (`motion.duration.slow`) son **idénticos**.
+
+**El único número que se mueve, y por qué.** `HERO_CHROME_OFFSET_MS` (760 ms) deja de retrasar la entrada de **la copia**; el **navbar lo conserva verbatim**. El offset no es ritmo, es **sincronía**: mide (§5.2) el instante en que el último escalón del fondo va por la mitad de su fundido, contado desde el arranque del stack — un evento que sólo JS conoce y que un reloj CSS estático no puede observar. Conservarlo como retardo fijo habría mantenido 760 ms de hero sin texto en cada carga **sin comprar el orden que lo justificaba**: medido en este mismo navegador con caché fría, a 1600 ms desde el `commit` el stack seguía en `pending` — es decir, en la carga lenta (justo donde el LCP importa) el arte llega mucho después de esos 760 ms de todas formas, así que «primero el arte, al final los textos» (§1) no se preservaba. En el navbar el número se paga sin coste: no es candidato LCP en ninguna medición, así que «al final el navbar» sí sigue cumpliéndose al pie de la letra, y ahora también sin JavaScript.
+
+**Presupuesto de carga resultante** (sustituye al bloque «Carga» de §5.3, que contaba desde que resolvía `decode()`; éste cuenta desde el **primer pintado**, que es el único origen que un reloj CSS conoce):
+
+```
+0      copia: título arranca
+80     copia: subtítulo arranca
+160    copia: apoyo arranca
+240    copia: acciones (CTA) arrancan
+440    copia asentada           (240 + 200 de duración)
+760    navbar arranca           (HERO_CHROME_OFFSET_MS, verbatim)
+1080   navbar asentado          (760 + 320)
+—      capas del fondo: cuando su decode() resuelve (sigue en JS, spec §7.2)
+```
+
+> **Cuidado con el 520.** §5.3 y varios docblocks anteriores daban «520 ms» como asentamiento de la copia. Era correcto con **cinco** hijos —había un kicker, retirado el 2026-08-08— porque el último arrancaba a `4 × 80 = 320` y sumaba los 200 de duración. Con los **cuatro** de hoy el último arranca a `3 × 80 = 240` y el asentamiento es **440 ms**. La entrega del 2026-08-11 retiró además la regla `> *:nth-child(5)` que seguía declarando aquel retardo de 320 ms sin ningún elemento que lo recibiera: era la fuente del número equivocado.
+
+**Resultado medido** (mismo entorno, mismo método, tras el cambio):
+
+| Escenario                 | LCP antes | LCP después | Δ       |
+| ------------------------- | --------- | ----------- | ------- |
+| Claro escritorio 1280×720 | 1268 ms   | **184 ms**  | −85,5 % |
+| Claro móvil 375×812       | 1292 ms   | **432 ms**  | −66,6 % |
+| Móvil, CPU 4× + Slow 4G   | 4520 ms   | **932 ms**  | −79,4 % |
+
+Objetivo del plan (`< 2500 ms` en el escenario throttled) cumplido con 2,7× de margen.
+
+**Lo que NO cambia:** el fondo conserva su decode-gating en JS (§7.2) — es arte, no LCP de texto; el relevo secuencial del cambio de tema (§7.3) y los tiempos de la copia en ese cruce (`HERO_COPY_RETURN_MS` y compañía, §5.2) siguen intactos y siguen siendo JS; `StageProvider` sigue montado y `HeroBackdrop` sigue avisándole. Lo que sí queda **sin ningún consumidor** es su `phase`: era lo que leían la copia y el navbar. Retirar la máquina entera es una decisión de arquitectura que excede esta tarea y se deja anotada aquí, no ejecutada en silencio. **Actualización 2026-08-11 (Task 27, §5.6): esa retirada se ejecutó el mismo día — ver §5.6.**
+
+**`prefers-reduced-motion`** (§6.5) sigue colapsando a visible-inmediato, ahora por un guard explícito `animation: none` en cada pieza: `GlobalStyles` colapsa `animation-duration` pero **no** `animation-delay`, así que sin ese guard el navbar quedaría invisible los 760 ms del retardo y aparecería de golpe.
+
+**Fallback sin JavaScript.** Con la copia y el navbar en CSS estático, la única pieza del hero que seguía dependiendo de JS era el fondo: sin scripts, `HeroBackdrop` nunca corre su carrera de `decode()` y su envoltorio se queda en `data-state="pending"` para siempre. `auraStagger`/`eyeStagger` ganan un guard `@media (scripting: none)` que devuelve sus capas a `opacity: 1`, con la misma especificidad que la regla que neutralizan (gana por orden de cascada, sin `!important`) y sin tocar `ScShock`, que arranca invisible a propósito. Verificado con JavaScript deshabilitado en Chrome real, 1280×720 y 375×812: hero completo visible — arte, `<h1>`, subtítulo, apoyo, CTA y navbar, todos a `opacity: 1` — y el anillo del pulso correctamente en `0`.
+
+**Efecto colateral medido y declarado.** El CLS del escenario throttled pasa de `0` a `0,000118` (reproducible en 3 pasadas; escritorio y móvil sin throttling siguen en `0` exacto). La causa, aislada: al intercambiarse la webfont (`~1054 ms`), la caja del `<h1>` reflúe en horizontal — ancho `213,63 → 219,64 px`, `left 80,69 → 77,67 px`, alto y `top` sin cambio — y el desplazamiento se registra a `~1167 ms`. Ese reflujo **no lo introduce esta entrega** (nada del cambio toca layout): lo que cambia es que el texto ya es visible cuando ocurre, y la API de inestabilidad de layout sólo contabiliza contenido visible — antes el hero seguía invisible a esa altura. El fallback con métricas ajustadas que genera `next/font` («Hanken Grotesk Fallback») absorbe casi todo; el residuo es `0,12 %` del umbral «bueno» (`0,1`).
+
+---
+
+## 5.6 Enmienda 2026-08-11 — retirada completa de la máquina de fases del stage (Task 27, plan premium F1-F5)
+
+> Esta sección **no reescribe** §5.5, §7.1, §7.2, §7.4 ni §8: las deja como el registro de lo que existió entre 2026-07-27 y 2026-08-11 y anota qué se retiró, por qué y con qué justificación. Todo lo que no se menciona aquí sigue vigente tal cual.
+
+**Lo que dejó abierto la Task 10 (§5.5).** `StageProvider`/`stage.ts` seguían montados y `HeroBackdrop` seguía llamando a `markBackdropRevealed()`, pero `phase` se había quedado sin ningún consumidor real: la copia y el navbar dejaron de leerla al pasar a `@keyframes` estáticas, y con ello la red de seguridad `STAGE_FALLBACK_MS` dejó de proteger nada — ninguna página con navbar y sin hero podía quedarse ya invisible por falta de aviso, porque la entrada del navbar era CSS estático incondicional. Aquel docblock («ESTADO ABIERTO») pedía explícitamente pararse y reportar en vez de forzar la retirada, por exceder el alcance de esa tarea.
+
+**Encargo directo del dueño, 2026-08-11 (Task 27).** Se retomó esa nota con la retirada como vía por defecto: código muerto con una red de seguridad que ya no aseguraba nada se conserva solo con una razón concreta escrita, no por inercia. Ninguna razón para conservarla apareció al leer el código, así que se ejecutó completa:
+
+- `src/motion/stage.ts` y `src/motion/StageProvider.tsx` — ficheros retirados enteros (tipos, `useStage()`, `markBackdropRevealed()`, `STAGE_FALLBACK_MS`, `STAGE_CHROME_DURATION_MS`).
+- `app/providers.tsx` — deja de montar `<StageProvider>`; `I18nProvider` pasa a colgar directamente de `ThemeProvider`.
+- `HeroBackdrop.tsx` — pierde exactamente tres piezas, todas atadas al aviso: el hook `useStage()`, la ref `revealedRef` (guardaba su idempotencia) y la llamada a `markBackdropRevealed()` dentro de `finishLoad`, que pasa a `useCallback` con `[]` (ya no cierra sobre ningún valor reactivo). El decode-gating, el token de ejecución, el relevo secuencial del cambio de tema y el resto de la mecánica descrita en §6/§7.2/§7.3 quedan **byte-idénticos en lógica** — no es un recorte de comportamiento, es la notificación de un evento que ya no tenía a quién avisar.
+- Seis ficheros de test pierden su envoltorio `<StageProvider>` (ya innecesario, `renderWithProviders` basta): `Hero.test.tsx`, `Hero.qa.test.tsx`, `HeroBackdrop.test.tsx`, `hero-story.integration.test.tsx`, `app/home-page.flujo.test.tsx`, `app/providers.test.tsx`. Dos aserciones de `HeroBackdrop.test.tsx` que sondeaban `useStage().phase` para comprobar que el aviso se disparaba se retiran con su porqué escrito en el propio test — no se aflojan ni se sustituyen por un equivalente más débil — porque lo que comprobaban (que `markBackdropRevealed()` se llamaba) ya no es observable: la función no existe.
+
+**Por qué es seguro.** `phase` no tenía ningún lector real desde la Task 10 (§5.5 lo deja escrito); la única función de `StageProvider` que seguía teniendo un efecto observable era programar sus propios temporizadores internos, que no escribían nada fuera de su propio contexto React. Retirar el proveedor no cambia ni un frame de lo que el usuario ve: el navbar y la copia ya arrancaban por CSS estático incondicional desde la Task 10, y el fondo del hero (`HeroBackdrop`) sigue con el mismo decode-gating, el mismo relevo secuencial y el mismo `aria-busy` (Task 5) que tenía antes de esta enmienda.
+
+**Verificación.** `pnpm run ci` (typecheck + lint + format + suite completa) más verificación en navegador real (`pnpm build` + `serve out` + Playwright) de la carga del hero/navbar y de un cambio de tema completo (claro→oscuro→claro), comparando la secuencia de opacidades contra la de la Task 10 — sin diferencia observable, como predice el razonamiento de arriba.
 
 ---
 
@@ -229,6 +303,8 @@ El ojo necesita **además** un guard ambiental, sin ningún `[data-state]` en el
 
 ### 7.1 Máquina de fases de la página — `src/motion/`
 
+> **Enmienda 2026-08-11 (§5.6, Task 27):** esta sección completa (`stage.ts`, `StageProvider.tsx`, `useStage()`) se retiró del repo — `phase` se quedó sin ningún consumidor real tras la Task 10 (§7.4) y su red de seguridad no protegía ya nada. Lo de abajo queda como registro histórico de lo que existió entre 2026-07-27 y 2026-08-11, no como descripción del código actual.
+
 El navbar es hermano del hero en `app/page.tsx`, no descendiente: no puede leer el estado del hero por CSS ni por props. Se añade un proveedor propio, montado en `app/providers.tsx` dentro de `ThemeProvider`.
 
 - `src/motion/stage.ts` — tipos y tiempos derivados. Sin React.
@@ -252,6 +328,10 @@ interface StageValue {
 
 ### 7.2 Carga: reutilizar la máquina que ya existe
 
+> **Enmienda 2026-08-11 (§5.5):** todo lo de esta sección sigue vigente **para el fondo** — sigue montándose en `"pending"`, sigue corriendo la carrera de `decode()`. Lo que ya no cuelga de ese aviso es la entrada de la copia y del navbar (§7.4), que pasaron a CSS estático por LCP. Añadido en la misma entrega: un guard `@media (scripting: none)` en `auraStagger`/`eyeStagger` para que el fondo no se quede invisible para siempre cuando el navegador no ejecuta scripts y `data-state` nunca sale de `"pending"`.
+>
+> **Enmienda 2026-08-11 (§5.6, Task 27, mismo día):** el "avisando a `markBackdropRevealed()`" del párrafo anterior también se retiró — esa llamada no tenía ya a quién avisar (nadie leía `phase`), así que se quitó de `finishLoad` junto con `useStage()`/`StageProvider` enteros. El decode-gating, el token de ejecución y el resto de esta sección no cambian una línea.
+
 `HeroBackdrop` monta hoy el stack inicial directamente en `"active"`. Pasa a montarlo en `"pending"` y a correr **la misma** carrera de `decode()` que ya usa el cruce; al terminar, lo pasa a `"active"` (lo que dispara el escalonado de entrada) y avisa al proveedor. No se añade ninguna máquina nueva: la coreografía de carga **es** la de entrada del cruce, con el stack saliente ausente.
 
 El ajuste de hidratación (`changeSource === "hydration"`) sustituye el stack pendiente y vuelve a correr la carrera, sin cruzar y sin reiniciar el intro: sigue siendo la carga asentándose.
@@ -270,6 +350,8 @@ El token de ejecución y la limpieza de temporizadores existentes se conservan t
 
 ### 7.4 Copia y navbar
 
+> **Enmienda 2026-08-11 (§5.5):** el primer punto (el cruce de tema de la copia, `useHeroCopySwap`) sigue vigente tal cual. Los dos siguientes ya no: en la carga, ni la copia ni el navbar leen `useStage().phase` — su entrada es `@keyframes` + `animation-delay` estáticos, presentes en el CSS del HTML exportado. El escalonado de 80 ms y los 320 ms del navbar no cambian; el navbar conserva además su `HERO_CHROME_OFFSET_MS` verbatim, la copia no (razón medida en §5.5).
+
 - `useHeroCopySwap` deja de esperar: oculta la copia en `t=0` y la devuelve en `HERO_COPY_RETURN_MS`, aplicando la distribución nueva mientras sigue invisible. Los dos temporizadores encadenados y la cancelación por cambio de tema se conservan.
 - En la carga, la copia y el navbar leen `useStage().phase` y arrancan su animación al entrar en `"chrome"`. El escalonado interno de 80 ms de los cinco hijos de la copia **no cambia**.
 - El navbar entra con `opacity` + `translateY(-8px)`, con `motion.duration.slow` de la escala del sistema: es una transición de interfaz normal, no parte de la coreografía del hero, así que aquí sí corresponde el token y no una constante propia.
@@ -284,7 +366,7 @@ El token de ejecución y la limpieza de temporizadores existentes se conservan t
 | Retardos de entrada y salida | `getComputedStyle(...).animationDelay` contra la constante importada | `HeroBackdrop.test.tsx` |
 | Relevo secuencial | Fake timers: a `HERO_HANDOFF_MS - 1` el saliente sigue montado; a `HERO_HANDOFF_MS` se ha ido y el entrante está `active` | `HeroBackdrop.test.tsx` |
 | Carga escalonada | Al montar, el stack arranca en `pending` y pasa a `active` tras la carrera | `HeroBackdrop.test.tsx` |
-| Fases | `backdrop → chrome → settled`; red de seguridad sin hero; `reduce` = `settled` directo | `StageProvider.test.tsx` (nuevo) |
+| ~~Fases~~ (retirado 2026-08-11, Task 27, §5.6) | `backdrop → chrome → settled`; red de seguridad sin hero; `reduce` = `settled` directo | ~~`StageProvider.test.tsx`~~ (fichero retirado junto con la máquina que verificaba) |
 | Copia | Se apaga en `t=0` y vuelve en `HERO_COPY_RETURN_MS` | `hero.transition.test.tsx` |
 | Navbar | Invisible en `backdrop`, visible en `chrome` | `Navbar.test.tsx` |
 | `reduce` | Todo instantáneo, sin retardos pendientes | Los anteriores, con `matchMedia` stubeado |

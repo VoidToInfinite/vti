@@ -7,6 +7,7 @@ import type { ParallaxTarget, ParallaxAmplitude } from "./useParallaxLayers";
 const AMP: ParallaxAmplitude = { x: 26, y: 15 };
 
 let ioTrigger: (isIntersecting: boolean) => void;
+let ioLote: (isIntersecting: boolean[]) => void;
 
 /**
  * Mock de `IntersectionObserver` para la rama con `sceneRef` (D3, spec
@@ -24,6 +25,9 @@ function stubIntersectionObserver(): void {
       disconnect = vi.fn();
       constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
         ioTrigger = (v: boolean) => cb([{ isIntersecting: v }]);
+        /* Lote de VARIAS entradas en UNA invocacion, que es lo que el
+           navegador entrega de verdad (ver el candado del final). */
+        ioLote = (vs: boolean[]) => cb(vs.map((v) => ({ isIntersecting: v })));
       }
     },
   );
@@ -131,6 +135,17 @@ describe("useParallaxLayers", () => {
     // Al montar: un rAF del lerp de `usePointer` + un rAF del parallax, sin
     // importar que haya 4 objetivos -- NUNCA uno por objetivo.
     expect(pending.length).toBe(2);
+
+    // Mueve el puntero ANTES del tick: desde el 2026-08-08 el bucle
+    // compartido de `usePointer` para por umbral en cuanto esta en reposo
+    // (spec rendimiento), y al montar el puntero arranca centrado con
+    // objetivo tambien centrado -- convergido desde el primer tick, sin
+    // pointermove no volveria a pedir frame. Con un objetivo real que
+    // alcanzar, su lerp (0.085/frame) no converge en un solo paso y SI
+    // reprograma, que es lo que esta prueba quiere observar: el numero de
+    // rAF por frame no crece con el numero de objetivos, no que el bucle
+    // nunca se detenga.
+    moveToCorner();
 
     const batch = pending;
     pending = [];
@@ -403,5 +418,40 @@ describe("useParallaxLayers", () => {
     // valor de partida. Un reinicio a 0 habria dejado `xAfter` cerca de un
     // 8% de la posicion real del puntero DESDE CERO, una caida mucho mayor.
     expect(Math.abs(xAfter - xMid)).toBeLessThan(Math.abs(xMid) * 0.5);
+  });
+
+  /*
+   * CANDADO DEL LOTE MULTIPLE (P0 de la critica externa #21, ola U,
+   * 2026-09-08). Este hook NO estaba entre los tres consumidores a los que
+   * se midio el sintoma --sus dos consumidores de hoy (Eye, Aura) viven en
+   * el hero y ninguno pasa `sceneRef`, asi que hoy ni siquiera instancian el
+   * observador--, y el candado se pone igual: la rama con `sceneRef` existe,
+   * lee el lote de la misma forma equivocada que las otras cuatro, y el
+   * primer consumidor que la use fuera del hero heredaria el defecto entero
+   * sin nada que lo delate. Arreglar cuatro de cinco callbacks identicos y
+   * dejar el quinto es dejar la trampa armada para el proximo.
+   */
+  it("con sceneRef, lee la entrada VIGENTE del lote: [obsoleta false, vigente true] en UNA invocacion arranca el rAF", () => {
+    stubMatchMedia(true);
+    stubIntersectionObserver();
+    const pending: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      pending.push(cb);
+      return pending.length;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+
+    const scene = document.createElement("div");
+    const targets = [targetOf(document.createElement("div"), 0.5)];
+    const sceneRef = sceneOf(scene);
+    renderHook(() => useParallaxLayers(targets, AMP, sceneRef));
+
+    // Solo el rAF interno de `usePointer` esta en marcha.
+    expect(pending.length).toBe(1);
+
+    act(() => ioLote([false, true]));
+
+    // Ahora tambien el del parallax.
+    expect(pending.length).toBe(2);
   });
 });

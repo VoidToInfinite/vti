@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +9,41 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     css: false,
+    /*
+     * Los worktrees de git que los agentes crean DENTRO del repo
+     * (`.claude/worktrees/<nombre>/`) son copias completas del árbol, con sus
+     * propios `node_modules` y sus propios tests. Vitest los recorre como si
+     * fueran parte de la suite: medido el 2026-09-06 (ola S), un
+     * `pnpm exec vitest run src/hooks/...` desde la raíz recogía tres copias
+     * del mismo test y las tres caían con «Cannot read properties of null
+     * (reading 'useContext')» —el React duplicado del `node_modules` de cada
+     * worktree—, un rojo que no era del producto. `out/` es el artefacto del
+     * build y tampoco contiene tests que deban correr. `exclude` SUSTITUYE la
+     * lista por defecto de Vitest en vez de ampliarla, por eso se parte de
+     * `configDefaults.exclude` (node_modules, dist, .git, los ficheros de
+     * configuración…) y se añaden solo los dos directorios de este repo.
+     */
+    exclude: [...configDefaults.exclude, "**/.claude/**", "**/out/**"],
+    /*
+     * El defecto de Vitest son 5000 ms, y ese número no lo eligió nadie para
+     * esta suite: hoy son 110 ficheros y 2252 casos, varios de los cuales
+     * montan la PÁGINA ENTERA en jsdom. Medido en aislamiento con la máquina
+     * descargada (2026-09-05): el render síncrono más pesado tarda 9127 ms él
+     * solo, y otros tres pasan de 2000. Con los workers en paralelo, esos
+     * casos caían por `Test timed out` sin una sola aserción fallida —cinco a
+     * la vez en una corrida, tres en la siguiente, distintos cada vez— y todos
+     * pasaban al ejecutarlos aislados. Un límite por debajo del coste real del
+     * caso no mide el producto: mide cuántos núcleos quedaban libres.
+     *
+     * 15000 ms es el techo de lo que un caso legítimo de esta suite tarda
+     * aislado (9127) más el margen que la contención se come. NO sustituye a
+     * recortar coste evitable: cuando el pesado se pasó de la raya, primero se
+     * quitó lo que sobraba —el campo de estrellas del pie generaba una clase
+     * de styled-components por estrella, 850 ms menos al pasarlo a propiedades
+     * personalizadas— y solo después se subió el límite. Si un caso nuevo
+     * necesita más, que lo declare en su propio `it` con la medición delante.
+     */
+    testTimeout: 15_000,
     // Node 22+ ships a built-in `localStorage` global (Web Storage API) that
     // is present without a valid backing file unless `--localstorage-file`
     // is set. Vitest's jsdom environment only overrides globals that are

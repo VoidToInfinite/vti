@@ -7,6 +7,7 @@ import type {
   ReactNode,
 } from "react";
 import styled, { css } from "styled-components";
+import { PRESS } from "@/motion/vocabulary";
 
 interface CardProps extends HTMLAttributes<HTMLElement> {
   /**
@@ -33,11 +34,19 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode;
 }
 
+/*
+ * `padding`: dos términos, no uno. El de BLOQUE sigue en `space` y el INLINE
+ * lee `inlineSpace` (ver su docblock en `tokens/space.ts`). Una tarjeta es la
+ * caja donde más duele el relleno lateral en `rem` -- va anidada dentro del
+ * relleno de su sección, así que al 200 % los dos se suman contra la misma
+ * columna. Con la raíz por defecto vale exactamente lo mismo que antes.
+ */
 const ScCard = styled.div<{ $interactive: boolean }>`
   background: ${({ theme }) => theme.data.semantic.surface};
   border: 1px solid ${({ theme }) => theme.data.semantic.border};
   border-radius: ${({ theme }) => theme.data.radius.xl};
-  padding: ${({ theme }) => theme.data.space[6]};
+  padding: ${({ theme }) => theme.data.space[6]}
+    ${({ theme }) => theme.data.inlineSpace[6]};
   /* Plana por defecto: elevation-0 explícito (nunca box-shadow implícito). */
   box-shadow: ${({ theme }) => theme.data.elevation[0]};
 
@@ -46,51 +55,72 @@ const ScCard = styled.div<{ $interactive: boolean }>`
     css`
       display: block;
       cursor: pointer;
+      /* Task 13, punto 2 del brief: elimina el retardo de doble-tap del
+         navegador. Solo en la rama $interactive -- una card NO interactiva
+         no es pulsable, no tiene :active ni ningún otro feedback de PRESS
+         que este atributo tenga sentido de acompañar. */
+      touch-action: manipulation;
+      /* transform migra a vocabulary.PRESS (Task 9, primera adopción real):
+         es la MISMA entrada que gobierna el press de abajo -- CSS no admite
+         dos duraciones distintas para la misma propiedad en una sola lista
+         de transition, así que hover-lift y press comparten timing, igual
+         que ya hace Button.tsx (ver su docblock del press). box-shadow se
+         AÑADE a la lista (hoy la sombra salta de elevation[0] a
+         elevation[1] sin transición, tanto en hover como en focus-visible):
+         no es una animación nueva -- regla 18 --, es poner en transición un
+         cambio que el propio hover YA hacía. border-color se queda en
+         fast/standard, sin tocar. */
       transition:
-        transform ${theme.data.motion.duration.fast}
-          ${theme.data.motion.easing.standard},
+        transform ${PRESS.durationMs}ms ${PRESS.easing},
         border-color ${theme.data.motion.duration.fast}
+          ${theme.data.motion.easing.standard},
+        box-shadow ${theme.data.motion.duration.fast}
           ${theme.data.motion.easing.standard};
 
       /* hover-lift (§9 de la spec): translateY + tint de borde es la ÚNICA
-         primitiva de hover para cards; no se inventa una animación propia. */
-      &:hover {
-        transform: translateY(-2px);
+         primitiva de hover para cards; no se inventa una animación propia.
+         Guardado tras PRESS.hoverGuard (Task 9, punto 2 del brief): mueve
+         (translateY), así que un tap en táctil no puede dejarlo "pegado". */
+      @media ${PRESS.hoverGuard} {
+        &:hover {
+          transform: translateY(-2px);
+          border-color: ${theme.data.semantic.borderStrong};
+          box-shadow: ${theme.data.elevation[1]};
+        }
+      }
+
+      /* Press (Task 9): feedback táctil que faltaba -- comparte la entrada
+         de transform de la lista de arriba, así que entra y sale con
+         PRESS.durationMs/PRESS.easing igual que el hover-lift. */
+      &:active {
+        transform: scale(${PRESS.activeScale});
+      }
+
+      /* :focus-visible propio (hallazgo 1, D7): reutiliza el mismo lenguaje
+         que el hover -- borde reforzado + elevación -- porque para una card
+         "interactive" foco y hover comunican la MISMA cosa (esto es
+         accionable). El ESTADO de foco lo señaliza el anillo GLOBAL
+         (GlobalStyles.tsx, outline con el token focusRing): hasta la crítica
+         externa #14 (2026-09-02) este bloque le sumaba un halo propio por
+         box-shadow contra semantic.focus, y era el último de los tres
+         vocabularios de foco que convivían en el sitio -- la card enfocada
+         pintaba dos anillos donde el resto pintaba uno. Se retira: el
+         outline global ya adopta el radio de la card y sobrevive a
+         forced-colors, que sí mata el box-shadow. box-shadow reemplaza
+         aquí AL COMPLETO el de hover/base (elevation[0] en reposo,
+         elevation[1] en hover): esta capa no tiene un anillo inset propio
+         que preservar. border-color hereda la transition ya declarada
+         arriba (fast/standard), cubierta por el guard de reduced-motion
+         existente más abajo -- no se declara una transition nueva. */
+      &:focus-visible {
         border-color: ${theme.data.semantic.borderStrong};
         box-shadow: ${theme.data.elevation[1]};
       }
 
-      /* :focus-visible propio (hallazgo 1, D7): la card interactiva depende
-         hoy por completo del anillo GLOBAL (GlobalStyles.tsx, outline).
-         Reutiliza el mismo lenguaje que el hover -- borde reforzado +
-         elevación -- porque para una card "interactive" foco y hover
-         comunican la MISMA cosa (esto es accionable), así que no hace falta
-         inventar un tercer tratamiento visual; y le suma el halo de foco
-         (box-shadow translúcido contra semantic.focus, el mismo rol que ya
-         resuelve el anillo global) para que el ESTADO de foco, a diferencia
-         del de hover, quede señalizado incluso para quien no puede ver el
-         color de un borde 1px pero sí distingue un halo con radio.
-         box-shadow reemplaza aquí AL COMPLETO el de hover/base (elevation[0]
-         en reposo, elevation[1] en hover): no hace falta apilarlos con coma
-         porque, a diferencia del outline de Button.tsx, esta capa no tiene
-         un anillo inset propio que preservar -- elevation[1] + halo son las
-         dos únicas sombras que tienen sentido en este estado. Sin transition
-         propia para el halo, igual que en Button.tsx/IconButton.tsx: aparece
-         tan instantáneo como el propio outline global. border-color SÍ
-         hereda la transition ya declarada arriba (fast/standard), cubierta
-         por el guard de reduced-motion existente más abajo -- no se declara
-         una transition nueva, así que no hace falta ampliar ese guard. */
-      &:focus-visible {
-        border-color: ${theme.data.semantic.borderStrong};
-        box-shadow:
-          ${theme.data.elevation[1]},
-          0 0 0 4px
-            color-mix(in oklch, ${theme.data.semantic.focus} 35%, transparent);
-      }
-
       @media (prefers-reduced-motion: reduce) {
         transition: none;
-        &:hover {
+        &:hover,
+        &:active {
           transform: none;
         }
       }

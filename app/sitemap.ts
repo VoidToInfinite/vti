@@ -1,5 +1,11 @@
 import type { MetadataRoute } from "next";
-import { ROUTES, LEGAL_ROUTE_KEYS, absoluteUrl } from "@/config/site";
+import {
+  LEGAL_ROUTE_KEYS,
+  LOCALES,
+  absoluteUrl,
+  alternateUrls,
+  routePath,
+} from "@/config/site";
 
 // OBLIGATORIO con `output: "export"` (H1, verificado con el paquete
 // instalado y con un build real): sin esta línea, el build falla con
@@ -20,20 +26,46 @@ export const dynamic = "force-static";
 // decidir cuándo re-rastrear, y un valor que miente todos los días degrada
 // esa señal a ruido. Se actualiza a mano cuando el contenido cambie de
 // verdad.
-const SITEMAP_LAST_MODIFIED = "2026-08-05";
+/* 2026-08-13, no 2026-08-08: las dos páginas legales cambiaron de contenido
+   sustantivo ese día (identidad del responsable, cadena de proveedores del
+   correo, plazo de conservación; ver `LEGAL_VERSIONS` 3.0.0). Dejarla en el 8
+   habría dicho a los rastreadores que no había nada nuevo que leer, que es
+   exactamente el ruido que este comentario pide evitar en el otro sentido.
+   Lo cazó el candado de `sitemap.test.ts`, no una revisión a ojo. */
+const SITEMAP_LAST_MODIFIED = "2026-08-13";
 
-/** Las cinco rutas públicas: home + las cuatro páginas legales, en ese orden. */
+/** Las tres páginas públicas: home + las dos legales, en ese orden. */
 const SITEMAP_ROUTE_KEYS = ["home", ...LEGAL_ROUTE_KEYS] as const;
 
+/*
+ * SEIS URLs desde el 2026-08-18, no tres: cada página × cada idioma.
+ *
+ * Un sitemap que solo listara las castellanas sería exactamente el defecto que
+ * la crítica midió tres veces seguidas —el inglés no se indexa— con las rutas
+ * ya publicadas: un rastreador solo descubre lo que le enseñas o lo que
+ * encuentra enlazado, y hasta esta entrega no había ni una cosa ni la otra.
+ *
+ * Cada entrada lleva además `alternates.languages` con las TRES claves (`es`,
+ * `en`, `x-default`), la propia incluida. Next lo emite como `<xhtml:link
+ * rel="alternate" hreflang="…">` dentro de cada `<url>`, que es el mecanismo
+ * que la documentación de Google describe para declarar versiones por idioma
+ * desde el sitemap — el mismo grupo recíproco que ya viaja en el `<head>` de
+ * cada página, y compuesto por la MISMA función (`alternateUrls`), así que las
+ * dos declaraciones no pueden contradecirse.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
-  return SITEMAP_ROUTE_KEYS.map((key) => ({
-    url: absoluteUrl(ROUTES[key]),
-    lastModified: SITEMAP_LAST_MODIFIED,
-    // Google ignora `changeFrequency` y `priority` desde hace años (lo
-    // confirma su propia documentación de Search Central) — se declaran
-    // porque el formato del sitemap los admite y sirven como documentación
-    // legible de la intención, no porque muevan el rastreo.
-    changeFrequency: key === "home" ? "monthly" : "yearly",
-    priority: key === "home" ? 1 : 0.3,
-  }));
+  return LOCALES.flatMap((locale) =>
+    SITEMAP_ROUTE_KEYS.map((key) => ({
+      url: absoluteUrl(routePath(key, locale)),
+      lastModified: SITEMAP_LAST_MODIFIED,
+      // Google ignora `changeFrequency` y `priority` desde hace años (lo
+      // confirma su propia documentación de Search Central) — se declaran
+      // porque el formato del sitemap los admite y sirven como documentación
+      // legible de la intención, no porque muevan el rastreo.
+      changeFrequency:
+        key === "home" ? ("monthly" as const) : ("yearly" as const),
+      priority: key === "home" ? 1 : 0.3,
+      alternates: { languages: alternateUrls(key) },
+    })),
+  );
 }

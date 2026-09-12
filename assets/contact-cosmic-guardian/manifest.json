@@ -27,6 +27,36 @@
         "weightBytes": 545192,
         "weightNote": "0,52 MiB en 6 imagenes, frente a 0,34 MiB en las 14 de la escena saliente. SUBE pese a tener menos de la mitad de capas, y el motivo es una sola: 02-figura pesa 284 KB en la pista de 2560, mas que las 14 imagenes salientes juntas. Es un cuerpo grande con textura estrellada fina y un glow de alfa suave y ancha, que es justo lo que peor comprime WebP; los orbes planos y las nebulosas difusas del arte anterior comprimian muy bien. Se declara como deuda conocida, no se disimula."
     },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13). Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). Color NO recomprimido a proposito: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=85, method=6, alpha_quality=80) -- mismos quality/method que ya publicaba este manifest. Calibracion de que alpha_quality no toca el color verificada sobre features-celestial-orbital/02-ondas.webp (ver su manifest): chunk VP8 byte a byte identico entre alpha_quality=100 y 80.",
+        "scope": "Solo las 2 capas con ALPH > 30% (01-fondo es opaca, RGB sin canal alfa segun el propio manifest de origen).",
+        "results": "3 de 4 candidatos recomprimidos (02-figura x 2 anchos + 03-polvo-1024, MENOS 03-polvo.webp de 2560, ver exclusion). Peso: 545192 -> 492334 B (-52858 B, -9.7%). PSNR minimo entre los aplicados: alfa 59.98 dB (02-figura-1024.webp), compuesto premultiplicado 53.65 dB (02-figura-1024.webp).",
+        "excluded": "03-polvo.webp (pista 2560, NO la de 1024): pasa el umbral de PSNR con margen amplio (alfa 70.04dB, premultiplicado 72.27dB) pero el fichero recomprimido pesa MAS que el original (47144 -> 49216 B, +2072 B, +4.4%) -- el alfa de esta capa de polvo estelar (mix-blend-mode: screen, alfa 0-254 disperso) ya comprimia mejor en modo lossless que en el esquema lossy-cuantizado de alpha_quality=80. Revertido con git checkout, fichero intacto. 03-polvo-1024.webp (la pista de 1024 de la MISMA capa) SI se recomprime con exito (17474->15594 B, -1880 B).",
+        "perFile": {
+            "02-figura": {
+                "2560": "284182->239218 B, alfa 60.51dB, premult 54.79dB",
+                "1024": "56024->50010 B, alfa 59.98dB, premult 53.65dB"
+            },
+            "03-polvo": {
+                "2560": "SIN CAMBIOS (excluido por aumento de peso, ver arriba)",
+                "1024": "17474->15594 B, alfa 70.02dB, premult 70.47dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Mismo objetivo y mismo metodo que features-celestial-orbital/manifest.json (ver ese manifest para el detalle completo del test de reproducibilidad y su diagnostico): pista de 1600px generada desde la de 2560 ya desplegada (LANCZOS a 1600x900 + save WEBP quality=85 method=6), porque el master de 3344px no esta versionado.",
+        "reproducibilityCheck": "Mismo resultado que en features-celestial-orbital: la reproduccion byte a byte contra el activo desplegado NO se alcanza a ninguna calidad (barrido 85-100, con y sin exact=True) porque el activo desplegado ya es una segunda generacion de perdida (encode inicial + resave de alpha_quality de la Task 13), no idempotente por construccion. Se valida por PSNR sobre el compuesto en su lugar.",
+        "psnrThreshold": "Mismo criterio que features-celestial-orbital: el compuesto a 1600 se compara contra el propio precedente de esta escena a 2560 (deployed.rationale: q85 en 42.51 dB contra el master). Medido: 42.64 dB a 1600, ligeramente por encima del precedente (margen estrecho porque 02-figura, la capa mas pesada, es un cuerpo con textura fina que comprime peor que el resto del arte de esta escena -- ver weightNote). El '48 dB' que cita el encargo como referencia de la pasada alfa no es la cifra que documentan esos manifests -- ver la nota completa en features-celestial-orbital/manifest.json.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto, se conserva el que pese menos. Las 2 capas alfa de esta escena mejoran con 80 a 1600 (a diferencia de 03-polvo en su pista de 2560, que en la pasada de alfa SI quedo excluida por aumento de peso -- a 1600 el mismo ajuste SI compensa).",
+        "results": "3 ficheros -1600.webp generados. Peso de la pista de 1600: 188442 B (0.18 MiB). Compuesto PSNR: 42.64 dB.",
+        "perFile": {
+            "01-fondo": "53372 B (opaca)",
+            "02-figura": "109324 B (aq=80 vs 121016 B default), alfa 60.22dB, premult 50.14dB",
+            "03-polvo": "25746 B (aq=80 vs 29066 B default), alfa 70.19dB, premult 64.98dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
     "motion": {
         "packageHints": {
             "depth": [0, 0.03, 0.085],

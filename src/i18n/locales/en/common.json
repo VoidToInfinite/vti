@@ -1,11 +1,5 @@
 {
     "Common": {
-        "Page": {
-            "title": "VoidToInfinite"
-        },
-        "Navbar": {
-            "openMenu": "Open menu"
-        },
         "Navigation": {
             "home": "Home",
             "history": "History",
@@ -18,34 +12,29 @@
             "story": "Story",
             "journey": "Journey",
             "features": "Features",
-            "contact": "Contact"
+            "contact": "Contact",
+            "about": "What is VoidToInfinite"
         },
-        "Status": {
-            "success": "Success",
-            "successfully": "Successfully",
-            "warning": "Warning",
-            "information": "Information",
-            "error": "Error",
-            "accepted": "Accepted",
-            "pending": "Pending",
-            "process": "In progress",
-            "confirmed": "Confirmed"
+        "Nav": {
+            "landmark": "Site navigation",
+            "onSite": "On Site",
+            "discover": "Discover",
+            "resources": "Resources",
+            "community": "Community",
+            "more": "More",
+            "moreHint": "site destinations",
+            "sdk": "VTI - SDK",
+            "discord": "Discord",
+            "github": "GitHub",
+            "linkedin": "LinkedIn",
+            "newTab": "opens in a new tab",
+            "openMenu": "Open the navigation menu",
+            "closeMenu": "Close the navigation menu",
+            "closeSheet": "Close navigation",
+            "sheetTitle": "Navigation menu"
         },
-        "Button": {
-            "accept": "Accept",
-            "cancel": "Cancel",
-            "edit": "Edit",
-            "delete": "Delete",
-            "yes": "Yes",
-            "no": "No",
-            "showMore": "Show More",
-            "ariaLabel": {
-                "pressButton": "Press the button to"
-            }
-        },
-        "switchLocale": "Switch to {locale, select, es {Spanish} en {English} other {}}",
         "Lang": {
-            "title": "Lenguage",
+            "title": "Language",
             "en": {
                 "label": "en",
                 "name": "English",
@@ -57,35 +46,38 @@
                 "title": "Select Spanish"
             }
         },
-        "Notification": {
-            "title": "Notification",
-            "default": {
-                "title": "Oops! Something went wrong",
-                "description": "Really happened, we can fix it."
-            }
-        },
         "Footer": {
             "copyright": "© {{year}} VoidToInfinite. All rights reserved.",
             "tagline": "Together, we go beyond.",
-            "explore": "Explore",
-            "discover": "Discover",
-            "resources": "Resources",
-            "documentation": "Documentation",
-            "guides": "Guides",
-            "accessibility": "Accessibility",
             "privacy": "Privacy Policy",
-            "terms": "Terms of Use",
-            "legalNotice": "Legal Notice",
-            "cookiePreferences": "Cookie preferences"
+            "legalNotice": "Legal Notice"
         },
         "ThemeToggle": {
-            "switchToLight": "Switch to light theme",
-            "switchToDark": "Switch to dark theme"
+            "switchToLight": "Dark theme active: switch to light theme, which recomposes the whole page with the sections as cards and a shorter read",
+            "switchToDark": "Light theme active: switch to dark theme, which recomposes the whole page with the sections as slides and a longer read",
+            "stateLight": "Light theme",
+            "stateDark": "Dark theme"
+        },
+        "SkipLink": {
+            "label": "Skip to content"
+        },
+        "BackToTop": {
+            "label": "Back to top"
+        },
+        "Deck": {
+            "scrollHint": "Scroll to continue"
+        },
+        "Meta": {
+            "home": {
+                "title": "Learning, imagination and gaming",
+                "description": "VoidToInfinite is a creative project that builds learning, imagination and gaming into a single journey. Discover its story, its journey and how to take part."
+            }
         }
     },
     "notFound": {
         "title": "Page not found",
-        "message": "The page you are looking for doesn't exist."
+        "message": "The page you are looking for doesn't exist.",
+        "backToHome": "Back to home"
     },
     "language": {
         "es": "Español",

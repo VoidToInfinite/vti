@@ -1,6 +1,11 @@
 import { act } from "@testing-library/react";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ThemeProvider } from "@/theme/ThemeProvider";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
+import i18n from "@/i18n/config";
 import {
   renderWithProviders,
   screen,
@@ -8,12 +13,13 @@ import {
 } from "@/test/test-utils";
 import { HeroBackdrop } from "./HeroBackdrop";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
-import { StageProvider, useStage } from "@/motion/StageProvider";
-import { AURA_STAGGER } from "@/components/aura/aura.layers";
-import { EYE_STAGGER } from "@/components/eye/eye.layers";
+import {
+  AURA_STAGGER,
+  AURA_SURFACE,
+} from "@/components/scenes/aura/aura.layers";
+import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 import {
   HERO_BACKDROP_HOLD_MS,
-  HERO_CHROME_OFFSET_MS,
   HERO_HANDOFF_MS,
   HERO_STEP_MS,
 } from "./hero.transition";
@@ -27,10 +33,6 @@ import {
  * el rAF interno de `usePointer` no arranca -- el unico `requestAnimationFrame`
  * que corre durante estos tests es el que orquesta `HeroBackdrop` (el margen
  * de un frame tras decode(), `nextFrame()`).
- *
- * `StageProvider` TAMBIEN llama a `matchMedia` de verdad en su propio efecto
- * de montaje (lee la misma preferencia): este stub lo cubre igual, sin
- * necesidad de un segundo mock.
  */
 function stubMatchMedia(reducedMatches = false): void {
   vi.stubGlobal(
@@ -51,7 +53,7 @@ function stubMatchMedia(reducedMatches = false): void {
 // para que la cadena de promesas (decode -> rAF) se resuelva por microtareas
 // sin depender de un reloj real ni de los timers falsos de vitest, que aqui
 // solo controlan los temporizadores del relevo secuencial
-// (HERO_BACKDROP_HOLD_MS, HERO_HANDOFF_MS) y los de StageProvider.
+// (HERO_BACKDROP_HOLD_MS, HERO_HANDOFF_MS).
 function stubSyncRaf(): void {
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
     cb(0);
@@ -117,30 +119,33 @@ async function clickToggle(): Promise<void> {
 }
 
 /*
- * `HeroBackdrop` consume `useStage()` (tarea D2/D3: avisa a
- * `markBackdropRevealed()` cuando la carga revela el fondo): sin un
- * `StageProvider` en el arbol, el hook lanza. `renderWithProviders`
- * (test-utils.tsx) es un helper COMPARTIDO con otros flujos y no se toca
- * (CLAUDE.md S9): se envuelve aqui, localmente, en vez de modificar su
- * firma -- mismo patron que ya usan Navbar.test.tsx/Hero.test.tsx para el
- * mismo motivo.
+ * `HeroBackdrop` consumia `useStage()` hasta la Task 27 (2026-08-11):
+ * avisaba a `markBackdropRevealed()` cuando la carga revelaba el fondo. La
+ * maquina de fases del stage (`useStage()`/`StageProvider`) se retiro
+ * entera al quedarse sin ningun consumidor real -- ver el docblock de
+ * `finishLoad` en `HeroBackdrop.tsx`. Ya no hace falta ningun envoltorio de
+ * proveedor propio de este archivo: `renderWithProviders` (test-utils.tsx)
+ * basta tal cual.
  */
 function renderHeroBackdrop(children: ReactNode): RenderResult {
-  return renderWithProviders(<StageProvider>{children}</StageProvider>);
-}
-
-/** Sonda de la fase de pagina (StageProvider), para observar desde fuera
- *  que `HeroBackdrop` avisa a `markBackdropRevealed()` sin inspeccionar sus
- *  internos: expone `phase` como texto plano. Mismo patron que
- *  `RevealBackdrop` en Navbar.test.tsx/Hero.test.tsx, en sentido inverso
- *  (aqui SE OBSERVA la fase en vez de forzarla). */
-function StagePhaseProbe(): ReactElement {
-  const { phase } = useStage();
-  return <span data-testid="stage-phase">{phase}</span>;
+  return renderWithProviders(<>{children}</>);
 }
 
 beforeEach(() => {
   window.localStorage.clear();
+  /*
+   * `data-theme` tambien se limpia, y no es ceremonia: `document` es UNO solo
+   * para todo el fichero, y `ThemeProvider` escribe ese atributo en cuanto un
+   * test conmuta el tema. Sin esta linea, el atributo que deja un test viaja
+   * al siguiente -- y desde que `HeroBackdrop` siembra su stack leyendo el
+   * atributo (2026-08-17), esa herencia decide QUE rama se monta: el test del
+   * visitante nuevo sin storage se encontraba "dark" pegado del test anterior
+   * y montaba el ojo. En un navegador real la fuga no existe -- cada carga
+   * escribe el atributo desde cero, coherente con `localStorage` -- asi que
+   * lo correcto es devolver al fichero esa condicion inicial, no aflojar la
+   * asercion.
+   */
+  document.documentElement.removeAttribute(THEME_ATTRIBUTE);
   stubMatchMedia();
   // `vi.useFakeTimers()` ANTES del stub de rAF, no despues: los timers falsos
   // de vitest sustituyen `requestAnimationFrame` por su propio polyfill
@@ -167,20 +172,24 @@ afterEach(() => {
 });
 
 describe("HeroBackdrop", () => {
-  it("carga (tema claro por defecto): el stack arranca en pending y pasa a active tras la carrera, avisando a markBackdropRevealed", async () => {
-    renderHeroBackdrop(
-      <>
-        <StagePhaseProbe />
-        <HeroBackdrop />
-      </>,
-    );
+  it("carga (tema claro por defecto): el stack arranca en pending y pasa a active tras la carrera", async () => {
+    renderHeroBackdrop(<HeroBackdrop />);
 
     // Recien montado: el stack del tema por defecto (claro -> Aura) arranca
     // en "pending" -- la carga YA NO monta directamente en "active" (spec
-    // S7.2). La pagina sigue en "backdrop": nadie ha avisado todavia.
+    // S7.2).
+    //
+    // RETIRADO 2026-08-11 (Task 27): este caso comprobaba ADEMAS, con una
+    // sonda `useStage()`, que la pagina seguia en "backdrop" aqui y llegaba
+    // a "chrome" tras HERO_CHROME_OFFSET_MS una vez resuelta la carrera --
+    // es decir, que `HeroBackdrop` avisaba a `markBackdropRevealed()`. Esa
+    // llamada se retiro de `HeroBackdrop.tsx` (junto con `useStage()`/
+    // `StageProvider` enteros, sin ningun consumidor real desde la Task 10),
+    // asi que la aviso ya no existe y no hay nada que sondear: se retira la
+    // asercion, no se afloja. Lo que SI sigue siendo cierto -- el
+    // decode-gating de "pending" a "active" -- es lo unico que queda abajo.
     expect(stackOf("aura")).toHaveAttribute("data-state", "pending");
     expect(stackOf("eye")).not.toBeInTheDocument();
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("backdrop");
 
     await act(async () => {
       await flushMicrotasks();
@@ -189,15 +198,6 @@ describe("HeroBackdrop", () => {
     // decode() (mas el margen de un frame) resolvio: el stack pasa a
     // "active" -- lo que dispara su propio escalonado de entrada por capa.
     expect(stackOf("aura")).toHaveAttribute("data-state", "active");
-
-    // El aviso a markBackdropRevealed() ya se disparo: avanzando SOLO
-    // HERO_CHROME_OFFSET_MS (muy por debajo de la red de seguridad de
-    // StageProvider, STAGE_FALLBACK_MS) la pagina llega a "chrome". Si el
-    // aviso no se hubiera disparado, esta ventana corta no bastaria.
-    act(() => {
-      vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-    });
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("chrome");
   });
 
   it("el ajuste de hidratacion NO cruza: sustituye el stack pendiente sin coexistir y sin doble intro", async () => {
@@ -206,12 +206,7 @@ describe("HeroBackdrop", () => {
     // desde HeroBackdrop igual que un toggle, pero sigue siendo la CARGA
     // asentandose con el tema correcto, no un relevo.
     window.localStorage.setItem("vti-theme", "dark");
-    renderHeroBackdrop(
-      <>
-        <StagePhaseProbe />
-        <HeroBackdrop />
-      </>,
-    );
+    renderHeroBackdrop(<HeroBackdrop />);
 
     // El pending original (aura, el tema con el que SIEMPRE arranca
     // `ThemeProvider`) nunca llega a pintarse: el ajuste de hidratacion lo
@@ -228,14 +223,12 @@ describe("HeroBackdrop", () => {
     expect(stackOf("eye")).toHaveAttribute("data-state", "active");
     expect(stackOf("aura")).not.toBeInTheDocument();
 
-    // Sin doble intro: markBackdropRevealed solo pudo dispararse UNA vez (el
-    // proveedor es idempotente, pero esto prueba que ni siquiera hizo falta
-    // la segunda llamada) -- la fase llega a "chrome" con el offset
-    // estandar, sin necesitar la red de seguridad.
-    act(() => {
-      vi.advanceTimersByTime(HERO_CHROME_OFFSET_MS);
-    });
-    expect(screen.getByTestId("stage-phase")).toHaveTextContent("chrome");
+    // RETIRADO 2026-08-11 (Task 27): este caso comprobaba ADEMAS, con una
+    // sonda `useStage()`, que markBackdropRevealed() solo se habia disparado
+    // UNA vez (sin doble intro) leyendo que la fase llegaba a "chrome" con
+    // el offset estandar. Esa notificacion ya no existe (ver el test de
+    // arriba); el "active" de las dos aserciones de encima ya demuestra que
+    // el ajuste de hidratacion no dejo el fondo pegado en "pending".
   });
 
   it("SIN tema guardado, el PRIMER toggle del usuario ya arranca un relevo real (no se lo come el ajuste de hidratacion)", async () => {
@@ -413,7 +406,7 @@ describe("HeroBackdrop", () => {
     );
     await act(async () => {
       await flushMicrotasks();
-    }); // carga: eye active (StageProvider ya esta "settled" bajo reduce)
+    }); // carga: eye active
 
     // `vi.getTimerCount()` a secas NO sirve aqui (medido: sube de 7 a 9 en
     // este mismo toggle): montar Aura arrastra su propio Sol, que trae su
@@ -564,5 +557,224 @@ describe("HeroBackdrop", () => {
     // "mascot" (escalon 0, el Wormhole) recibe el MAYOR retardo -- el
     // ultimo en apagarse.
     expect(eyeDelayOf("mascot")).toBe(`${(total - 1) * HERO_STEP_MS}ms`);
+  });
+
+  it("REGRESION: un remontaje simulado (StrictMode) no deja el fondo pegado en pending para siempre", async () => {
+    /*
+     * Reproduce el contrato que rompia el bug real (navegar a "/" desde una
+     * pagina legal con next/link, medido en navegador): React StrictMode
+     * (activo en next.config.ts, reactStrictMode: true) simula, en cada
+     * montaje, un desmontaje + remontaje -- invoca la limpieza de TODOS los
+     * efectos de ese commit y vuelve a invocar su configuracion, para
+     * verificar que el componente sobrevive integro a ese ciclo. La limpieza
+     * de desmontaje de HeroBackdrop (mas abajo en HeroBackdrop.tsx) sube
+     * `tokenRef.current` en CADA desmontaje, real o simulado -- asi que la
+     * SEGUNDA invocacion del efecto de la carrera (la que de verdad importa,
+     * la primera queda cancelada por su propio `cancelled`) arranca con
+     * `tokenRef.current` ya en 1.
+     *
+     * ANTES de esta revision, `myToken` salia de `pendingEntry.token` --
+     * un campo escrito a mano en el inicializador de `useState`, congelado
+     * en 0 para siempre (nadie lo actualiza en un remontaje, solo un cambio
+     * de tema real llama a `setPendingEntry` de nuevo). Esa segunda carrera
+     * comparaba entonces 0 contra el 1 de `tokenRef.current` -- descarte
+     * PERMANENTE de `finishLoad()`, el stack pegado en "pending" para
+     * siempre, las cuatro capas en `opacity: 0`. Con el arreglo, `myToken`
+     * se lee de `tokenRef.current` en el instante en que el efecto arranca:
+     * la segunda invocacion lo captura ya en 1, coincide con el `tokenRef`
+     * que comprueba al resolver, y `finishLoad()` se aplica con normalidad.
+     *
+     * `renderWithProviders` con `reactStrictMode: true` (opcion nativa de
+     * Testing Library, RenderOptions) envuelve TODO el arbol -- proveedores
+     * incluidos -- en `<StrictMode>`, exactamente como lo hace `next.config.ts`
+     * en produccion: no hace falta desmontar/remontar a mano con `unmount()`
+     * (eso crearia una instancia nueva, con `tokenRef`/`pendingEntry`
+     * reinicializados desde cero, y NUNCA reproduciria esta carrera).
+     */
+    renderWithProviders(<HeroBackdrop />, { reactStrictMode: true });
+
+    // Recien montado (las dos invocaciones de StrictMode ya corrieron,
+    // sincronas dentro de act()): el stack de carga arranca en "pending",
+    // decode() todavia no resolvio.
+    expect(stackOf("aura")).toHaveAttribute("data-state", "pending");
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    // Con el bug, esta asercion fallaba: el stack se quedaba en "pending"
+    // para siempre (descarte permanente de finishLoad() por el token
+    // desincronizado). Con el arreglo, decode() resuelve y el token
+    // coincide: el stack llega a "active".
+    expect(stackOf("aura")).toHaveAttribute("data-state", "active");
+  });
+});
+
+/*
+ * El HTML estatico no trae arte (2026-08-17). Es el candado del ahorro
+ * medido: 309.276 B de arte claro que el visitante OSCURO descargaba y no
+ * veia nunca -- el 13,1 % de su carga.
+ *
+ * `renderToStaticMarkup` y no `renderWithProviders`: lo que se quiere
+ * bloquear es EXACTAMENTE lo que hornea `output: "export"`, es decir el
+ * render sin efectos. `renderWithProviders` envuelve en `act()`, que los
+ * ejecuta, asi que veria ya el stack sembrado y no distinguiria la revision
+ * nueva de la vieja. Validado con el bug inyectado a proposito: devolviendo
+ * los `useState` a su inicializador viejo (`{ [stackFor(themeName)]:
+ * "pending" }`), este test cae en rojo con las cuatro capas de Aura dentro
+ * del marcado; restaurado, vuelve a verde.
+ */
+describe("HeroBackdrop: el HTML estatico no pide arte", () => {
+  it("el render de servidor no emite ni un <img>: ninguna rama de arte viaja en el HTML horneado", () => {
+    const html = renderToStaticMarkup(
+      <I18nextProvider i18n={i18n}>
+        <ThemeProvider>
+          <HeroBackdrop />
+        </ThemeProvider>
+      </I18nextProvider>,
+    );
+
+    expect(
+      html,
+      "el HTML estatico volvio a emitir <img> del hero: el visitante del OTRO tema los descargara sin verlos nunca",
+    ).not.toContain("<img");
+    expect(html).not.toContain("/hero/aura/");
+    expect(html).not.toContain("/hero/eye/");
+    // Y sin embargo el envoltorio SI esta: el fondo sigue ocupando su hueco
+    // en el arbol, solo que vacio hasta que el efecto de montaje lo siembra.
+    expect(html).toContain("<div");
+  });
+
+  it("la siembra lee el tema del atributo `data-theme`, no el `themeName` de React: es lo unico resuelto cuando se decide QUE bytes pedir", async () => {
+    // Escenario deliberadamente divergente: el atributo (que escribe el
+    // script de arranque antes del primer pintado) dice oscuro, mientras
+    // `ThemeProvider` se queda en claro porque no hay storage ni preferencia
+    // de sistema. En produccion los dos coinciden; separarlos aqui es lo que
+    // permite comprobar CUAL de los dos manda en la decision de bytes.
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, "dark");
+    try {
+      renderHeroBackdrop(<HeroBackdrop />);
+      await act(async () => {
+        await flushMicrotasks();
+      });
+
+      expect(stackOf("eye")).toBeInTheDocument();
+      expect(
+        stackOf("aura"),
+        "se sembro la rama clara con el atributo en oscuro: el visitante oscuro vuelve a pagar el arte que no ve",
+      ).not.toBeInTheDocument();
+    } finally {
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  });
+
+  it("sin atributo (el script de arranque lanzo) cae al tema de React, que es el del HTML estatico", async () => {
+    document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    renderHeroBackdrop(<HeroBackdrop />);
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(stackOf("aura")).toBeInTheDocument();
+    expect(stackOf("eye")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * El camino REAL de un visitante oscuro tras el cambio del 2026-08-17: el
+ * script de arranque deja `data-theme="dark"` y `localStorage` dice lo mismo,
+ * asi que la siembra monta el ojo y la correccion de `ThemeProvider` llega
+ * despues confirmando lo que ya estaba.
+ *
+ * Lo que este candado protege es el DESENLACE de ese camino: un solo stack
+ * montado y en "active". El modo de fallo que vigila no da ningun error --
+ * seria un hero negro con las cinco capas en opacity 0, pegadas en "pending".
+ *
+ * SOBRE SU VALIDACION, dicho tal cual salio: se probo el bug de mover la
+ * salida temprana del efecto de deteccion DEBAJO de `tokenRef.current += 1`
+ * (la hipotesis era que invalidaria la carrera en vuelo) y el test SIGUIO EN
+ * VERDE. El motivo esta medido: el efecto de la carrera esta declarado despues
+ * del de deteccion y adopta el token en tiempo de efecto, asi que lee el valor
+ * ya incrementado y los dos siguen coincidiendo. Es decir: este test cubre el
+ * desenlace, no la posicion de esa guarda -- y esa posicion es prudencia
+ * declarada, no una condicion de correccion.
+ */
+describe("HeroBackdrop: el visitante oscuro real (atributo y storage de acuerdo)", () => {
+  it("la siembra monta el ojo y la correccion del proveedor no reinicia la carrera: llega a active", async () => {
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, "dark");
+    window.localStorage.setItem("vti-theme", "dark");
+    try {
+      renderHeroBackdrop(<HeroBackdrop />);
+      await act(async () => {
+        await flushMicrotasks();
+      });
+
+      expect(
+        stackOf("eye"),
+        "el fondo se quedo en pending: la salida temprana del efecto de deteccion corre DESPUES de invalidar el token",
+      ).toHaveAttribute("data-state", "active");
+      expect(document.querySelectorAll("[data-stack]")).toHaveLength(1);
+    } finally {
+      document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+    }
+  });
+});
+
+/*
+ * Critica externa #13 (2026-08-19): sin JavaScript el hero se quedaba
+ * completamente vacio.
+ *
+ * Medido en Chrome real a 390x844 con `javaScriptEnabled: false`: 6 imagenes
+ * en toda la pagina frente a 10 con JS, y las cuatro que faltaban eran
+ * exactamente las capas de Aura. No es un fallo de carga: los dos stacks se
+ * montan desde el estado (`stacks` arranca vacio), asi que el HTML horneado
+ * del export estatico no contiene ninguno de los dos. El resultado en captura
+ * eran ~900px de blanco liso entre la barra y la copia del hero.
+ *
+ * `ScBackdrop` gana un respaldo bajo `@media (scripting: none)` -- el MISMO
+ * mecanismo que `GlobalStyles` ya usa para los reveals -- que pinta el tono
+ * base del campo de Aura. No devuelve el arte (ver el comentario del propio
+ * `ScBackdrop` para por que eso exigiria tocar la maquina del cruce): lo que
+ * hace es que el hueco deje de ser un hueco.
+ *
+ * jsdom NO evalua ningun `@media` (regla 36), asi que el respaldo solo se
+ * puede atar inspeccionando el texto de la regla inyectada, acotado al bloque
+ * concreto -- nunca por `getComputedStyle`, que aqui no aplicaria la regla.
+ */
+describe("HeroBackdrop: critica #13 -- respaldo del fondo sin JavaScript", () => {
+  function cssDeScBackdrop(): string {
+    const backdrop = document.querySelector("[data-stack]")
+      ?.parentElement as HTMLElement | null;
+    const el = backdrop ?? (document.querySelector("div") as HTMLElement);
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  it("declara el tono base de Aura bajo scripting: none, y solo ahi", async () => {
+    // `act` asincrono: el montaje dispara la carrera de decode() del cruce y
+    // sin el React avisa de actualizaciones de estado fuera de act.
+    await act(async () => {
+      renderWithProviders(<HeroBackdrop />);
+    });
+    const css = cssDeScBackdrop();
+
+    expect(css).toContain("scripting: none");
+    const bloque = css.slice(css.indexOf("scripting: none"));
+    expect(bloque).toContain(`background-color: ${AURA_SURFACE}`);
+
+    // Y NO fuera del media query: con JavaScript el fondo lo pintan las capas
+    // de la escena, no un color plano debajo -- si el color se escapara del
+    // bloque, quedaria por detras del arte en TODA visita.
+    const antesDelMedia = css.slice(0, css.indexOf("scripting: none"));
+    expect(antesDelMedia).not.toContain("background-color");
   });
 });

@@ -3,8 +3,8 @@ import { act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/test/test-utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle/ThemeToggle";
-import { AURA_STAGGER } from "@/components/aura/aura.layers";
-import { EYE_STAGGER } from "@/components/eye/eye.layers";
+import { AURA_STAGGER } from "@/components/scenes/aura/aura.layers";
+import { EYE_STAGGER } from "@/components/scenes/eye/eye.layers";
 import {
   HERO_BACKDROP_HOLD_MS,
   HERO_CHROME_OFFSET_MS,

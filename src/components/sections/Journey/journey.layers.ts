@@ -16,6 +16,10 @@
  * borde/sombra de los discos, el trazo del path punteado, el degradado de la
  * cita y la sombra de la figura) se congela aquí como literal.
  */
+import { DECK_SLIDE_TRAVEL } from "@/hooks/useSlideDeck";
+import { DECK } from "@/motion/vocabulary";
+import { grid } from "@/theme/tokens/grid";
+import { type as typeTokens } from "@/theme/tokens/type";
 
 export type JourneyStepId =
   "discover" | "learn" | "imagine" | "create" | "share" | "evolve";
@@ -29,18 +33,79 @@ export interface JourneyStep {
    */
   readonly offsetY: number;
   /** Rampa de color del tema (mockup: `var(--<ramp>-<paso>)`) para el icono
-   *  y la etiqueta `0N · Label` de este paso. */
+   *  y la etiqueta de este paso. (Hasta la crítica externa #11, 2026-08-18,
+   *  esa etiqueta se rotulaba `0N · Label` en la rama clara; el ordinal
+   *  VISIBLE se retiró al unificar el contenido de las dos ramas -- ver el
+   *  docblock de cabecera de `Journey.tsx`.) */
   readonly colorRamp: "primary" | "secondary" | "error";
   readonly colorStep: 500 | 600 | 700;
-  /** `box-shadow` VERBATIM del disco (mockup, un valor por paso — no siguen
-   *  una única fórmula, así que se listan literales en vez de derivarlos). */
+  /** `box-shadow` del disco (mockup, un valor por paso): la geometría común
+   *  de `discGlow()` sobre uno de los cuatro colores de abajo. */
   readonly discShadow: string;
 }
 
+/*
+ * CORRECCIÓN DE UNA AFIRMACIÓN FALSA (crítica externa #17, 2026-09-03). El
+ * docblock que este bloque sustituye decía, sobre el campo `discShadow`, que
+ * los seis valores del mockup «no siguen una única fórmula, así que se listan
+ * literales en vez de derivarlos». Comprobado renglón a renglón contra el
+ * código que describía: los seis eran `0 8px 20px oklch(<L> <C> <H> / 0.14)`
+ * -- la MISMA geometría (sin desenfoque de sombra propio, sin `spread`) y la
+ * MISMA alfa, sobre CUATRO colores, dos de ellos repetidos byte a byte
+ * (`discover` = `learn`, `imagine` = `create`). Es decir: una única fórmula,
+ * exactamente lo que el docblock negaba.
+ *
+ * De ahí sale la derivación: `discGlow()` escribe la geometría UNA vez y los
+ * cuatro colores se nombran una vez cada uno, así que los seis pasos siguen
+ * rindiendo la misma cadena que antes (verificado en navegador sobre el CSS
+ * servido, no solo en el test) y las dos parejas dejan de ser dos literales
+ * que hay que acordarse de mover a la vez.
+ *
+ * POR QUÉ LA ALFA VIAJA DENTRO DE CADA COLOR y no dentro de la fórmula, que
+ * es la otra mitad que los seis comparten: factorizarla dejaría las cuatro
+ * constantes como tripletes sueltos (`"0.6 0.12 260"`), invisibles para la
+ * familia `color-literal` del detector de anti-patrones -- añadida en esta
+ * misma ola, y cuyo límite declarado es justamente que no ve un color sin su
+ * función `oklch(...)` alrededor. Se prefiere que las cuatro sigan pasando
+ * por el gate a ahorrarse una repetición de cuatro caracteres.
+ *
+ * Son colores de ARTE, no roles reescritos a mano: medido contra las cinco
+ * rampas de `src/theme/tokens/color.ts` (las 60 combinaciones hue/paso),
+ * NINGUNO de los cuatro coincide con un peldaño -- ni siquiera los hue (260,
+ * 290, 300, 12) con los de marca (235.851 `primary`, 311.928 `secondary`),
+ * salvo el 12 de `error`, cuya croma tampoco cuadra. Mismo criterio D10 que
+ * el resto de este fichero.
+ */
+const discGlow = (color: string): string => `0 8px 20px ${color}`;
+
+/*
+ * Los cuatro colores, en el orden en que los usan los seis pasos. Las líneas
+ * del mockup NO se citan una a una a propósito: el fichero
+ * (`Landing v2.dc.html`) ya no está en la máquina, así que lo único que
+ * puede afirmarse con la fuente delante es el rango que la cabecera de este
+ * módulo declara desde el principio (L103-155, pasos en L114-143). Los
+ * nombres describen la rampa de tema que ACOMPAÑAN (campo `colorRamp` de
+ * cada paso), que es la relación que sí se observa en este fichero.
+ */
+/** Glow de los dos pasos de rampa `primary` (`discover`, `learn`). */
+const DISC_GLOW_PRIMARY = "oklch(0.6 0.12 260 / 0.14)";
+/** Glow de los dos pasos de rampa `secondary` (`imagine`, `create`). */
+const DISC_GLOW_SECONDARY = "oklch(0.6 0.15 290 / 0.14)";
+/** Glow del tercer paso `secondary`, `share`: comparado con sus dos hermanos
+ *  de rampa baja L (0.55 frente a 0.6) y sube croma (0.2 frente a 0.15), es
+ *  decir, más oscuro y más saturado. */
+const DISC_GLOW_SECONDARY_DEEP = "oklch(0.55 0.2 300 / 0.14)";
+/** Glow del único paso de rampa `error`, `evolve`. */
+const DISC_GLOW_ERROR = "oklch(0.66 0.24 12 / 0.14)";
+
 /**
- * Orden y geometría EXACTOS del mockup (L114-143): índice = escalón `0N` y
+ * Orden y geometría EXACTOS del mockup (L114-143): el índice es la POSICIÓN
+ * del paso -- la que anuncia el texto para lector de pantalla ("Paso N de 6",
+ * las dos ramas desde la crítica externa #11, 2026-08-18) -- y también el
  * escalón del stagger de reveal (`Journey.tsx` multiplica el índice por el
- * paso de ~90ms, mismo mecanismo que `ScItem` en `Features.tsx`).
+ * paso de ~90ms, mismo mecanismo que `ScItem` en `Features.tsx`). La posición
+ * NO se duplica como campo de esta tabla, a propósito: es el orden del array,
+ * no un dato propio del paso.
  */
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
   {
@@ -48,42 +113,42 @@ export const JOURNEY_STEPS: readonly JourneyStep[] = [
     offsetY: 0,
     colorRamp: "primary",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.6 0.12 260 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_PRIMARY),
   },
   {
     id: "learn",
     offsetY: 26,
     colorRamp: "primary",
     colorStep: 600,
-    discShadow: "0 8px 20px oklch(0.6 0.12 260 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_PRIMARY),
   },
   {
     id: "imagine",
     offsetY: 6,
     colorRamp: "secondary",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.6 0.15 290 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY),
   },
   {
     id: "create",
     offsetY: 30,
     colorRamp: "secondary",
     colorStep: 600,
-    discShadow: "0 8px 20px oklch(0.6 0.15 290 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY),
   },
   {
     id: "share",
     offsetY: 2,
     colorRamp: "secondary",
     colorStep: 700,
-    discShadow: "0 8px 20px oklch(0.55 0.2 300 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_SECONDARY_DEEP),
   },
   {
     id: "evolve",
     offsetY: 24,
     colorRamp: "error",
     colorStep: 500,
-    discShadow: "0 8px 20px oklch(0.66 0.24 12 / 0.14)",
+    discShadow: discGlow(DISC_GLOW_ERROR),
   },
 ] as const;
 
@@ -91,8 +156,14 @@ export const JOURNEY_STEPS: readonly JourneyStep[] = [
 export const JOURNEY_CARD_BACKGROUND =
   "linear-gradient(135deg, #FFEBFDEB, #E3F6FFEB)";
 
-/** Borde de los 6 discos, idéntico para todos los pasos (mockup L115 etc.). */
-export const JOURNEY_DISC_BORDER = "oklch(0.9 0.03 275)";
+/*
+ * AQUI VIVIO JOURNEY_DISC_BORDER, el borde de los 6 discos (mockup L115
+ * etc.). Retirado en Task 12 (dieta de ornamento B, 2026-08-09, ghost-card):
+ * `ScDisc` (Journey.tsx) se queda solo con su sombra-glow (`discShadow`,
+ * arriba en este fichero) -- la regla de la casa es borde O sombra, nunca
+ * los dos (impeccable); ver el docblock de `ScDisc`, Journey.tsx, para el
+ * porque de este lado.
+ */
 
 /**
  * Path punteado detrás de los pasos (mockup L112), solo ≥ `lg` (spec §7.2).
@@ -105,26 +176,15 @@ export const JOURNEY_PATH_D =
   "M63,28 C105,28 148,54 190,54 S275,34 317,34 S402,58 444,58 S529,30 571,30 S656,52 698,52";
 export const JOURNEY_PATH_STROKE = "oklch(0.72 0.1 290 / 0.45)";
 
-/** Degradado de texto de la cita final (mockup L145, tema claro), estático
- *  (la spec no pide animarlo, a diferencia del degradado del hero en
- *  `BrandName.tsx`). Renombrado con sufijo `_LIGHT` (2026-07-30) al añadir
- *  la variante oscura de abajo. */
-export const JOURNEY_QUOTE_GRADIENT_LIGHT =
-  "linear-gradient(110deg, oklch(0.56 0.14 235), oklch(0.7 0.15 255), oklch(0.72 0.15 290))";
-
-/**
- * Variante oscura del degradado de la cita (mismo criterio que
- * `STORY_ACCENT_GRADIENT_DARK`, `story.layers.ts`): misma familia de hue
- * (235/255/290), luminosidad mucho mayor para legibilidad sobre el fondo
- * oscuro de la escena. La referencia era el negro-azulado `#02040e` de
- * `JourneyAstralPathway`; desde 2026-08-01 la escena es
- * `JourneyCosmicPortal` y su lienzo es el negro-violeta `#0b0620`
- * (`JOURNEY_PORTAL_VOID`). Los valores no se retocan: siguen entre 0.78 y
- * 0.86 de luminosidad sobre un fondo que sigue siendo oscuro, y el nuevo
- * lienzo apenas es mas claro que el anterior.
+/*
+ * AQUI VIVIERON JOURNEY_QUOTE_GRADIENT_LIGHT/_DARK, el degradado de texto de
+ * la cita final (mockup L145). Retirados en Task 12 (dieta de ornamento B,
+ * auditoria premium 2026-08-08, 2026-08-09): `ScQuoteText` (Journey.tsx) pasa
+ * a color solido (`semantic.brandText`, el mismo rol que ya usaba como
+ * fallback de `@supports not (background-clip: text)`) para poder medir su
+ * contraste con `contrast.ts`. Medicion completa en el docblock de
+ * `ScQuoteText`, Journey.tsx, y en Journey.test.tsx, describe "Task 12".
  */
-export const JOURNEY_QUOTE_GRADIENT_DARK =
-  "linear-gradient(110deg, oklch(0.78 0.13 235), oklch(0.82 0.13 255), oklch(0.86 0.12 290))";
 
 /** `filter: drop-shadow(...)` de la figura (mockup L154). */
 export const JOURNEY_FIGURE_SHADOW =
@@ -147,17 +207,28 @@ export const JOURNEY_FIGURE_SHADOW =
  * y nunca se superpone al camino, sea cual sea la altura real de la
  * columna. Solo el ANCHO sigue siendo un literal del mockup.
  */
-export const JOURNEY_FIGURE_WIDTH = "250px";
+export const JOURNEY_FIGURE_WIDTH = "240px";
 export const JOURNEY_FIGURE_SIZES = "305px";
 
 /*
- * Intercambio deliberado 2026-07-28 (edicion manual del usuario, en los dos
+ * Intercambio deliberado 2026-07-28 (edición manual del usuario, en los dos
  * lados a la vez: Story.tsx pasa a usar journey-presenting-*): Journey usa
- * la figura que originalmente se genero para Story. El alt de i18n
- * (`Home.journey.figureAlt`, "presentando el viaje con la palma abierta")
- * queda desalineado con el contenido real de esta imagen (una figura
- * senalando hacia arriba) -- señalado al usuario, no corregido aqui sin
- * consultar: el texto alternativo es contenido, no geometria de layout.
+ * el fichero que originalmente se generó para Story, y Story el que se
+ * generó para Journey. El intercambio de IMÁGENES se conserva: es una
+ * decisión de composición del dueño, no un error.
+ *
+ * RESUELTO 2026-09-01 (decisión del dueño: reescribir los dos textos
+ * alternativos desde cero, mirando cada imagen). Durante cinco semanas el alt
+ * de i18n describió la figura de la sección contraria — aquí prometía "el
+ * viaje con la palma abierta" sobre una imagen de una figura con el índice
+ * levantado. Hoy `Home.journey.figureAlt` dice "señalando hacia arriba con
+ * el índice" y `Home.story.figureAlt` dice "ofreciendo la palma abierta",
+ * que es lo que cada fichero contiene de verdad.
+ *
+ * El texto alternativo es CONTENIDO, no geometría de layout: si algún día se
+ * vuelve a mover un fichero de sección, el alt viaja con la imagen, no con
+ * la sección. Un cambio de `JOURNEY_FIGURE_SRC` sin tocar
+ * `Home.journey.figureAlt` vuelve a mentirle al lector de pantalla.
  */
 export const JOURNEY_FIGURE_SRC = "/figures/story-pointing-1024.webp";
 export const JOURNEY_FIGURE_SRC_SMALL = "/figures/story-pointing-640.webp";
@@ -197,8 +268,27 @@ export const JOURNEY_PATH_SCROLL_SHIFT = "16px";
  * reutilización de la anterior porque, aunque el número coincide, el sujeto
  * cambió: reutilizar `JOURNEY_PORTAL_MAX_WIDTH` para el contenido escondería
  * ese cambio de sujeto detrás de un nombre que ya no describe lo que acota.
+ *
+ * DESDE LA CRÍTICA EXTERNA #12 (2026-08-19) EL NÚMERO NO VIVE AQUÍ: deriva de
+ * `grid.sectionMax`, el token que nombra el ancho de contenido de las
+ * secciones que componen a sangre completa. El valor resultante es EXACTAMENTE
+ * el mismo (1280px) — nombrar una medida repetida es refactor de vocabulario,
+ * no rediseño —, así que el CSS renderizado no cambia ni un carácter. Lo que
+ * cambia es que este fichero deja de ser una de las cuatro copias del mismo
+ * número (regla 13 de `RULES.md`).
+ *
+ * La constante NO se retira en favor de leer el token directamente desde
+ * `journey.deck.tsx`: sigue siendo el nombre con el que ESTA sección se
+ * refiere a su propio tope de contenido, y conservarla deja el día de mañana
+ * abierto a que Journey diverja del resto sin tocar a nadie más. Mismo patrón,
+ * mismas palabras y misma ola que `FEATURES_CONTENT_MAX_WIDTH`
+ * (`features.layers.ts`), `CONTACT_CONTENT_MAX_WIDTH` (`contact.layers.ts`) y
+ * `STORY_DARK_MAX_WIDTH` (`story.layers.ts`). El candado de que el número no
+ * vuelva a escribirse a mano se observa en la FUENTE (`Journey.test.tsx`),
+ * porque token y literal resuelven a la misma cadena y ningún candado de valor
+ * puede distinguirlos (`task/lessons.md`, 2026-08-12).
  */
-export const JOURNEY_CONTENT_MAX_WIDTH = "1280px";
+export const JOURNEY_CONTENT_MAX_WIDTH = grid.sectionMax;
 
 /**
  * Cuánto sube Journey por encima de Story al superponerse (D2/D5, spec
@@ -236,6 +326,59 @@ export const JOURNEY_OVERLAY_RISE = "100dvh";
  * la presentación de diapositivas, además, pasa a ser literalmente el alto
  * del `stage` pegado (`ScJourneyStage`, `journey.deck.tsx`) -- un papel que
  * el fichero de la escena no tiene por qué conocer.
+ *
+ * ## POR QUÉ EL TITULAR DE JOURNEY CAE MUCHO MÁS ABAJO EN OSCURO AL LLEGAR
+ * POR ANCLA, y por qué eso NO es un aterrizaje roto (crítica externa #17,
+ * 2026-09-03)
+ *
+ * El hallazgo llegaba así: «el ancla `#journey` aterriza distinto según el
+ * tema: en claro deja el titular a 240 px y en oscuro a 528, con el cierre de
+ * Story ocupando de 244 a 500; los otros ocho anclas dejan su objetivo a
+ * 128 px exactos en los dos temas, así que este es el único que se sale».
+ * Medido de nuevo aquí, en Chrome real sobre el build de producción a
+ * 1440x900 y esperando 3,2 s a que el desplazamiento suave se asiente, las
+ * dos primeras cifras se confirman y la conclusión NO:
+ *
+ * - EL ANCLA ATERRIZA IGUAL EN LOS DOS TEMAS. `#journey` deja el borde
+ *   superior de su `<section>` en 128 px EXACTOS en claro y en oscuro
+ *   (64 px de `scroll-margin-top` más la barra). Y no es el único: los
+ *   OCHO destinos del modelo de navegación -- `story`, `journey`,
+ *   `features`, `contact`, `about` y las tres tarjetas
+ *   `feature-*-title` -- aterrizan su objetivo en esos mismos 128 px en los
+ *   dos temas. Cero divergencia de aterrizaje.
+ * - LO QUE DIVERGE ES DÓNDE CAE EL `h2` DENTRO de la sección, y no solo en
+ *   Journey. Claro → oscuro: `story` 324 → 529, `journey` 240 → 528,
+ *   `features` 217 → 181, `contact` 257 → 160, `about` 224 → 224. Cuatro de
+ *   las cinco secciones mueven su titular al cambiar de tema; Journey es la
+ *   que más, no la única.
+ * - LA CAUSA ES ESTA CONSTANTE. En oscuro la primera diapositiva ocupa un
+ *   `stage` de `100dvh` (900 px a ese viewport) y su titular va centrado en
+ *   vertical, así que cae en 128 + 450 - media altura ≈ 528. Es la
+ *   composición del vehículo de deck, la misma que gobierna las otras siete
+ *   diapositivas, no un desajuste del ancla.
+ * - «EL CIERRE DE STORY OCUPANDO DE 244 A 500» ES FALSO COMO OBSERVACIÓN
+ *   VISUAL. Story sí SOLAPA a Journey en el DOM (tras el aterrizaje su
+ *   `bottom` está en 1028, 900 px dentro de Journey: es el solape que
+ *   documenta `HomeSections.tsx`), y por eso sus nodos declaran geometría en
+ *   esa franja. Pero lo que se PINTA ahí es el deck de Journey:
+ *   `elementsFromPoint(720, y)` devuelve `ScJourneyDeck` / el `ScVoid` del
+ *   portal / `ScScene` como elementos de encima en y = 150, 250, 300, 400 y
+ *   500, y la captura de la posición confirma que en esa franja solo se ve el
+ *   portal cósmico. Ningún texto de Story es visible al aterrizar.
+ *
+ * NOTA DE INSTRUMENTO, porque explica cómo se llega a la lectura contraria:
+ * con solo 1,4 s de espera tras fijar el hash, el mismo barrido devuelve en
+ * oscuro 138, 143, 146, 141, 141 y 142 px en vez de 128 -- el desplazamiento
+ * suave de una página de casi 11.000 px todavía no ha terminado. Medir el
+ * aterrizaje de un ancla exige esperar a que el scroll se detenga; si no, la
+ * divergencia que se observa es la del reloj, no la del tema.
+ *
+ * NO SE CORRIGE NADA, y no por conformidad: no hay defecto que corregir en el
+ * aterrizaje. Que el titular de una diapositiva a pantalla completa aparezca
+ * centrado es la decisión de composición del deck (spec
+ * `2026-08-02-journey-deck-8-diapositivas-design.md`); cambiarla movería las
+ * ocho diapositivas y es una decisión de diseño del dueño, no el arreglo de
+ * un ancla.
  */
 export const JOURNEY_DARK_HEIGHT = "100dvh";
 
@@ -275,6 +418,75 @@ export const JOURNEY_SLIDES = JOURNEY_STEPS.length + 2;
  *
  * Precedente exacto: `STORY_DECK_TAIL_SCREENS` (`story.layers.ts`), la misma
  * zona de hold que hoy sostiene la superposición de Journey sobre Story.
+ *
+ * ---
+ *
+ * POR QUÉ EL VALOR ES 1 Y NO SE PUEDE RECORTAR DESDE AQUÍ (crítica externa
+ * #10, hallazgo A, 2026-08-18). La crítica midió, a 1440×900 en tema oscuro,
+ * «un tramo muerto de ~1.250 px al final del deck»: entre `scrollY` 12.150 y
+ * 13.400 la cita de cierre se queda clavada con el DOM de `#journey`
+ * idéntico. La medición es correcta; la conclusión de que sobra pista, no.
+ * Queda escrito aquí para que la próxima ola no vuelva a intentar recortar la
+ * cola sin ver las dos condiciones que la fijan.
+ *
+ * Sea `S` = `JOURNEY_SLIDES` (8), `T` = esta constante, `R` =
+ * `FEATURES_OVERLAY_RISE` en pantallas, `p` = una pantalla, `v` =
+ * `DECK_SLIDE_TRAVEL_SCREENS` (el recorrido de UNA diapositiva, en pantallas)
+ * y `A` = el inicio de la pista en el documento. Con
+ * `track = H = (S − 1)·v·p + (1 + T)·p`:
+ *
+ *   span (el recorrido que reparte `useSlideDeck`) = H − p − T·p
+ *                                                  = (S − 1)·v·p
+ *   `progress` llega a 1 en          A + H − p − T·p
+ *   el stage se despega en           A + H − p
+ *   Features empieza a cubrir en     A + H − R·p − p
+ *   Features cubre del todo en       A + H − R·p
+ *
+ * Dos costuras que tienen que cerrar a la vez:
+ *   (1) Features NO puede empezar a tapar la cita antes de que el deck
+ *       termine  ⟹  H − R·p − p = H − p − T·p  ⟹  **T = R**
+ *   (2) el stage no puede despegarse antes de que Features cubra del todo, o
+ *       una banda de la escena de Journey sube destapada
+ *              ⟹  H − p = H − R·p  ⟹  **R = 1**, y con (1), **T = 1**
+ *
+ * `T = 1` no es un número elegido: es la única solución del sistema. Bajarlo
+ * exige bajar `FEATURES_OVERLAY_RISE` a la vez — otra sección, otro fichero —
+ * y aun así (2) obliga a que sigan siendo iguales, así que el recorte no sale
+ * gratis en ninguna de las dos.
+ *
+ * LAS DOS COSTURAS SE CANCELAN `H`, y ese es el resultado que autoriza el
+ * recorte de la crítica externa #16 (2026-09-03): ni `T` ni `R` dependen de
+ * cuánta pista haya, solo de que el stage mida una pantalla. Por eso el
+ * recorrido por diapositiva pudo bajar de 1 pantalla a `v = 0,5` sin tocar la
+ * cola ni el solape de Features, y por eso la cola SIGUE midiendo una pantalla
+ * entera después del recorte: no es recorrido de la presentación, es el relevo
+ * con la sección siguiente. La consecuencia honesta es que ese relevo pesa
+ * ahora más EN PROPORCIÓN (900 px de cola sobre una pista de 4.950 a 1440×900,
+ * en vez de sobre 8.100), aunque en píxeles absolutos sea el mismo tramo de
+ * siempre.
+ *
+ * QUÉ ES DE VERDAD ESE TRAMO, con las cifras del propio modelo a 1440×900
+ * (p = 900, v = 0,5, A = 4.050 tras el recorte; antes del recorte A = 6.300 y
+ * los tramos median el doble):
+ *
+ *   6.975 → 7.200 (225 px, = 0,5·v pantallas)
+ *       la cita ya es la diapositiva activa y `progress` sube de 0,9286 a 1.
+ *       Es media ventana de índice: `useSlideDeck` redondea, así que la
+ *       primera y la última diapositiva se llevan media ventana cada una.
+ *       NO es desperdicio — es la ÚNICA franja en la que la cita se lee sin
+ *       Features encima. Recortarla dejaría el cierre de la sección sin un
+ *       solo píxel de lectura limpia.
+ *   7.200 → 8.100 (900 px, = T·p)
+ *       Features sube y va cubriendo. Aquí el DOM de `#journey` sí es
+ *       idéntico frame a frame — que es exactamente lo que la crítica #10
+ *       midió — pero la pantalla no está quieta: lo que se mueve es la sección
+ *       siguiente, que la sonda no observaba.
+ *
+ * Y el segundo síntoma de aquel hallazgo («no se renderiza nada» en el tramo
+ * siguiente) cae FUERA de esta sección: donde acaba la pista de Journey
+ * empieza el final de `ScDarkFrame` y el principio de `ScDarkTail`
+ * (`Features.tsx`) — la zona de hold que Features reserva a propósito para que
+ * Contacto suba sobre ella. Se declara, no se toca: es otra sección.
  */
 export const JOURNEY_DECK_TAIL_SCREENS = 1;
 
@@ -294,8 +506,126 @@ export const JOURNEY_DECK_TAIL_SCREENS = 1;
  * porque el encargo cambió. Un test la compara contra esta fórmula exacta
  * (no contra un número), para que la presencia de la cola se lea como una
  * decisión tomada y no como un accidente.
+ *
+ * TRES TÉRMINOS desde la crítica externa #16 (2026-09-03, decisión del dueño),
+ * exactamente los mismos que `STORY_DECK_TRACK_HEIGHT` (`story.layers.ts`), y
+ * el detalle completo de por qué la fórmula deja de poder escribirse como un
+ * múltiplo de pantallas vive en el docblock de esa constante gemela:
+ * `(JOURNEY_SLIDES - 1)` huecos de `DECK_SLIDE_TRAVEL` de recorrido, una
+ * pantalla para el stage pegado y `JOURNEY_DECK_TAIL_SCREENS` pantallas de
+ * cola. La pista pasa de 9 pantallas a 5,5: 7.200 → 4.400 px a 1280×800 y
+ * 8.100 → 4.950 px a 1440×900. La cola NO cambia — las dos costuras de arriba
+ * se cancelan la altura de la pista, así que valen igual con el recorrido que
+ * sea.
  */
-export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
+export const JOURNEY_DECK_TRACK_HEIGHT = `calc(${JOURNEY_SLIDES - 1} * ${DECK_SLIDE_TRAVEL} + (1 + ${JOURNEY_DECK_TAIL_SCREENS}) * ${JOURNEY_DARK_HEIGHT})`;
+
+/**
+ * Tramo FINAL de `--journey-progress` durante el cual la cita de cierre se
+ * desvanece, en unidades de esa misma variable (0..1). Lo consume
+ * `ScJourneyQuote` (`journey.deck.tsx`) como pendiente de una rampa de
+ * `opacity`; ver su docblock para la declaración CSS exacta y para el guard de
+ * `prefers-reduced-motion`, que aquí es obligatorio y no decorativo.
+ *
+ * ## El defecto que cierra (crítica externa #15, hallazgo A P2-1, 2026-09-02)
+ *
+ * Medido en tema oscuro a 1440×900, `scrollY` ≈ 13.100: «El destino no es el
+ * infinito. El viaje lo es.» se leía solo como «El destino no», cortada por una
+ * costura horizontal dura a media pantalla mientras el panel de Features subía
+ * como cortina por debajo. A 12.600 la misma cita se leía entera.
+ *
+ * ## La secuencia real, derivada del código y no de la captura
+ *
+ * Con `A` = inicio de la pista en el documento, `p` = una pantalla, `H` = el
+ * alto de la pista, `S` = `JOURNEY_SLIDES` (8), `T` =
+ * `JOURNEY_DECK_TAIL_SCREENS` (1), `R` = `FEATURES_OVERLAY_RISE` en pantallas
+ * (1) y `v` = `DECK_SLIDE_TRAVEL_SCREENS` (0,5 desde la crítica #16) — las
+ * constantes atadas entre sí por la aritmética del docblock de
+ * `JOURNEY_DECK_TAIL_SCREENS`, más arriba, y por el test de invariante que
+ * importa los dos ficheros:
+ *
+ *   span de `useSlideDeck`      = (S − 1)·v·p = 3,5 pantallas
+ *   la cita pasa a `current` en  A + ((S − 1.5)/(S − 1))·span
+ *   `progress` llega a 1 en      A + span
+ *   Features empieza a cubrir en A + H − R·p − p = A + span      <- el MISMO
+ *   Features cubre del todo en   A + H − R·p
+ *
+ * Es decir: la cita y la cortina no se solapaban por un desajuste de tiempos
+ * que hubiera que corregir — se solapaban PORQUE `progress = 1` y «Features
+ * empieza a cubrir» son, por construcción, el mismo instante, y lo siguen
+ * siendo con cualquier recorrido. Con las cifras de 1440×900 TRAS el recorte
+ * de la crítica #16 (p = 900, v = 0,5, A = 4.050, span = 3.150): `current` en
+ * 6.975, `progress = 1` y comienzo de la cortina en 7.200, cobertura completa
+ * en 8.100. Antes del recorte (v = 1, A = 6.300, span = 6.300) los mismos tres
+ * instantes caían en 12.150, 12.600 y 13.500, y los 13.100 de la captura de la
+ * crítica #15 caían justo en la mitad de esa cortina, que es exactamente donde
+ * la costura cruzaba la caja de la cita.
+ *
+ * ## Por qué la salida es un desvanecido y no mover la cortina
+ *
+ * Las otras dos vías que el hallazgo plantea no son gratis, y conviene dejar
+ * escrito por qué se descartan:
+ *
+ * - **Retrasar la cortina** (subir `T` por encima de `R`) funciona
+ *   estructuralmente, pero regala otra pantalla de pista en la que no ocurre
+ *   nada — justo el «tramo muerto de ~1.250 px» que la crítica #10 ya midió al
+ *   final de este deck. Y no cierra el hallazgo: la cita seguiría en pantalla
+ *   cuando la cortina arrancase, una pantalla más tarde, y volvería a cortarse
+ *   igual.
+ * - **Soltar el sticky antes** rompe la segunda costura del sistema (`R = 1`):
+ *   asomaría una banda de la escena de Journey sin tapar entre las dos
+ *   secciones.
+ *
+ * Queda el desvanecido, que es la primera opción del propio hallazgo: la cita
+ * termina su turno ANTES de que llegue la cortina, así que la cortina cruza una
+ * escena vacía y no una frase a medias. No hace falta ninguna señal de scroll
+ * nueva — `--journey-progress` ya vale exactamente 1 en el instante en que la
+ * cortina arranca, así que la rampa se ancla a ese 1 y termina justo ahí.
+ *
+ * ## De dónde sale el número, que no es un número elegido
+ *
+ * La cita es la diapositiva activa mientras `progress` cae en la última media
+ * ventana de índice, `0,5 / (S − 1)` de ancho (`useSlideDeck` redondea; ver su
+ * docblock de `scrollToSlide`). Este valor reparte ESA ventana, no el recorrido
+ * entero: el 40 % final se va en el desvanecido y el 60 % inicial se queda para
+ * leer. A 1440×900 son 135 px de lectura limpia y 90 px de salida tras el
+ * recorte de la crítica #16 (eran 270 y 180 cuando cada diapositiva consumía
+ * una pantalla entera): el valor está en unidades de `--journey-progress`, así
+ * que el REPARTO 60/40 no se mueve y lo que encoge es la ventana entera, en la
+ * misma proporción que el resto del deck. Se deriva de `JOURNEY_SLIDES` y no
+ * de un literal, igual que la propia `JOURNEY_DECK_TRACK_HEIGHT`: si el viaje
+ * gana o pierde un paso, la ventana se recalcula sola (regla 39 de
+ * `RULES.md`).
+ *
+ * Se redondea a cuatro decimales porque el valor viaja a CSS como divisor de un
+ * `calc()` y `0,02857142857142857` no aporta ni un píxel sobre `0,0286`.
+ */
+export const JOURNEY_QUOTE_EXIT_SPAN = Number(
+  ((0.5 / (JOURNEY_SLIDES - 1)) * 0.4).toFixed(4),
+);
+
+/**
+ * La rampa de `opacity` de la cita de cierre, ya como valor CSS listo para
+ * consumir (`ScJourneyQuote`, `journey.deck.tsx`). Vale 1 mientras queda mas de
+ * `JOURNEY_QUOTE_EXIT_SPAN` de recorrido por delante y baja a 0 al llegar a
+ * `--journey-progress: 1` -- el instante exacto en que arranca la cortina de
+ * Features; ver el docblock de la constante de arriba para la secuencia
+ * completa.
+ *
+ * VIVE AQUI Y NO EN EL TEMPLATE del styled por el mismo criterio que
+ * `JOURNEY_DECK_TRACK_HEIGHT`, unas lineas mas arriba: una expresion CSS
+ * derivada de constantes de esta seccion es un DATO de la seccion. Y trae una
+ * ventaja concreta: el valor entra en la hoja como UNA sola linea. Escrito
+ * dentro del template, Prettier lo parte en cuatro (pasa de 80 columnas) y el
+ * CSSOM conserva esos saltos dentro del valor, de modo que cualquier candado
+ * que recorra la regla linea a linea solo veria `opacity: clamp(` -- medido en
+ * esta misma tarea antes de mover la constante aqui.
+ *
+ * El `0` por defecto del `var()` no es decorativo: sin JS, o antes del primer
+ * frame del hook, la rampa resuelve a 1 y la cita se pinta OPACA. Un defecto de
+ * `1` la habria dejado invisible en ese mismo caso.
+ */
+export const JOURNEY_QUOTE_EXIT_OPACITY = `clamp(0, calc((1 - var(--journey-progress, 0)) / ${JOURNEY_QUOTE_EXIT_SPAN}), 1)`;
 
 /**
  * Desplazamiento vertical de entrada/salida de cada diapositiva
@@ -304,8 +634,14 @@ export const JOURNEY_DECK_TRACK_HEIGHT = `calc((${JOURNEY_SLIDES} + ${JOURNEY_DE
  * paso dentro de la misma composición, no como un salto de layout. Se anima
  * siempre junto a `opacity`, nunca sobre una propiedad que dispare reflow
  * (regla de la casa: solo `transform`/`opacity`).
+ *
+ * Deriva de `DECK.slideShift` (fix wave D, hallazgo D2, 2026-08-12): hasta
+ * esta revisión declaraba el literal `"40px"` a mano, DUPLICADO byte a byte
+ * en `STORY_SLIDE_SHIFT` (`story.layers.ts`). Mismo valor exacto, cero
+ * cambio visual; ver el docblock de `DECK` en `src/motion/vocabulary.ts`
+ * para el detalle completo.
  */
-export const JOURNEY_SLIDE_SHIFT = "40px";
+export const JOURNEY_SLIDE_SHIFT = DECK.slideShift;
 
 /**
  * Recorrido, en `transform`, del envoltorio de la escena de fondo
@@ -326,32 +662,68 @@ export const JOURNEY_SLIDE_SHIFT = "40px";
  * (una banda de fondo asomando por arriba al scrollear). `dvh` es la misma
  * referencia en los dos sitios y cierra esa clase de fallo antes de que
  * vuelva a aparecer aquí.
+ *
+ * Deriva de `DECK.sceneDepthShift` (fix wave D, hallazgo D2, 2026-08-12):
+ * hasta esta revisión declaraba el literal `"6dvh"` a mano, DUPLICADO byte a
+ * byte en `STORY_SCENE_DEPTH_SHIFT` (`story.layers.ts`). Mismo valor exacto,
+ * cero cambio visual; ver el docblock de `DECK` en
+ * `src/motion/vocabulary.ts` para el detalle completo.
  */
-export const JOURNEY_SCENE_DEPTH_SHIFT = "6dvh";
+export const JOURNEY_SCENE_DEPTH_SHIFT = DECK.sceneDepthShift;
 
 /*
  * Escala tipográfica de cartel de la presentación oscura (D10/D11, spec
  * `2026-08-02-journey-deck-8-diapositivas-design.md`; T2/T3/T5/T6/T7, spec
  * `2026-08-02-journey-deck-tipografia-design.md`). Constantes PROPIAS, no
  * importadas de `story.layers.ts`: acoplar las dos escalas haría que
- * retocar el cartel de una sección moviera el de la otra. La mayoría de los
- * topes de `clamp()` siguen calibrados contra el texto REAL de esta sección
- * (la etiqueta de paso, una sola palabra; el subtítulo de paso, 60-80
- * caracteres) -- salvo la cita de cierre (`JOURNEY_DECK_QUOTE_SIZE`/
- * `JOURNEY_DECK_QUOTE_WEIGHT`), que la spec de tipografía REVIERTE a
- * propósito para que coincida EXACTAMENTE con la nota de cierre de Story
- * (`STORY_DECK_NOTE_SIZE`/`STORY_DECK_NOTE_WEIGHT`, 8rem/900). La excepción
- * se documenta en el docblock de esas dos constantes, más abajo, no aquí,
- * para no repetir el mismo razonamiento en dos sitios.
+ * retocar el cartel de una sección moviera el de la otra. Sigue siendo cierto
+ * tras las críticas externas #11 (2026-08-18) y #14 (2026-09-02):
+ * `JOURNEY_DECK_TITLE_SIZE` deriva de un TOKEN del sistema
+ * (`type.scale.h2`), no de la constante de Story -- ninguna de las dos
+ * secciones importa nada de la otra, que es lo que este párrafo protege.
+ *
+ * De los tamaños que quedan, el ÚNICO calibrado contra el texto REAL de esta
+ * sección es la etiqueta de paso (una sola palabra, tope 11rem). Los otros
+ * dos derivan hoy de peldaños del SISTEMA, los dos desde la crítica externa
+ * #14 (2026-09-02, hallazgo P3): el subtítulo de paso —60-80 caracteres, el
+ * mismo rol de lectura que el cuerpo de pilar de Story— de
+ * `type.scale.deckBody`, y la cita de cierre —tamaño y peso— de
+ * `type.scale.deckClosing`. Esa cita ya coincidía con la nota de cierre de
+ * Story desde T6/T7 (la spec de tipografía REVIRTIÓ a propósito el 3.5rem de
+ * D10 para igualarla), pero lo hacía repitiendo el literal; el porqué de que
+ * la coincidencia pasara de "casualidad declarada" a "peldaño compartido"
+ * vive en el docblock de cada constante, más abajo, no aquí.
  */
 
 /**
- * `h2#journey-title` de la diapositiva de intro. Mismo rol que
- * `STORY_DECK_TITLE_SIZE` y mismo tramo: el contenido que viste ("Tu viaje
- * no tiene un último paso.", 33 caracteres) es de longitud comparable al h2
- * de intro de Story, así que el mismo tramo de cartel sirve sin recalibrar.
+ * `h2#journey-title` de la diapositiva de intro. Es el `h2` del sistema, sin
+ * tamaño propio: `type.scale.h2.size` (2rem = 32px), el mismo rango que ya
+ * pintaban Features y Contact en las DOS ramas de tema y que Journey y Story
+ * pintaban solo en la clara. Mismo rol y mismo valor que
+ * `STORY_DECK_TITLE_SIZE`, ahora porque los dos leen el MISMO peldaño de la
+ * escala, no porque dos ficheros repitan el mismo `clamp()`.
+ *
+ * TUVO TAMAÑO PROPIO HASTA LA CRÍTICA EXTERNA #14 (2026-09-02, decisión D4
+ * del dueño: «un solo h2 dentro del oscuro»). Hasta la #11 (2026-08-18)
+ * declaraba el literal `clamp(2rem, 6vw, 4rem)`, que aquella crítica tokenizó
+ * como `type.scale.deckTitle` al encontrarlo escrito byte a byte también en
+ * `STORY_DECK_TITLE_SIZE`; la #14 midió a 1440x900 que ese peldaño pintaba el
+ * `<h2>` de Journey y de Story a 64px en oscuro mientras Features y Contact
+ * pintaban el suyo a 32px en la misma página y el mismo tema -- el mismo
+ * rango semántico a dos tamaños --, y el dueño decidió bajar estas dos. Con
+ * el tamaño igualado, `deckTitle` pasó a ser un duplicado exacto de `h2` y se
+ * retiró; su docblock de despedida vive en el hueco que dejó dentro de
+ * `type.scale` (`src/theme/tokens/type.ts`).
+ *
+ * ESTO SÍ CAMBIA LO RENDERIZADO, al revés que la migración de la #11: por
+ * encima de ~533px de viewport (donde `6vw` superaba las 2rem) el titular
+ * pasa de hasta 64px a 32px fijos. Por debajo de ese ancho no cambia nada --
+ * el mínimo del `clamp()` retirado ya era 2rem. El párrafo de cabecera de
+ * este bloque sigue valiendo: las constantes de Journey no importan nada de
+ * `story.layers.ts`; lo que comparten las dos secciones lo comparten a través
+ * de la escala del sistema.
  */
-export const JOURNEY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
+export const JOURNEY_DECK_TITLE_SIZE = typeTokens.scale.h2.size;
 
 /**
  * Etiqueta de una sola palabra de cada paso ("Descubre".."Evoluciona"),
@@ -371,15 +743,28 @@ export const JOURNEY_DECK_TITLE_SIZE = "clamp(2rem, 6vw, 4rem)";
 export const JOURNEY_DECK_STEP_LABEL_SIZE = "clamp(1.75rem, 10vw, 11rem)";
 
 /**
- * Peso de la etiqueta de paso (T3, misma spec). **Excepción deliberada a
- * `type.scale`**, que se detiene en 800 (`display`): el encargo pide 900 y
- * ninguna variante del sistema lo declara. Mismo tratamiento y mismo motivo
- * que `STORY_DECK_NOTE_WEIGHT` (`story.layers.ts`) -- constante propia, no
- * un token nuevo en `type.scale`, con un test que replica exactamente el
- * suyo (`journey.layers.test.ts`): si algún día la escala del sistema
- * incorporara un 900, ese test obliga a decidir si esta constante
- * desaparece en favor del token, en vez de dejar dos fuentes conviviendo en
- * silencio.
+ * Peso de la etiqueta de paso (T3, misma spec). El encargo pide 900, y hasta
+ * la crítica externa #14 (2026-09-02) eso era una **excepción a `type.scale`**
+ * en sentido estricto: la escala se detenía en 800 (`display`) y ninguna
+ * variante declaraba un 900. Su test replicaba el de las otras dos constantes
+ * de peso y dejaba escrito el punto de decisión: si algún día la escala
+ * incorporase un 900, había que decidir si esta constante desaparece en favor
+ * del token en vez de dejar dos fuentes conviviendo.
+ *
+ * LA ESCALA YA LO INCORPORÓ (`type.scale.deckClosing`, 900) Y ESTA CONSTANTE
+ * SE QUEDA, deliberadamente y por escrito. `deckClosing` no es "el peldaño de
+ * los pesos 900": es el CIERRE de un deck, un paquete completo de cuatro
+ * propiedades donde el 900 viaja con `clamp(2.5rem, 11vw, 8rem)`, 1.03 de
+ * interlineado y 0 de tracking. Esta etiqueta viste otro rol (la palabra
+ * dominante de una diapositiva de paso, `JOURNEY_DECK_STEP_LABEL_SIZE`, tope
+ * 11rem): derivar de ahí solo el peso diría que el peso de la etiqueta es el
+ * del cierre, y ataría dos decisiones que hoy solo coinciden. Las dos que sí
+ * derivan son las de cierre — `JOURNEY_DECK_QUOTE_WEIGHT` y
+ * `STORY_DECK_NOTE_WEIGHT` —, porque de ese rol es exactamente el peldaño.
+ *
+ * El día que la etiqueta de paso quiera su propio peldaño de escala, el sitio
+ * donde se decide es este docblock y su test, no un descubrimiento a
+ * posteriori.
  */
 export const JOURNEY_DECK_STEP_LABEL_WEIGHT = 900;
 
@@ -401,8 +786,19 @@ export const JOURNEY_DECK_STEP_LABEL_WEIGHT = 900;
  * qué coincidir con el nombre del rol que lo pinta (mismo criterio que
  * `pillars.<key>.body` en Story, que sigue llamándose `body` aunque hace
  * tiempo se pinta como subtítulo).
+ *
+ * DEJA DE DECLARAR EL LITERAL (crítica externa #14, 2026-09-02, hallazgo P3).
+ * "El mismo tramo que `STORY_DECK_PILLAR_BODY_SIZE` viste para un texto del
+ * mismo rol de lectura en Story" era, hasta hoy, una afirmación en prosa
+ * sostenida por dos `clamp(1rem, 1.4vw, 1.115rem)` idénticos byte a byte en
+ * dos ficheros que no se conocen entre sí — exactamente la forma de duplicado
+ * que la regla 13 de `RULES.md` manda convertir en token. Ahora los dos
+ * derivan de `type.scale.deckBody` y la frase describe el código en vez de
+ * pedir confianza.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const JOURNEY_DECK_STEP_SUBTITLE_SIZE = "clamp(1rem, 1.4vw, 1.115rem)";
+export const JOURNEY_DECK_STEP_SUBTITLE_SIZE = typeTokens.scale.deckBody.size;
 
 /**
  * Icono de cada paso (D11): crece de los 20px que medía dentro de una fila
@@ -433,34 +829,47 @@ export const JOURNEY_DECK_STEP_ICON_SIZE = "48px";
  * siendo real y se verifica en navegador (definición de "hecho" de la
  * spec), no se disimula.
  *
- * El valor coincide EXACTAMENTE con `STORY_DECK_NOTE_SIZE` (T7): coincidir
- * hoy no es depender -- se declara como constante PROPIA, sin importarla de
- * `story.layers.ts` (ver el docblock de `JOURNEY_DECK_QUOTE_WEIGHT`, justo
- * abajo, para el razonamiento completo de por qué no se acopla).
+ * El valor coincidía EXACTAMENTE con `STORY_DECK_NOTE_SIZE` (T7), y hasta la
+ * crítica externa #14 (2026-09-02) eso se resolvía declarando el literal aquí
+ * otra vez: "coincidir hoy no es depender", constante PROPIA, sin importar
+ * nada de `story.layers.ts`.
+ *
+ * ESA DECISIÓN SE REVISA EN LA #14 (hallazgo P3 del evaluador de Craft), y no
+ * por cambiar de gusto: el argumento de T7 trataba la coincidencia como una
+ * casualidad revisable entre dos composiciones, y la #14 la reclasifica como
+ * lo que es -- el MISMO rol estructural, el cierre de un deck a sangre
+ * completa, vestido por las dos secciones. Es el caso que la #11 ya resolvió
+ * para el titular de intro. Sigue sin importarse nada de `story.layers.ts`:
+ * las dos derivan de `type.scale.deckClosing`, un peldaño del SISTEMA, así
+ * que el párrafo de cabecera de este bloque (las escalas de las dos secciones
+ * no se acoplan entre sí) sigue intacto. Divergir mañana significa sacar a una
+ * de las dos de ese peldaño con su porqué escrito, no editar un literal.
+ *
+ * El valor renderizado NO cambia: refactor de vocabulario, no rediseño.
  */
-export const JOURNEY_DECK_QUOTE_SIZE = "clamp(2.5rem, 11vw, 8rem)";
+export const JOURNEY_DECK_QUOTE_SIZE = typeTokens.scale.deckClosing.size;
 
 /**
- * Peso de la cita de cierre (T6, misma spec): sustituye el `600` literal que
- * llevaba `ScJourneyQuote` hasta hoy. **Excepción deliberada a
- * `type.scale`**, que se detiene en 800: mismo motivo y mismo tratamiento
- * que `STORY_DECK_NOTE_WEIGHT`/`JOURNEY_DECK_STEP_LABEL_WEIGHT` -- constante
- * propia, con un test que obliga a revisar la decisión el día que la escala
- * del sistema incorpore un 900.
+ * Peso de la cita de cierre (T6, misma spec): sustituyó el `600` literal que
+ * llevaba `ScJourneyQuote`. Fue una **excepción deliberada a `type.scale`**
+ * mientras la escala se detuvo en 800, con un test que obligaba a revisar la
+ * decisión «el día que la escala del sistema incorpore un 900».
  *
- * Coincide EXACTAMENTE con `STORY_DECK_NOTE_WEIGHT` (T7): el tamaño Y el
- * peso de esta cita son, hoy, los mismos que los de la nota de cierre de
- * Story. Aun así NO se importan esas constantes -- se declaran las dos
- * propias, aquí -- porque coincidir hoy no es depender: importar las de
- * Story ataría el cartel de ESTA sección a cualquier retoque futuro de la
- * OTRA, exactamente lo que D10 (arriba) evitó la primera vez y lo que el
- * propio repo ya practica entre secciones (`story.layers.ts` y
- * `journey.layers.ts` no se importan entre sí en ningún otro punto). Si el
- * día de mañana esta pareja diverge de la de Story a propósito, el sitio
- * donde se decide es el test que las compara (`journey.layers.test.ts`), no
- * un descubrimiento a posteriori en el navegador.
+ * ESE DÍA ES LA CRÍTICA EXTERNA #14 (2026-09-02): al tokenizar el TAMAÑO de
+ * la cita, el peldaño `type.scale.deckClosing` recoge el paquete entero que
+ * la pieza compone -- tamaño, peso, interlineado y tracking -- y el 900 pasa
+ * a vivir dentro de la escala. La constante no desaparece (sigue siendo el
+ * nombre con el que Journey habla del peso de su cierre) pero deriva, que es
+ * lo que aquel punto de decisión pedía en vez de dejar dos fuentes
+ * conviviendo en silencio.
+ *
+ * Coincide EXACTAMENTE con `STORY_DECK_NOTE_WEIGHT`, y ahora por
+ * construcción: las dos leen el mismo peldaño. Sigue sin importarse nada de
+ * `story.layers.ts` -- el acoplamiento que D10 evitó y que el párrafo de
+ * cabecera de este bloque protege era entre las dos SECCIONES, no entre una
+ * sección y el sistema.
  */
-export const JOURNEY_DECK_QUOTE_WEIGHT = 900;
+export const JOURNEY_DECK_QUOTE_WEIGHT = typeTokens.scale.deckClosing.weight;
 
 /**
  * Hueco extra a la derecha del contenido de cada diapositiva, solo en

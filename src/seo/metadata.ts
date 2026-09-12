@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
-import { SITE, absoluteUrl } from "@/config/site";
+import {
+  LOCALES,
+  OG_LOCALES,
+  SITE,
+  absoluteUrl,
+  alternateUrls,
+  routePath,
+  type Locale,
+  type RouteKey,
+} from "@/config/site";
 
 /**
  * Separador entre el título de página y el nombre del sitio. Se exporta como
@@ -28,18 +37,52 @@ export const TITLE_SEPARATOR = " · ";
  * declara lo sustituye entero -- imagen incluida. En la raíz no pasa porque
  * ahí la imagen pertenece al propio segmento.
  *
- * `metadataBase` (declarado en `app/layout.tsx`) es lo que convierte esta
- * ruta relativa en absoluta; sin él, `og:image` saldría relativa y ningún
- * rastreador la seguiría.
+ * `metadataBase` (el valor único de `ROOT_METADATA`, `app/rootMetadata.ts`,
+ * que las tres raíces del sitio re-exportan desde el 2026-09-06; antes se
+ * declaraba en `app/layout.tsx`) es lo que convierte esta ruta relativa en
+ * absoluta; sin él, `og:image` saldría relativa y ningún rastreador la
+ * seguiría.
  */
 export const OG_IMAGE_PATH = "/opengraph-image";
 
 /** Dimensiones reales del PNG que emite `app/opengraph-image.tsx`. */
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 
+/**
+ * Compone el `<title>` completo de una página: su título propio más el
+ * nombre del sitio, separados por `TITLE_SEPARATOR`.
+ *
+ * Se extrae de `buildMetadata()` (donde vivía inline) porque desde la ola D
+ * hay un SEGUNDO consumidor de la misma plantilla: `useDocumentMeta()`, que
+ * reescribe `document.title` en cliente cuando el visitante cambia de idioma
+ * (bajo `output: "export"` la metadata se hornea una sola vez, en castellano
+ * — ver el docblock de `useDocumentMeta.ts`). Los dos caminos tienen que
+ * producir EXACTAMENTE el mismo formato: si divergieran, el título cambiaría
+ * de forma al cambiar de idioma sin que nadie lo pidiera. Una función pura
+ * compartida es la única manera de que no puedan divergir.
+ *
+ * El caso especial `title === SITE.name` evita "VoidToInfinite ·
+ * VoidToInfinite". Hoy ninguna ruta lo ejerce (la home pasa por
+ * `SITE.homeTitle` desde el 2026-08-05), pero se conserva porque la
+ * condición que lo motivó sigue siendo posible.
+ */
+export function pageTitle(title: string): string {
+  return title === SITE.name
+    ? SITE.name
+    : `${title}${TITLE_SEPARATOR}${SITE.name}`;
+}
+
 export interface BuildMetadataInput {
-  /** Ruta interna canónica, siempre con barra inicial y sin barra final: "/" o "/privacidad". */
-  readonly path: string;
+  /**
+   * Identidad de la PÁGINA, no su ruta. Desde que existen rutas `/en/`
+   * (2026-08-18) la misma página tiene dos URLs, y el constructor necesita
+   * conocer las DOS para emitir el `hreflang` recíproco — no solo la de la
+   * ruta que se está construyendo. Pasar una ruta suelta no permitiría
+   * derivar la contraparte.
+   */
+  readonly routeKey: RouteKey;
+  /** Idioma de ESTA ruta: decide la canónica, el `og:locale` y el `hreflang` propio. */
+  readonly locale: Locale;
   /** Título de la página SIN sufijo de marca. */
   readonly title: string;
   readonly description: string;
@@ -50,8 +93,10 @@ export interface BuildMetadataInput {
  * Constructor único de `Metadata` para TODAS las rutas del sitio (home y las
  * cuatro páginas legales). Existe por un motivo medido, no por preferencia
  * de estilo: en Next 16.2.11 con `output: "export"`, el objeto `openGraph`
- * NO se fusiona entre `app/layout.tsx` y el `page.tsx` de cada ruta — el
- * resolver de metadata SUSTITUYE la clave entera del padre por la del hijo.
+ * NO se fusiona entre el root layout de la rama —`app/(es)/layout.tsx` o
+ * `app/en/layout.tsx` desde el 2026-09-06; hasta entonces, el `app/layout.tsx`
+ * único— y el `page.tsx` de cada ruta: el resolver de metadata SUSTITUYE la
+ * clave entera del padre por la del hijo.
  *
  * Evidencia en el propio paquete instalado,
  * `node_modules/next/dist/lib/metadata/resolve-metadata.js`, dentro de
@@ -79,14 +124,13 @@ export interface BuildMetadataInput {
  * que alguien edite uno y olvide los otros cuatro.
  */
 export function buildMetadata(input: BuildMetadataInput): Metadata {
-  const { path, title, description, keywords } = input;
+  const { routeKey, locale, title, description, keywords } = input;
 
-  // `absoluteUrl` ya valida que `path` empiece por barra y lanza si no —
+  // `absoluteUrl` ya valida que la ruta empiece por barra y lanza si no —
   // reutilizamos esa validación en vez de duplicarla aquí.
-  const url = absoluteUrl(path);
+  const url = absoluteUrl(routePath(routeKey, locale));
 
-  const fullTitle =
-    title === SITE.name ? SITE.name : `${title}${TITLE_SEPARATOR}${SITE.name}`;
+  const fullTitle = pageTitle(title);
 
   // Una sola descripción de la imagen para las dos redes: Open Graph y
   // Twitter piden los mismos datos y divergir en el `alt` de una de las dos
@@ -103,8 +147,20 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
     title: fullTitle,
     description,
     ...(keywords ? { keywords: [...keywords] } : {}),
+    /*
+     * `languages` emite un `<link rel="alternate" hreflang="…">` por entrada,
+     * con la clave TAL CUAL como `hreflang` — verificado leyendo el paquete
+     * instalado (`next/dist/lib/metadata/metadata.js`, bloque "--- Alternates
+     * ---": `hrefLang: locale` sobre `Object.entries(languages)`), que es lo
+     * que hace válida la clave `x-default`, no un código de idioma.
+     *
+     * Las TRES entradas viajan en las SEIS páginas, la propia incluida: una
+     * página que se omitiera a sí misma del conjunto rompería la reciprocidad
+     * que Google exige para hacer caso al grupo entero.
+     */
     alternates: {
       canonical: url,
+      languages: alternateUrls(routeKey),
     },
     // Objeto COMPLETO a propósito (ver docblock): siteName, locale y type
     // tienen que repetirse en cada ruta porque H2 impide heredarlos del
@@ -114,7 +170,13 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
       description,
       url,
       siteName: SITE.name,
-      locale: SITE.ogLocale,
+      locale: OG_LOCALES[locale],
+      /* `og:locale:alternate` declara en qué OTROS idiomas existe la misma
+         página. Se deriva de `LOCALES` en vez de escribirse a mano para que
+         un tercer idioma futuro no dependa de que alguien se acuerde. */
+      alternateLocale: LOCALES.filter((other) => other !== locale).map(
+        (other) => OG_LOCALES[other],
+      ),
       type: "website",
       images: [image],
     },

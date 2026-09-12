@@ -4,7 +4,6 @@ import type { ButtonHTMLAttributes, ReactElement, ReactNode } from "react";
 import styled from "styled-components";
 import {
   Button,
-  type ButtonIntent,
   type ButtonSize,
   type ButtonVariant,
 } from "@/components/ui/Button/Button";
@@ -42,7 +41,15 @@ export interface IconButtonProps extends Omit<
    *  aquí como string requerido — ButtonHTMLAttributes lo trae opcional. */
   "aria-label": string;
   "variant"?: ButtonVariant;
-  "intent"?: ButtonIntent;
+  /*
+   * `intent` RETIRADO de esta interfaz en la crítica externa #10
+   * (2026-08-18). Censo previo sobre `src/` y `app/`: ningún consumidor de
+   * `IconButton` la pasó nunca — ni ThemeToggle, ni BackToTop, ni los dos
+   * disparadores de `NavSheet` —, así que la prop solo servía para
+   * redeclarar el valor por defecto que este componente ya fija por su
+   * cuenta. El acento neutro no desaparece con ella: se fija abajo, en el
+   * único sitio donde de verdad se decide (ver el JSX de `ScSquare`).
+   */
   "size"?: ButtonSize;
 }
 
@@ -64,46 +71,52 @@ const ScSquare = styled(Button)<{ $side: string; $iconSide: string }>`
       color-mix(in oklch, currentColor 18%, transparent);
   }
 
-  /* :focus-visible propio (hallazgo 1, D7) — necesario AQUÍ, no solo en
-     Button.tsx: Button.tsx ya declara su propio halo por variante (rama
-     ghost incluida), pero esa regla vive en la clase de ScButton, que se
-     inyecta ANTES que la de esta capa (lección task/lessons.md 2026-07-26,
-     "styled(Base) se inyecta después del propio Base"), y el anillo de
-     descubribilidad de arriba tiene la MISMA especificidad que un selector
-     de focus-visible suelto (una clase + un selector simple, en los dos
-     casos: atributo vs. pseudo-clase pesan igual). En un empate de
-     especificidad gana el ÚLTIMO declarado en el documento, que aquí es
-     SIEMPRE esta capa — así que sin este bloque, al enfocar por teclado el
-     ghost (el variant por defecto de IconButton, y el único que usa hoy
-     ThemeToggle) el halo de Button.tsx quedaría tapado por el anillo de
-     descubribilidad, invisible en la práctica.
-     La combinación de selector atributo+focus-visible de abajo sube la
-     especificidad por encima de las dos reglas que compone (atributo +
-     pseudo-clase > solo atributo, o que solo pseudo-clase), así que gana
-     SIEMPRE, sin depender del orden de inserción — y las dos sombras
-     (anillo de descubribilidad + halo de foco) se escriben en la MISMA
-     declaración, separadas por coma, para no perder ninguna (box-shadow no
-     fusiona entre declaraciones distintas: la última gana entera).
-     Para el resto de variantes (solid/soft/outline), pasadas explícitamente
-     por el consumidor, no hace falta nada en esta capa: ninguna regla de
-     ScSquare las toca, así que el halo que Button.tsx ya declara por su
-     cuenta llega intacto. */
-  &[data-variant="ghost"]:focus-visible {
-    box-shadow:
-      inset 0 0 0 1px color-mix(in oklch, currentColor 18%, transparent),
-      0 0 0 4px
-        color-mix(
-          in oklch,
-          ${({ theme }) => theme.data.semantic.focus} 35%,
-          transparent
-        );
+  /* Indicador visual mínimo de "en curso" (Task 5, plan premium F1-F5),
+     opacity únicamente (regla dura §18). Lee el atributo aria-busy que YA
+     está en el DOM (ThemeToggle.tsx lo pasa como prop nativa, no como la
+     prop loading de Button.tsx — ver su docblock) en vez de añadir una prop
+     $busy nueva: así CSS y ARIA nunca pueden divergir, la misma fuente de
+     verdad decide las dos cosas. Valor distinto del 0.5 de
+     :disabled/[aria-disabled="true"] (Button.tsx) a propósito — "en curso,
+     sigue interactivo" es un estado distinto de "deshabilitado", y nunca
+     coinciden aquí (aria-busy no implica disabled), pero conviene que
+     tampoco se confundan a la vista si algún consumidor futuro los
+     combinara. El transition: none bajo reduce es redundante con el reset
+     global de GlobalStyles.tsx (transition-duration: 0.001ms !important)
+     pero se declara aquí también, explícita y comprobable: createGlobalStyle
+     no inyecta nada bajo jsdom + Vitest (task/lessons.md 2026-07-27), así que
+     sin esta declaración local el comportamiento bajo reduce no tendría
+     ningún candado propio de este componente. */
+  &[aria-busy="true"] {
+    opacity: 0.65;
+    transition: opacity ${({ theme }) => theme.data.motion.duration.base}
+      ${({ theme }) => theme.data.motion.easing.standard};
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
   }
+
+  /* AQUÍ VIVIÓ un [data-variant="ghost"]:focus-visible propio (hallazgo 1,
+     D7) que repetía el anillo de descubribilidad de arriba y le sumaba, en
+     la MISMA declaración, un halo de 4px contra semantic.focus. Existía por
+     una razón puramente mecánica: cuando el anillo de foco se escribía con
+     box-shadow había que reescribir en el bloque de foco cualquier otra
+     sombra del control (box-shadow no fusiona entre declaraciones, la última
+     gana entera) y subir la especificidad por encima del anillo de
+     descubribilidad, que empataba con él.
+
+     Retirado el 2026-09-02 (crítica externa #14, P1 de Craft): con el anillo
+     único declarado por outline en GlobalStyles.tsx (geometría en
+     src/theme/tokens/focus.ts) el problema desaparece en su raíz -- outline
+     y box-shadow son propiedades distintas, así que no compiten, y el anillo
+     de descubribilidad de arriba sigue pintándose intacto durante el foco
+     sin que nadie tenga que repetirlo. */
 `;
 
 export function IconButton({
   icon,
   variant = "ghost",
-  intent = "neutral",
   size = "md",
   ...rest
 }: IconButtonProps): ReactElement {
@@ -113,7 +126,14 @@ export function IconButton({
       $iconSide={ICON_SIDE[size]}
       data-variant={variant}
       variant={variant}
-      intent={intent}
+      /* Literal, ya no una prop con valor por defecto (crítica externa #10,
+         2026-08-18): es la ÚNICA decisión que este componente toma sobre el
+         acento, y ningún consumidor la sobrescribía. `neutral` resuelve a
+         `semantic.text` en `Button.tsx` (`accent()`); sin esta línea, un
+         botón de icono heredaría el `primary` con el que arranca `Button` y
+         ThemeToggle/BackToTop/NavSheet pasarían a color de marca. El candado
+         de esa propiedad vive en `IconButton.test.tsx`. */
+      intent="neutral"
       size={size}
       {...rest}
     >

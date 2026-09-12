@@ -17,8 +17,49 @@ task/
 **/.hg
 **/node_modules
 
+# Grafo de conocimiento generado por `graphify update .` (CLAUDE.md del repo lo
+# exige tras modificar código). Mismo caso que los lockfiles de abajo: lo
+# escribe una herramienta con su propio formato, y quien lo genera no vuelve a
+# pasarle Prettier -- así que cada actualización del grafo dejaba
+# `pnpm check-format` en rojo (medido el 2026-08-07: 29 ficheros de este
+# directorio, ninguno tocado a mano) por una deriva de formato en artefactos
+# que nadie lee ni edita.
+graphify-out/
+
 # Auto-generated lockfiles: never hand/tool-format these, pnpm owns their
 # exact formatting and rewriting them creates massive noise diffs.
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+# Snapshots del skill impeccable (critique-storage los escribe con su propio
+# formato; artefactos de auditoria, nadie los edita a mano):
+.impeccable/
+
+# Trazas de playwright-cli (verificacion del agente):
+.playwright-cli/
+
+# Configuracion de Codex (`.codex/hooks.json`), la otra herramienta de agente
+# que trabaja sobre este repo. Mismo caso que `.superpowers/` y `.impeccable/`
+# de arriba: sin rastrear por git, escrito por una herramienta con su propio
+# formato, y nadie le pasa Prettier. Al no estar rastreado NO llega ni a
+# GitHub Actions ni a Netlify, asi que su deriva solo tumbaba `pnpm run ci` en
+# la maquina local -- un rojo que no corresponde a ningun defecto del sitio
+# (observado el 2026-08-13: `check-format` en rojo por este unico fichero,
+# aparecido esa manana, con el resto del gate limpio).
+.codex/
+
+# Ajustes locales de Claude Code. Mismo criterio que `.codex/` de arriba, con
+# un motivo mas para ignorarlo: esta gitignorado (no llega ni a GitHub Actions
+# ni a Netlify) y la propia herramienta lo REESCRIBE cada vez que se concede un
+# permiso, en la maquina de quien lo concede -- asi que formatearlo no seria un
+# arreglo, seria una pelea que se pierde en la siguiente sesion. Aparecio como
+# rojo del gate el 2026-08-16, al fijar LF en todo el arbol (.gitattributes):
+# la unica diferencia era el fin de linea, el contenido era identico byte a
+# byte tras quitar los CR.
+.claude/settings.local.json
+
+# Worktrees efimeros de agentes (`.claude/worktrees/*`). Estan excluidos en
+# .git/info/exclude, pero Prettier NO lee los ignorados de git: sin esta
+# linea, un README dentro de un worktree en vuelo tumba `pnpm run ci` del
+# arbol principal por un fichero que ni siquiera pertenece al repo.
+.claude/worktrees/

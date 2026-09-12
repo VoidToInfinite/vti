@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { act } from "@testing-library/react";
+import { act, within } from "@testing-library/react";
 import { renderWithProviders } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
-import { EYE_SURFACE } from "@/components/eye/eye.layers";
+import { EYE_SURFACE } from "@/components/scenes/eye/eye.layers";
 import { contrastRatio } from "@/theme/tokens/contrast";
 import { semanticDark, semanticLight } from "@/theme/tokens/semantic";
 import { space } from "@/theme/tokens/space";
-import { StageProvider } from "@/motion/StageProvider";
 import { Hero } from "./Hero/Hero";
 import { Story } from "./Story/Story";
 
@@ -30,7 +29,7 @@ import { Story } from "./Story/Story";
  *
  *  - la jerarquia de encabezados es de PAGINA (un solo h1, el h2 de Story
  *    despues);
- *  - el ancla del CTA secundario del hero (#story) resuelve a un elemento
+ *  - el ancla del CTA principal del hero (#story) resuelve a un elemento
  *    real;
  *  - Hero y Story son hermanos INMEDIATOS al montarlos juntos;
  *  - el pie del hero (oscuro siempre, claro solo por opacidad) sigue sin
@@ -94,17 +93,18 @@ function cssRuleTextFor(el: HTMLElement): string {
 }
 
 /*
- * `Hero` consume `useStage()` (tarea C5): sin un `StageProvider` en el
- * arbol, el hook lanza. `renderWithProviders` (test-utils.tsx) es un helper
- * COMPARTIDO con otros flujos y no se toca (CLAUDE.md §9): se envuelve aqui,
- * localmente, mismo patron que Navbar.test.tsx/Hero.test.tsx.
+ * La maquina de fases del stage (`useStage()`/`StageProvider`) se retiro
+ * entera en la Task 27 (2026-08-11): ni `Hero` (desde la Task 10) ni
+ * `HeroBackdrop` (desde esta) la consumen ya. Se renderiza `<Hero />` y
+ * `<Story />` directamente, sin ningun envoltorio de proveedor propio de
+ * este archivo.
  */
 function renderPage(): HTMLElement {
   const { container } = renderWithProviders(
-    <StageProvider>
+    <>
       <Hero />
       <Story />
-    </StageProvider>,
+    </>,
   );
   return container;
 }
@@ -128,13 +128,17 @@ describe("Hero + Story (integracion)", () => {
     ).toBeTruthy();
   });
 
-  it("el ancla del CTA secundario del hero resuelve a la seccion Story real", () => {
+  it("el ancla del CTA principal del hero resuelve a la seccion Story real", () => {
     // El href y el id viven en archivos distintos (Hero.tsx / Story.tsx): si
     // alguien renombra uno de los dos, cada suite por separado sigue en
     // verde y el boton deja de navegar. Solo se ve montando las dos
     // secciones juntas.
+    //
+    // Indice 0, no 1 (encargo 2026-08-08): el hero perdio el CTA al
+    // playground que ocupaba la primera posicion; "Leer la historia" paso de
+    // secundario a UNICO y principal.
     const container = renderPage();
-    const cta = container.querySelectorAll("a")[1];
+    const cta = container.querySelectorAll("a")[0];
 
     expect(cta.getAttribute("href")).toBe("#story");
     const target = container.querySelector("#story");
@@ -159,17 +163,32 @@ describe("Hero + Story (integracion)", () => {
     // tema de pagina. Ahora, sin ese anidado, el kicker tiene que resolver
     // al rol de marca del tema AMBIENTAL -- claro por defecto, oscuro si el
     // usuario lo guardo.
+    /*
+     * El kicker se localiza por su TEXTO, no por `previousElementSibling` del
+     * h2. Hasta el 2026-08-06 eran equivalentes; con la barra de eyebrow que
+     * introdujo esa entrega (spec `2026-08-06-story-features-tema-claro-design.md`,
+     * D4) el kicker pasa a vivir dentro de un contenedor junto a la barra, así
+     * que el hermano anterior del h2 es ese contenedor -- que no fija `color`
+     * (lo fija su hijo), y `getComputedStyle` devolvía `canvastext`.
+     *
+     * Buscar por texto ata lo que este test QUIERE comprobar (que el kicker
+     * resuelve al rol de marca del tema ambiental) sin depender de la
+     * estructura DOM que lo rodea, que es exactamente la clase de acoplamiento
+     * que lo rompió.
+     */
     const clara = renderPage();
-    const kickerClaro = clara.querySelector("#story-title")
-      ?.previousElementSibling as HTMLElement;
+    const kickerClaro = within(clara).getByText(
+      esHome.Home.story.kicker,
+    ) as HTMLElement;
     expect(window.getComputedStyle(kickerClaro).color).toBe(
       semanticLight.brandText,
     );
 
     window.localStorage.setItem("vti-theme", "dark");
     const oscura = renderPage();
-    const kickerOscuro = oscura.querySelector("#story-title")
-      ?.previousElementSibling as HTMLElement;
+    const kickerOscuro = within(oscura).getByText(
+      esHome.Home.story.kicker,
+    ) as HTMLElement;
     expect(window.getComputedStyle(kickerOscuro).color).toBe(
       semanticDark.brandText,
     );

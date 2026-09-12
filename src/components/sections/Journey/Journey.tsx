@@ -4,12 +4,15 @@ import { useRef, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import styled, { css } from "styled-components";
 import { Typography } from "@/components/ui/Typography/Typography";
+import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
 import { useReveal } from "@/hooks/useReveal";
 import { useSectionProgress } from "@/hooks/useSectionProgress";
+import { useDeckFit } from "@/hooks/useDeckFit";
 import { useSlideDeck } from "@/hooks/useSlideDeck";
+import { REVEAL } from "@/motion/vocabulary";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemeDefinition } from "@/theme/theme.types";
-import { JourneyCosmicPortal } from "@/components/journeyCosmicPortal/JourneyCosmicPortal";
+import { JourneyCosmicPortal } from "@/components/scenes/journeyCosmicPortal/JourneyCosmicPortal";
 import {
   ScJourneyDeck,
   ScJourneyDeckTitle,
@@ -17,6 +20,10 @@ import {
   ScJourneyQuote,
   ScJourneyRail,
   ScJourneyRailMark,
+  ScJourneyRailStatus,
+  ScJourneyRailStatusCurrent,
+  ScJourneyRailStatusTotal,
+  ScJourneyScrollHint,
   ScJourneySceneWrap,
   ScJourneySlide,
   ScJourneyStage,
@@ -28,14 +35,11 @@ import {
 import {
   JOURNEY_STEPS,
   JOURNEY_CARD_BACKGROUND,
-  JOURNEY_DISC_BORDER,
   JOURNEY_FIGURE_SCROLL_SHIFT,
   JOURNEY_PATH_VIEWBOX,
   JOURNEY_PATH_D,
   JOURNEY_PATH_SCROLL_SHIFT,
   JOURNEY_PATH_STROKE,
-  JOURNEY_QUOTE_GRADIENT_DARK,
-  JOURNEY_QUOTE_GRADIENT_LIGHT,
   JOURNEY_FIGURE_SHADOW,
   JOURNEY_FIGURE_WIDTH,
   JOURNEY_FIGURE_SIZES,
@@ -62,8 +66,63 @@ import {
  * no toca esa mecanica, solo lo que hay DENTRO de la seccion una vez que el
  * solape la trae a pantalla.
  *
- * Rama CLARA: sin cambios de comportamiento (tarjeta pastel + camino
- * punteado + rejilla de 6 columnas + figura en columna propia).
+ * Rama CLARA: tarjeta pastel + camino punteado + rejilla de 6 columnas +
+ * figura en columna propia.
+ *
+ * PARIDAD DE CONTENIDO entre las dos ramas (Task 16, unificacion parte 2,
+ * 2026-08-11): las dos cuentan lo mismo -- mismo h2, mismo cuerpo, los
+ * MISMOS 6 pasos con su etiqueta y su subtitulo, y la misma cita de cierre
+ * -- con arte y vehiculo distintos (rejilla + camino punteado en claro,
+ * presentacion de diapositivas ancladas en oscuro).
+ *
+ * LA NUMERACION dejo de ser la excepcion sancionada el 2026-08-18 (critica
+ * externa #11, hallazgo C, dimension de coherencia; decision del dueno). Lo
+ * que se decidio y por que, porque este punto se ha decidido cuatro veces:
+ *
+ * 1. Hasta hoy la rama clara rotulaba "0N · Etiqueta" y la oscura no mostraba
+ *    ningun numero. No era un descuido: al dueno se le pregunto por la
+ *    asimetria el 2026-08-02 y respondio "solo la rama oscura" (D16 de
+ *    docs/superpowers/specs/2026-08-02-journey-deck-8-diapositivas-design.md),
+ *    y lo reconfirmo el 2026-08-11 cuando la Task 16 propuso igualarlas.
+ * 2. La critica #11 midio esa asimetria como el ultimo resto de divergencia
+ *    de CONTENIDO entre las dos ramas, contra la decision D-C del dueno
+ *    ("tema = piel con contenido unificado", DESIGN.md §4), y planteo la
+ *    disyuntiva en sus terminos: o el ordinal vive en las dos ramas, o en
+ *    ninguna.
+ * 3. Se elige NINGUNA como pieza VISIBLE, y las DOS como contenido. La
+ *    posicion del paso no se pierde: pasa a anunciarse en las dos ramas con
+ *    el MISMO `VisuallyHidden` y la MISMA clave (`Home.journey.stepPosition`,
+ *    "Paso N de 6"), que hasta hoy solo tenia la rama oscura. Es una
+ *    unificacion mas estricta que "las dos pintan 01", no un recorte: el dato
+ *    de posicion queda en un unico sitio, con las mismas palabras, en el mismo
+ *    canal, en las dos ramas.
+ *
+ * POR QUE ESTE LADO Y NO EL OTRO, con lo que costaria cada uno:
+ *
+ * - Devolver el ordinal VISIBLE a la rama oscura significa resucitar
+ *   `ScJourneyStepNumber` y su constante de tamano
+ *   (`JOURNEY_DECK_STEP_NUMBER_SIZE`), retiradas por encargo explicito del
+ *   dueno y montadas de nuevo -- y retiradas de nuevo el mismo dia -- por la
+ *   Task 16. Seria la cuarta vuelta sobre el mismo pixel, contra dos
+ *   decisiones primarias del dueno, y en una diapositiva cuya etiqueta es
+ *   tipografia de cartel (`JOURNEY_DECK_STEP_LABEL_SIZE`, tope 11rem, peso
+ *   900): un "01" delante de "Evoluciona" a esa escala es una decision de
+ *   composicion, no una linea de copy.
+ * - Retirarlo de la rama clara es una linea, no toca ninguna pieza del deck, y
+ *   es reversible con la misma linea si el dueno prefiere el otro lado.
+ *
+ * Ademas retira una instancia sancionada de la familia `numbering` del
+ * detector de anti-patrones (`scripts/detect-anti-patterns.mjs`), en vez de
+ * duplicarla en una segunda rama.
+ *
+ * Lo que la rama clara PIERDE al hacerlo -- y se declara en vez de
+ * disimularse: la rejilla muestra los seis pasos a la vez, asi que el orden
+ * lo comunicaban el ordinal, el camino punteado (>= lg) y el orden de
+ * lectura; sin ordinal quedan los dos ultimos. Lo que GANA a cambio es que
+ * "01" -- que leido en voz alta no significa nada -- deja de ser lo primero
+ * que un lector de pantalla oye de cada paso, y en su lugar suena "Paso 1 de
+ * 6". En las dos ramas el anuncio va tras la caja del icono, que es
+ * `aria-hidden` y no aporta texto, asi que ES lo primero que suena del paso.
  */
 
 /** Paso entre pasos del reveal escalonado (mismo mecanismo que `ScItem` en
@@ -72,6 +131,25 @@ import {
  *  reveal escalonado propio (cada diapositiva entra entera con el mismo
  *  mecanismo de `ScJourneySlide`). */
 const STEP_STAGGER_MS = 90;
+
+/*
+ * AQUI VIVIERON `stepOrdinal(index)` -- el ordinal visible de un paso
+ * ("01".."06"), formateado con `String(index + 1).padStart(2, "0")` -- y
+ * `STEP_ORDINAL_SEPARATOR` (" · "), el separador con el que la rama CLARA
+ * componia "01 · Descubre" verbatim del mockup aprobado. RETIRADOS los dos en
+ * la critica externa #11 (2026-08-18, hallazgo C, decision del dueno): ver el
+ * punto 3 del docblock de cabecera para la disyuntiva completa y por que se
+ * eligio este lado.
+ *
+ * Lo que aquellas dos piezas defendian NO se pierde con ellas, y por eso vale
+ * la pena dejarlo escrito aqui: el ordinal nunca vivio en `JOURNEY_STEPS`
+ * (`journey.layers.ts`) a proposito, porque es la POSICION del paso en el
+ * array y no un dato propio del paso -- duplicarlo como campo habria abierto
+ * la puerta a que el dato y el orden real se contradigan. Ese criterio sigue
+ * vigente y lo hereda el anuncio de posicion que lo sustituye
+ * (`Home.journey.stepPosition`), que tambien deriva de `index` y del
+ * `JOURNEY_STEPS.length` real, nunca de un literal (regla 39 de RULES.md).
+ */
 
 /*
  * Rama clara: contenedor normal (padding + tope de ancho, centrado -- sin
@@ -103,8 +181,23 @@ const STEP_STAGGER_MS = 90;
  * con su guard de `reduce` -- mecanica intacta de las dos entregas
  * anteriores (D2/D5/D6, `2026-08-02-journey-overlay-transition-design.md`),
  * que esta spec no toca.
+ *
+ * `padding` de la rama ACOTADA (`$fullBleed` falso): termino INLINE en
+ * `inlineSpace`, termino de BLOQUE en `space` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). Con la raiz por defecto vale lo mismo,
+ * y con la fuente al 200 % deja de doblarse cuando el viewport ya no da mas de
+ * si.
  */
 const ScJourney = styled.section<{ $fullBleed: boolean }>`
+  /* WCAG 2.1 SC 1.4.4 (critica externa #13), mismo criterio y mismo motivo que
+     ScStory: overflow-wrap se hereda, asi que una declaracion en la raiz de la
+     seccion cubre su texto entero en las dos ramas. Solo actua cuando una
+     palabra no cabe entera en su linea.
+
+     El valor pasa de break-word a anywhere en la critica #19, por el mismo
+     motivo y con la misma medicion que documenta ScStory. */
+  overflow-wrap: anywhere;
+
   ${({ $fullBleed, theme }) =>
     $fullBleed
       ? css`
@@ -118,19 +211,121 @@ const ScJourney = styled.section<{ $fullBleed: boolean }>`
           }
         `
       : css`
-          max-width: ${theme.data.grid.containerMax};
+          /* grid.sectionMax, NO grid.navMax (critica externa #12,
+             2026-08-19). Esta rama leia el tope de la PILDORA DEL NAVBAR como
+             ancho de contenido de la seccion -- contra el docblock del propio
+             navMax, que se declara exclusivo de esa pildora y exige que las
+             dos medidas puedan divergir sin arrastrarse. Coincidian en el
+             numero (1280px) y por eso nadie lo notaba: el dia que alguien
+             retocara la pildora, la seccion se habria movido con ella. El CSS
+             renderizado no cambia ni un caracter; lo que cambia es de que
+             promesa cuelga. SIN BACKTICKS: esto vive dentro de un template
+             literal css de styled-components (task/lessons.md 2026-07-25). */
+          max-width: ${theme.data.grid.sectionMax};
           margin-inline: auto;
-          padding: ${theme.data.space[8]} ${theme.data.space[6]};
+          padding: ${theme.data.space[8]} ${theme.data.inlineSpace[6]};
+
+          /* RECORTE DE LA FRONTERA statement -> Journey en MOVIL (critica
+             externa #10, hallazgo B2, 2026-08-18). Medido a 390x844 en tema
+             claro, y=3421: 290 px de banda vacia (34 % del viewport) entre el
+             enlace de Discord que cierra Story y el borde superior de la
+             tarjeta de Journey.
+
+             ARITMETICA DE LA BANDA, reproducida desde la fuente (el modelo da
+             289,9 px frente a los 290 medidos, asi que describe el hueco
+             real, no una hipotesis):
+
+               ScStatement (Story.tsx) mide min-height 70dvh = 590,8 px con
+               padding-block space[8] (64 px por lado) y su contenido -- unos
+               139 px de texto mas el enlace -- centrado con
+               justify-content center.
+                 hueco bajo el enlace = (590,8 - 128 - 139) / 2 = 161,9 px
+                 + padding-block-end de ScStatement                =  64,0 px
+                 + padding-block-start de ESTA seccion             =  64,0 px
+                                                                    ---------
+                                                                     289,9 px
+
+             POR QUE SOLO SE RECORTA ESTE TERMINO: los otros dos son de Story
+             y no responden como parece. Con min-height mandando (590,8 muy
+             por encima de 128 + 139), recortar el padding de ScStatement
+             AGRANDA su caja de contenido y el centrado se traga la mitad del
+             recorte -- bajarlo de 64 a 32 px devolveria 16 px, no 32. Es el
+             mismo mecanismo que la Ola B (2026-08-16) ya midio en el otro
+             extremo de esa seccion y dejo escrito en el docblock de ScStory.
+             El padding-block-start de aqui, en cambio, es 100 % efectivo: no
+             hay ningun centrado que lo absorba.
+
+             ANTES 64 px  ->  DESPUES 16 px (space[4]), banda 290 -> 242 px
+             (34,3 % -> 28,7 % del viewport de 844). La tarjeta ya aporta sus
+             propios 48 px de relleno interior (ScCard), asi que sobre el h2
+             quedan 64 px de aire, no 16.
+
+             SOLO POR DEBAJO DE md: la critica midio el defecto en movil y a
+             partir de 768 px el relleno original vuelve intacto -- no se
+             toca una composicion que nadie ha medido rota.
+
+             LO QUE NO CIERRA ESTE RECORTE, declarado y no disimulado: los
+             226 px restantes son el centrado de ScStatement dentro de sus
+             70dvh. Esa altura es una decision de diseno del dueno (Ola B,
+             2026-08-16) tomada midiendo a 1440x900, nunca re-medida a
+             390x844; cambiarla es rediseno de Story, no espaciado de
+             frontera.
+
+             SIN BACKTICKS: esto vive dentro de un template literal css de
+             styled-components (task/lessons.md 2026-07-25 y 2026-08-16). */
+          padding-block-start: ${theme.data.space[4]};
+
+          @media ${theme.data.breakPoint.md} {
+            padding-block-start: ${theme.data.space[8]};
+          }
         `}
 `;
 
+/*
+ * RELLENO INTERIOR EN MOVIL (critica externa #15, hallazgo A P2-2 / C 2,
+ * 2026-09-02). La mitad horizontal del defecto de los pasos no la ponia la
+ * rejilla, la ponia esta tarjeta: a 390x844 el primer paso empezaba en x=80 y
+ * el ultimo terminaba en x=310 -- 80 px de margen muerto por lado, el 41 % del
+ * viewport gastado en relleno antes de que empiece a haber texto.
+ *
+ * ARITMETICA DEL MARGEN, reproducida desde la fuente:
+ *
+ *     padding-inline de ScJourney (space[6])   32 px
+ *   + padding-inline de ESTA tarjeta (space[7]) 48 px
+ *                                             --------
+ *                                              80 px por lado
+ *
+ * Solo se recorta el termino de la tarjeta, y solo por debajo de md: los 32 px
+ * de la seccion son el mismo rail que usan Story/Features/Contact en movil, y
+ * moverlos aqui haria que Journey dejara de alinearse con sus hermanas por un
+ * defecto que se cierra entero dentro de la tarjeta. Con space[5] (24 px) el
+ * ancho util de la rejilla pasa de 230 a 278 px, que es lo que permite que la
+ * columna unica de ScStepsGrid (ver su docblock) llegue a >= 45 caracteres por
+ * linea.
+ *
+ * A partir de md el relleno original vuelve intacto: la composicion ancha
+ * nunca se midio rota y no se toca. Mismo criterio, mismo par de bloques y
+ * misma direccion (base movil + restauracion en md) que el recorte de
+ * padding-block-start de ScJourney, justo arriba.
+ *
+ * `padding`: los dos terminos INLINE --el base y el de `md`-- leen
+ * `inlineSpace`; los de BLOQUE siguen en `space` (ver el docblock de
+ * `inlineSpace` en `tokens/space.ts`). La aritmetica del margen que documenta
+ * el parrafo de arriba no se mueve con la raiz por defecto: es la misma
+ * cuenta, con los mismos numeros, hasta que la fuente del usuario crece.
+ */
 const ScCard = styled.div`
   position: relative;
   overflow: hidden;
   border-radius: ${({ theme }) => theme.data.radius["2xl"]};
   background: ${JOURNEY_CARD_BACKGROUND};
   padding: ${({ theme }) => theme.data.space[7]}
-    ${({ theme }) => theme.data.space[7]} ${({ theme }) => theme.data.space[8]};
+    ${({ theme }) => theme.data.inlineSpace[5]}
+    ${({ theme }) => theme.data.space[8]};
+
+  @media ${({ theme }) => theme.data.breakPoint.md} {
+    padding-inline: ${({ theme }) => theme.data.inlineSpace[7]};
+  }
 `;
 
 const ScHeader = styled.div`
@@ -141,21 +336,37 @@ const ScHeader = styled.div`
   margin-inline: auto;
 `;
 
-/* Mismo patrón que `ScKicker` en `Hero.tsx`: mayúsculas por CSS (no en el
-   JSON, así un lector de pantalla no lo deletrea como sigla) y color de la
-   rampa que pide el mockup (`--secondary-600`), no el `brandText` semántico
-   del kicker del hero. `letter-spacing` se sobrescribe al valor literal del
-   mockup (0.22em vs. los 0.18em de `overline`), misma excepción documentada
-   que `ScSubtitle` en `Hero.tsx`. */
-const ScKicker = styled(Typography)`
-  text-transform: uppercase;
-  color: ${({ theme }) => theme.data.palette.secondary[600]};
-  letter-spacing: 0.22em;
-`;
-
+/*
+ * Entradilla de la cabecera de Journey (`Home.journey.body`).
+ *
+ * `max-width` (crítica externa #9, 2026-08-17): NUEVO. Hasta hoy este párrafo
+ * era el único cuerpo de texto de la home sin tope de ancho propio -- heredaba
+ * los 640px de `ScHeader` y el evaluador lo midió en runtime a **99,2
+ * caracteres reales por línea**, un 32% por encima del techo del rango 60-75
+ * que el propio sistema declara (`DESIGN.md` §3.4). No era riesgo latente como
+ * en el resto de piezas que la Task 22 tapó: era un defecto visible con el
+ * copy de hoy.
+ *
+ * POR QUÉ EL CAP VA AQUÍ Y NO EN `ScHeader`: es el criterio que ya siguen las
+ * otras tres secciones -- `ScIntro`/`ScBody`/`ScDarkBody` en `Features.tsx`,
+ * `ScBody` en `Story.tsx`, `ScJourneyIntroBody`/`ScJourneyStepSubtitle` en
+ * `journey.deck.tsx` -- todas declaran la medida de lectura sobre el PÁRRAFO,
+ * nunca sobre el contenedor. Mover el tope a `ScHeader` habría arrastrado
+ * también al `h2`, que no es prosa y cuya medida (los 640px del mockup, ver su
+ * comentario) es una decisión de composición distinta.
+ *
+ * `margin-inline: auto` acompaña al tope porque `ScHeader` centra
+ * (`text-align: center` + `margin-inline: auto`): sin él, la caja del párrafo
+ * -- ya más estrecha que su contenedor -- quedaría pegada al borde izquierdo y
+ * el texto centrado dentro de ella se leería descolgado del titular. Mismo par
+ * de declaraciones que `ScMain` en `NotFoundContent.tsx`, el otro bloque
+ * centrado del sitio que topa en esta medida.
+ */
 const ScBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[3]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
+  margin-inline: auto;
 `;
 
 /*
@@ -180,7 +391,7 @@ const ScStepsAndQuote = styled.div`
 
   @media ${({ theme }) => theme.data.breakPoint.xl} {
     padding-inline-end: calc(
-      ${JOURNEY_FIGURE_WIDTH} + ${({ theme }) => theme.data.space[5]} - 150px
+      ${JOURNEY_FIGURE_WIDTH} + ${({ theme }) => theme.data.space[5]} - 115px
     );
     height: 200px;
   }
@@ -218,18 +429,80 @@ const ScPath = styled.svg`
   }
 `;
 
+/*
+ * minmax(0, 1fr) en los tres regimenes, NO 1fr (WCAG 2.1 SC 1.4.4, critica
+ * externa #13). 1fr es minmax(auto, 1fr), y ese auto es el tamano minimo
+ * automatico de la pista: el min-content del paso que contiene. Con la raiz al
+ * 200% el texto de un paso mide mas que su sexta/tercera/mitad de fila, asi que
+ * las pistas crecian por encima de la rejilla -- medido a 390px de ancho y raiz
+ * 32px: dos pistas de 186.7px + 154.1px dentro de una caja de 70px, con el
+ * ultimo paso terminando en x=548.8 sobre un viewport de 390 y sin scroll
+ * horizontal que lo recupere (html declara overflow-x: clip, regla 21). Con el
+ * minimo a 0 el reparto de fracciones no cambia: a raiz 16px las dos pistas
+ * siguen midiendo 103px cada una.
+ *
+ * ---
+ *
+ * ESCALERA DE COLUMNAS REESCRITA (critica externa #15, hallazgo A P2-2 y C 2,
+ * 2026-09-02). Aquellas dos pistas de 103px de la nota de arriba dejaron de
+ * ser una hipotesis del 200 % de raiz y pasaron a ser la medida REAL a raiz
+ * normal: a 390x844 la rejilla montaba 2x3 con tarjetas de 103px en x=80 y
+ * x=207, y el cuerpo de cada paso caia a 18-20 caracteres por linea («Explora
+ * ideas, / hazte preguntas y / observa el mundo / de otra manera.»). El rango
+ * de lectura que el propio sistema declara es 60-75 (DESIGN.md §3.4) y el
+ * suelo que fija esta critica es 45.
+ *
+ * BREAKPOINT ELEGIDO: `md` (768px), y se elige por MEDIDA, no por costumbre.
+ * Con el relleno de la tarjeta ya recortado en movil (ver el docblock de
+ * ScCard), el ancho util es `viewport - 64 (seccion) - 48 (tarjeta)`, y el
+ * ancho de una pista es `(util - gap*(n-1)) / n`. Midiendo el cuerpo real de
+ * los pasos, una linea de este parrafo (variante `caption`, 12px) cabe a razon
+ * de ~5,4-6,0 px por caracter, asi que 45 caracteres piden >= 270px de pista:
+ *
+ *     390px, 1 columna  -> 278px  ->  46-51 caracteres   OK
+ *     390px, 2 columnas -> 127px  ->  21-23 caracteres   NO
+ *     768px, 2 columnas -> 292px  ->  48-54 caracteres   OK
+ *     768px, 3 columnas -> 187px  ->  31-34 caracteres   NO   <- lo que habia
+ *
+ * De ahi las dos correcciones: UNA columna por debajo de md (antes dos) y DOS
+ * por encima (antes tres). La escalera queda 1 -> 2 -> 6 en vez de 2 -> 3 -> 6.
+ *
+ * LO QUE NO CAMBIA, Y POR QUE: el tramo `lg` sigue siendo de SEIS columnas. Es
+ * el regimen del mockup aprobado (spec 2026-07-28-landing-v2-secciones-design,
+ * §7.2: «>= lg: 6 columnas con offsets verticales alternos y el path SVG
+ * punteado detras»), y el camino punteado esta atado a el por construccion:
+ * JOURNEY_PATH_D traza sus seis vertices en x=63,190,317,444,571,698 sobre un
+ * viewBox de 760, es decir en el centro exacto de cada una de las seis pistas.
+ * Con cualquier otro recuento de columnas el camino deja de enhebrar los
+ * discos.
+ *
+ * Y ESE TRAMO NO PUEDE LLEGAR A ~40 CARACTERES, medido y no supuesto: el rail
+ * de la seccion topa en grid.sectionMax (1280px), asi que el ancho util maximo
+ * de la rejilla es 1280 - 64 (seccion) - 96 (tarjeta) - 149 (hueco reservado
+ * de la figura, >= xl) = 971px, y seis pistas con gap space[2] miden 155px
+ * cada una: 26-28 caracteres. Incluso regalando los tres rellenos -- que
+ * romperia la reserva de hueco de la figura, ver el docblock de
+ * JOURNEY_FIGURE_WIDTH -- seis pistas dentro de 1280px miden 205px: ~37
+ * caracteres. NO HAY viewport en el que seis columnas lleguen a 40. Cerrar esa
+ * mitad del hallazgo exige bajar a <= 4 columnas en escritorio, y eso es
+ * retirar el camino punteado del mockup: decision del dueno, no de esta ola.
+ * Queda declarada, no disimulada.
+ */
 const ScStepsGrid = styled.div`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* Base MOVIL: una sola pista. minmax(0, 1fr) y no 1fr por el mismo motivo
+     que las demas (ver el docblock, arriba): el minimo automatico de una pista
+     1fr es el min-content de su contenido y desborda al ampliar la raiz. */
+  grid-template-columns: minmax(0, 1fr);
   gap: ${({ theme }) => theme.data.space[5]};
 
   @media ${({ theme }) => theme.data.breakPoint.md} {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   @media ${({ theme }) => theme.data.breakPoint.lg} {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: ${({ theme }) => theme.data.space[2]};
   }
 `;
@@ -249,15 +522,26 @@ const ScStepsGrid = styled.div`
  * delay`, siguiente línea) y su guard de `reduce` (más abajo, que también
  * anula el delay) NO cambian: siguen siendo la parte de este bloque que sí
  * distingue a Journey de Story.
+ *
+ * Curva migrada a `REVEAL.easing` (fix wave D, hallazgo D3, revisión final de
+ * rama, 2026-08-12): hasta esta revisión seguía en `motion.easing.decelerate`
+ * suelto pese a que Task 19 ya había migrado el mismo patrón en Story.tsx/
+ * Features.tsx a la curva PROPIA de `REVEAL` (`cubic-bezier(0.23, 1, 0.32,
+ * 1)`, distinta de `decelerate`) -- dos curvas de reveal convivían en la
+ * misma página. `REVEAL.durationMs` sustituye también a
+ * `theme.data.motion.duration.slower` (mismos 480ms, ahora por el token). El
+ * `translateY(12px)` NO se toca: es un desvío de composición ya documentado
+ * (ver el docblock de `REVEAL` en `src/motion/vocabulary.ts`), no parte del
+ * hallazgo D3 (que pedía la curva, no el desplazamiento). Verificado en
+ * navegador real que el cambio de curva no altera el carácter del
+ * movimiento (capturas `fixD-*` del informe de la tarea).
  */
 const ScStepReveal = styled.div<{ $index: number }>`
   opacity: 0;
   transform: translateY(12px);
   transition:
-    opacity ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate},
-    transform ${({ theme }) => theme.data.motion.duration.slower}
-      ${({ theme }) => theme.data.motion.easing.decelerate};
+    opacity ${REVEAL.durationMs}ms ${REVEAL.easing},
+    transform ${REVEAL.durationMs}ms ${REVEAL.easing};
   transition-delay: ${({ $index }) => $index * STEP_STAGGER_MS}ms;
 
   &[data-revealed="true"] {
@@ -295,6 +579,169 @@ function stepColor(
   return theme.palette[step.colorRamp][step.colorStep];
 }
 
+/**
+ * Escalón AA-seguro de la rampa, para TEXTO en tema claro (fix wave E,
+ * hallazgo E2 -- evaluador de navegador real, 2026-08-13). `ScStepLabel`
+ * pintaba `stepColor(...)` directo -- el MISMO escalón de rampa
+ * (`step.colorStep`, `journey.layers.ts`) que también usa el icono del
+ * disco (`ScDisc`) -- sobre el fondo pastel translúcido de `ScCard`
+ * (`JOURNEY_CARD_BACKGROUND`, compuesto sobre `semantic.bg`). Medido con
+ * `contrastRatio`/píxel real contra los SEIS fondos que pinta el
+ * degradado a 135deg de la tarjeta detrás de cada etiqueta:
+ *
+ *   01 Descubre   (primary/500)    2.05:1  incumple 4.5:1
+ *   02 Aprende    (primary/600)    2.72:1  incumple
+ *   03 Imagina    (secondary/500)  2.49:1  incumple
+ *   04 Crea       (secondary/600)  3.18:1  incumple
+ *   05 Comparte   (secondary/700)  5.36:1  ya cumplía
+ *   06 Evoluciona (error/500)      2.82:1  incumple
+ *
+ * MISMA FAMILIA que Task 33 (`languageAccent`, `LanguageSelector.tsx`) y fix
+ * wave A hallazgo A4 (`navActiveAccent`, `NavSheet.tsx`): un acento de marca
+ * tomado DIRECTAMENTE de `palette` (sin pasar por un rol semántico ya
+ * auditado) incumple por defecto sobre los fondos claros del sistema -- la
+ * TERCERA vez que aparece este patrón exacto. El candado de familia que
+ * cubre esto de forma sistémica (no solo estos seis casos) vive en
+ * `src/theme/tokens/brandAccentContrast.test.ts`.
+ *
+ * El primer escalón de `primary`/`secondary`/`error` que pasa 4.5:1 contra
+ * los fondos claros del sistema es 700 (medido exhaustivamente, ver el test
+ * de familia) -- cualquier escalón por debajo queda descartado como color de
+ * texto. El arreglo original (fix wave E) subía exactamente DOS escalones
+ * dentro de la MISMA rampa (500→700, 600→800, 700→900) en vez de saltar
+ * todos al mismo "700 mínimo": `05 Comparte` (secondary/700) ya cumplía por
+ * sí sola, pero si se dejara intacta mientras `03 Imagina` sube de 500 a
+ * 700, las dos compartirían el MISMO color exacto y `04 Crea` (subiendo a
+ * 800) se leería más oscura que Comparte -- invirtiendo la progresión
+ * 500<600<700 del mockup original. Ese desplazamiento uniforme conserva la
+ * progresión relativa completa; lo que NO conservaba era el margen, y por
+ * eso la tabla dejó de ser uniforme en la ola S (siguiente sección).
+ *
+ * ## LAS SEIS CIFRAS, CORREGIDAS (ola Q, 2026-09-04)
+ *
+ * Hasta esta fecha este docblock cerraba con «Verificado contra los 6 fondos
+ * reales (`Journey.test.tsx`, fix wave E): 4.57 · 5.27 · 5.33 · 6.01 · 8.34 ·
+ * 5.33, los seis con margen sobre 4.5:1». Esas seis cifras son las de la
+ * parada CLARA del degradado de la tarjeta (`#e5f6ff`), o sea el mejor caso.
+ * La que manda es la OSCURA (`#ffecfd`), y contra ella —reproducido con el
+ * `contrastRatioHex` de `src/theme/tokens/contrast.ts`, que es el mismo que
+ * usa el test— sale:
+ *
+ *   01 Descubre   (primary/700)    4.510:1   0.010 de margen
+ *   02 Aprende    (primary/800)    5.189:1
+ *   03 Imagina    (secondary/700)  5.263:1
+ *   04 Crea       (secondary/800)  5.890:1
+ *   05 Comparte   (secondary/900)  8.194:1
+ *   06 Evoluciona (error/700)      5.228:1
+ *
+ * El test de más abajo YA medía contra las dos paradas (por eso sigue en
+ * verde: 4.510 ≥ 4.5); lo que estaba mal era la prosa, que anunciaba 0.07 de
+ * margen donde hay 0.010. Y 0.010 no sobrevive al render real: censo en Chrome
+ * del 2026-09-04 sobre el build de producción (tinta nominal por canvas 1×1
+ * contra la distribución del fondo bajo la caja del texto, 390 y 1440, 40-49
+ * posiciones de scroll por combinación), la etiqueta «Descubre» da **p05 4.47,
+ * mediana 4.53 y el 15.9 % de su caja por debajo de 4.5 a 1440** (17.5 % a
+ * 390). Las otras cinco pasan con holgura en el mismo censo (5.12 a 8.09).
+ *
+ * Aquello quedó ANOTADO Y SANCIONADO en `scripts/check-text-contrast.mjs`
+ * (`SANCIONADAS`) en vez de arreglado, esperando decisión del dueño. La
+ * crítica externa #19 (2026-09-06) volvió a levantarlo como P1 con sonda
+ * propia —p05 4.405 y el 33.9 % del fondo bajo 4.5:1 a 1440; p05 4.399 y el
+ * 37.8 % a 390— y el dueño decidió arreglarlo. Eso es la sección siguiente.
+ *
+ * ## LA TABLA POR RAMPA (ola S, 2026-09-06)
+ *
+ * `LABEL_SAFE_STEP` deja de ser un desplazamiento uniforme «+2 escalones» y
+ * pasa a ser una tabla por RAMPA Y PASO. El motivo es que las tres rampas no
+ * llegan al mismo sitio con el mismo salto: con +2, `secondary` y `error`
+ * aterrizan entre 5.23 y 8.19 contra la parada oscura, mientras que
+ * `primary` —la rampa más clara de las tres a igual escalón, por su croma
+ * bajo (0.158 de pico frente a 0.259 y 0.24)— aterriza en 4.510, que es el
+ * suelo AA con 0.010 de margen. El salto uniforme trataba como iguales tres
+ * rampas que no lo son.
+ *
+ * SUELO NUEVO: 4.8:1 NOMINAL, no 4.5. No es un número redondo elegido a ojo,
+ * es lo que cuesta el render: el censo de la #19 midió `p05 4.405` donde el
+ * cálculo nominal daba 4.510, o sea que el antialiasing, la composición del
+ * degradado y el redondeo a 8 bits se comen ~0.105 (0.111 a 390). Un suelo
+ * nominal de 4.8 deja ~0.3 de margen sobre 4.5, casi el triple de esa
+ * pérdida medida. Los candados de `Journey.test.tsx` afirman 4.8, no 4.5.
+ *
+ * Tabla nueva, con las cifras calculadas con el `contrastRatioHex` de
+ * `src/theme/tokens/contrast.ts` (el mismo que usa el test) contra las DOS
+ * paradas compuestas del degradado de la tarjeta -- oscura `#ffecfd`
+ * primero, clara `#e5f6ff` después:
+ *
+ *   01 Descubre   primary/500   → primary/800    5.189 · 5.270
+ *   02 Aprende    primary/600   → primary/900    7.331 · 7.444
+ *   03 Imagina    secondary/500 → secondary/700  5.263 · 5.345
+ *   04 Crea       secondary/600 → secondary/800  5.890 · 5.982
+ *   05 Comparte   secondary/700 → secondary/900  8.194 · 8.321
+ *   06 Evoluciona error/500     → error/700      5.228 · 5.309
+ *
+ * Solo se mueve `primary`: «Descubre» sube un escalón más (500→800 en vez de
+ * 500→700) y «Aprende» sube con ella (600→900) para no colisionar y para
+ * seguir leyéndose más oscura que Descubre, que es la progresión del mockup.
+ * Las otras cuatro etiquetas NO cambian de color: `secondary` y `error` ya
+ * pasaban 4.8 con holgura, y cambiarlas habría movido cuatro colores
+ * visibles de la sección sin ningún hallazgo que lo pidiera.
+ *
+ * La tabla es TOTAL (las tres rampas por los tres pasos declarables en
+ * `JourneyStep["colorStep"]`), no un mapa de las seis combinaciones que hoy
+ * existen: la entrada `primary/700 → 1000` (11.034 · 11.205) no la usa nadie
+ * todavía y está para que un paso nuevo con `colorRamp: "primary"` y
+ * `colorStep: 700` no herede por defecto un color que colisione con
+ * «Aprende». Cada rampa mantiene sus tres destinos distintos y en orden de
+ * luminancia decreciente, y el candado de `Journey.test.tsx` mide las NUEVE
+ * entradas, no solo las seis vivas.
+ *
+ * SOLO afecta al TEXTO de la etiqueta: `ScDisc` (el icono del disco, misma
+ * rama clara) y `ScJourneyStepIconBox` (rama oscura, que ni siquiera monta
+ * esta etiqueta) siguen leyendo `stepColor(...)` sin cambios -- ninguno de
+ * los dos es texto, y el icono se pinta sobre `semantic.surface` (blanco
+ * opaco), un fondo distinto con su propio margen de sobra.
+ *
+ * La rama `!theme.isLight` de esta función nunca se ejercita hoy --
+ * `ScStepLabel` solo lo monta `JourneyLight` (`Journey()` nunca monta las
+ * dos ramas a la vez) -- pero se resuelve igual que `stepColor` por simetría
+ * con el resto de resolvers de acento del repo (`languageAccent`/
+ * `navActiveAccent`/`ctaGradientMidStop`, todos `theme.isLight ? A : B`
+ * aunque hoy solo una rama tenga consumidor real).
+ */
+const LABEL_SAFE_STEP: Record<
+  JourneyStep["colorRamp"],
+  Record<JourneyStep["colorStep"], 700 | 800 | 900 | 1000>
+> = {
+  primary: { 500: 800, 600: 900, 700: 1000 },
+  secondary: { 500: 700, 600: 800, 700: 900 },
+  error: { 500: 700, 600: 800, 700: 900 },
+};
+
+export function stepLabelColor(
+  theme: ThemeDefinition,
+  step: Pick<JourneyStep, "colorRamp" | "colorStep">,
+): string {
+  if (!theme.isLight) return stepColor(theme, step);
+  return theme.palette[step.colorRamp][
+    LABEL_SAFE_STEP[step.colorRamp][step.colorStep]
+  ];
+}
+
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, ghost-card):
+ * regla borde-O-sombra, nunca los dos (impeccable) -- este disco CONSERVA su
+ * sombra-glow (`$shadow`, coloreada por paso via `discShadow` en
+ * `JOURNEY_STEPS`, journey.layers.ts) y RETIRA el borde 1px
+ * (`JOURNEY_DISC_BORDER`, tambien retirado de journey.layers.ts por quedarse
+ * sin consumidor). Por que este lado y no el otro: el disco es el marcador de
+ * un paso dentro de una ESCENA -- la sombra ya es un halo de color que sugiere
+ * luz propia (14% de alfa, tenida con el mismo hue que el icono/etiqueta del
+ * paso, ver `discShadow` en journey.layers.ts), asi que un borde encima
+ * competiria con ese glow por el mismo borde visual en vez de reforzarlo.
+ * Comparese con `ScCard` en Contact.tsx (Task 12 tambien): esa es una
+ * SUPERFICIE de tarjeta sobre la pagina, no un marcador de escena, y ahi la
+ * regla elige el lado contrario (borde, sin sombra).
+ */
 const ScDisc = styled.div<{
   $colorRamp: JourneyStep["colorRamp"];
   $colorStep: JourneyStep["colorStep"];
@@ -304,7 +751,6 @@ const ScDisc = styled.div<{
   height: 56px;
   border-radius: ${({ theme }) => theme.data.radius.full};
   background: ${({ theme }) => theme.data.semantic.surface};
-  border: 1px solid ${JOURNEY_DISC_BORDER};
   box-shadow: ${({ $shadow }) => $shadow};
   display: flex;
   align-items: center;
@@ -329,56 +775,123 @@ const ScStepLabel = styled.p<{
 }>`
   margin: ${({ theme }) => theme.data.space[3]} 0 0;
   font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 0.8125rem;
+  /* bodySm (14px) en vez del literal 0.8125rem (13px) que llevaba hasta la
+     crítica externa #15 (2026-09-02): el rótulo del paso ya se distingue por
+     peso 700 y color de rampa; un píxel no era una decisión visible. */
+  font-size: ${({ theme }) => theme.data.type.scale.bodySm.size};
   font-weight: 700;
+  /* stepLabelColor, NO stepColor (fix wave E, hallazgo E2): ver su docblock,
+     más arriba, para las cifras medidas -- el color de TEXTO necesita un
+     escalón AA-seguro distinto del que usa el icono del disco. */
   color: ${({ theme, $colorRamp, $colorStep }) =>
-    stepColor(theme.data, { colorRamp: $colorRamp, colorStep: $colorStep })};
+    stepLabelColor(theme.data, {
+      colorRamp: $colorRamp,
+      colorStep: $colorStep,
+    })};
 `;
 
+/*
+ * `max-width` (critica externa #15, 2026-09-02): NUEVO, y es la otra mitad del
+ * arreglo de ScStepsGrid -- la que protege el extremo CONTRARIO. Con una sola
+ * columna por debajo de md, el ancho disponible para este parrafo pasa de 103
+ * a 278px a 390px de viewport (lo que buscaba el hallazgo) pero tambien a
+ * 655px en un 767x1024, donde la misma frase se leeria en una linea de mas de
+ * 100 caracteres: por encima del techo de 75 del sistema (DESIGN.md §3.4).
+ * `grid.prose` es el token que el sistema ya reserva para este rol, y es el
+ * mismo arreglo que la critica #9 aplico a ScBody (arriba en este fichero) y
+ * a ScJourneyStepSubtitle (journey.deck.tsx).
+ *
+ * NO hace falta `margin-inline: auto` -- a diferencia de ScBody, este parrafo
+ * cuelga de ScStepOffset, que es un flex en columna con `align-items: center`,
+ * asi que la caja ya queda centrada por el propio contenedor. En los tramos
+ * `md`/`lg` la pista es mas estrecha que el tope y esta declaracion no llega a
+ * actuar.
+ */
 const ScStepBody = styled(Typography)`
   margin-block-start: ${({ theme }) => theme.data.space[2]};
   color: ${({ theme }) => theme.data.semantic.textMuted};
+  max-width: ${({ theme }) => theme.data.grid.prose};
 `;
 
+/*
+ * `font-size` DEL TOKEN, no el literal (critica externa #15, hallazgo C 6,
+ * 2026-09-02). Esta linea escribia `1rem`, que es EXACTAMENTE el valor de
+ * `type.scale.body.size`: un token vivo duplicado a mano, el caso que prohibe
+ * la regla 17 de RULES.md. El CSS renderizado no cambia ni un caracter -- lo
+ * que cambia es de que promesa cuelga, igual que en la migracion de
+ * `grid.navMax` a `grid.sectionMax` de la critica #12 (ver ScJourney, arriba).
+ *
+ * El `font-weight: 600` se queda como literal a proposito: no coincide con el
+ * peso de la variante `body` (400) que da el tamano, sino con el de `h4`, y
+ * emparejar el tamano de un rol con el peso de otro por el nombre del token
+ * seria peor documentacion que el numero. El hallazgo nombra `font-size`.
+ */
 const ScQuote = styled.div`
   margin-top: ${({ theme }) => theme.data.space[7]};
   text-align: center;
   font-family: ${({ theme }) => theme.data.type.fontBody};
-  font-size: 1rem;
+  font-size: ${({ theme }) => theme.data.type.scale.body.size};
   font-weight: 600;
 `;
 
-/* Degradado de texto estático (la spec §7.2 no pide animarlo, a diferencia
-   del tramo `ToInfinite` de `BrandName.tsx`), con la misma red de seguridad
-   de `@supports not (background-clip: text)` para no dejar el texto
-   invisible en un motor que no soporte el recorte. Se reutiliza TAL CUAL en
-   la diapositiva de cita de la presentacion oscura (`JourneyDeckDark`, mas
-   abajo): las dos ramas comparten el mismo degradado en el mismo instante. */
+/*
+ * Task 12 (dieta de ornamento B, auditoria premium 2026-08-08, 2026-08-09):
+ * el degradado de texto (`background-clip: text` + `JOURNEY_QUOTE_GRADIENT_LIGHT`/
+ * `_DARK`, retirados de `journey.layers.ts`) pasa a color solido. Mismo
+ * motivo que `ScAccent` en Story.tsx/Contact.tsx: un degradado de texto queda
+ * fuera del alcance de `contrast.ts`, asi que nadie lo habia medido nunca.
+ *
+ * El color elegido es el MISMO `semantic.brandText` que este bloque ya usaba
+ * como fallback de `@supports not (background-clip: text)`. Se reutiliza TAL
+ * CUAL en la diapositiva de cita de la presentacion oscura (`JourneyDeckDark`,
+ * mas abajo): las dos ramas comparten el mismo componente en el mismo
+ * instante, asi que hacen falta las dos medidas:
+ *
+ * - Rama CLARA: se pinta sobre `JOURNEY_CARD_BACKGROUND` (el degradado pastel
+ *   translucido de `ScCard`, alfa ~0.92 sobre `semantic.bg`) -- brandText da
+ *   entre 5.19:1 y 5.27:1 segun la parada, la peor de las dos por encima de
+ *   AA (4.5:1).
+ * - Rama OSCURA: se pinta sobre la escena `JourneyCosmicPortal`, cuyo void
+ *   (`JOURNEY_PORTAL_VOID`, "#0b0620") es lo unico medible por codigo (jsdom
+ *   no compone las capas WebP reales) -- brandText da 12.98:1. El propio
+ *   `journeyCosmicPortal.layers.ts` documenta una esquina MEDIDA de la capa
+ *   opaca real (`01-background`, "#12012a", "algo mas claro" que el void) --
+ *   se mide tambien contra esa cifra (12.96:1, practicamente igual) porque es
+ *   el dato mas cercano al pixel real que existe en el repo.
+ *
+ * Medicion completa en Journey.test.tsx, describe "Task 12".
+ */
 const ScQuoteText = styled.span`
-  background-image: ${({ theme }) =>
-    theme.data.isLight
-      ? JOURNEY_QUOTE_GRADIENT_LIGHT
-      : JOURNEY_QUOTE_GRADIENT_DARK};
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-
-  @supports not (background-clip: text) {
-    background-image: none;
-    color: ${({ theme }) => theme.data.semantic.brandText};
-    -webkit-text-fill-color: ${({ theme }) => theme.data.semantic.brandText};
-  }
+  color: ${({ theme }) => theme.data.semantic.brandText};
 `;
 
 /*
- * Ocupa EXACTAMENTE el hueco reservado por `ScStepsAndQuote` (mismo ancho en el
- * `padding-inline-end` de arriba, mismo alto que el contenido real de esa
- * columna vía `inset-block: 0` + `height: 100%`): no puede solaparse con el
- * camino/rejilla porque ese hueco es espacio que ellos ya no ocupan, y no
- * puede recortarse porque `object-fit: contain` reduce imagen entera para
- * caber en la caja en vez de desbordarla (a diferencia del `cover` global
- * de GlobalStyles).
+ * NO SE SOLAPA CON EL CAMINO, pero NO por el motivo que este bloque afirmaba.
+ * Corregido el 2026-08-14 con medición en navegador (QA §6, bloqueante 3).
+ *
+ * Lo que decía: que ocupa exactamente el hueco reservado por
+ * `ScStepsAndQuote`, «mismo alto que el contenido real de esa columna vía
+ * `inset-block: 0` + `height: 100%`», y que por eso no puede solaparse. Eso
+ * dejó de ser cierto cuando la caja pasó a `height: 150%` con `top: -50px` y
+ * `right: -50px`: **la caja SÍ invade la columna del texto**, 20 px sobre el
+ * cuerpo del paso 06, y además la figura se pinta ENCIMA (`elementFromPoint`
+ * devuelve la imagen en ese punto).
+ *
+ * Por qué aun así no se ve ningún solape, medido a 1200/1280/1440/1920:
+ *
+ *   1. `object-fit: contain` reduce la imagen entera para caber en la caja en
+ *      vez de desbordarla (a diferencia del `cover` global de GlobalStyles),
+ *      así que la caja crece pero el bitmap no.
+ *   2. El propio bitmap trae un **margen transparente de 43 px** a esa escala
+ *      en su borde izquierdo. Entre el final del texto y la primera columna de
+ *      píxeles opacos quedan **23 px libres**, idénticos en los cuatro anchos.
+ *
+ * CONSECUENCIA FRÁGIL, y es el motivo de escribir esto en vez de borrar el
+ * párrafo viejo: la holgura no la sostiene el layout, la sostiene el
+ * RECORTE DEL ASSET. Si alguien re-exporta esta figura con el recorte más
+ * ajustado —lo normal al optimizar peso— esos 43 px desaparecen y el texto
+ * del paso 06 queda debajo de la ilustración sin que ningún test lo note.
+ * Quien toque el asset re-mide; hay un ítem para ello en `PRE-LAUNCH-QA.md`.
  *
  * Desplazamiento de scroll (D1, ver el docblock de
  * JOURNEY_FIGURE_SCROLL_SHIFT en journey.layers.ts): directo en este mismo
@@ -399,10 +912,11 @@ const ScFigure = styled.img`
     inset-block: 0;
     inset-inline-end: 0;
     width: ${JOURNEY_FIGURE_WIDTH};
-    height: 100%;
+    height: 150%;
     object-fit: contain;
     filter: ${JOURNEY_FIGURE_SHADOW};
-    right: -60px;
+    right: -50px;
+    top: -50px;
     transform: translateY(
       calc(${JOURNEY_FIGURE_SCROLL_SHIFT} * var(--journey-progress, 0))
     );
@@ -552,8 +1066,11 @@ function JourneyLight(): ReactElement {
       $fullBleed={false}
     >
       <ScCard>
+        {/* Task 11 (dieta de ornamento A, 2026-08-09): el kicker
+            «Inspiración» se retira -- Journey abre con su encabezado real,
+            no con una etiqueta de marca por encima. Solo Story conserva
+            kicker (es una pregunta con voz, no una etiqueta). */}
         <ScHeader>
-          <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
           <Typography
             variant="h2"
             id="journey-title"
@@ -594,11 +1111,25 @@ function JourneyLight(): ReactElement {
                     >
                       <StepIcon id={step.id} />
                     </ScDisc>
+                    {/* Senal de posicion, MISMA clave y mismas palabras que
+                        la rama oscura (critica externa #11, 2026-08-18):
+                        sustituye al "0N · " que esta etiqueta llevaba pegado
+                        delante. Va tras la caja del icono -- que es
+                        `aria-hidden` y no aporta texto -- asi que para un
+                        lector de pantalla es lo primero que suena del paso, y
+                        no ocupa caja, asi que la composicion visual de la
+                        tarjeta no se mueve por el. Total leido de
+                        `JOURNEY_STEPS`, nunca de un literal (regla 39). */}
+                    <VisuallyHidden>
+                      {t("Home.journey.stepPosition", {
+                        current: index + 1,
+                        total: JOURNEY_STEPS.length,
+                      })}
+                    </VisuallyHidden>
                     <ScStepLabel
                       $colorRamp={step.colorRamp}
                       $colorStep={step.colorStep}
                     >
-                      {String(index + 1).padStart(2, "0")} ·{" "}
                       {t(`Home.journey.steps.${step.id}.label`)}
                     </ScStepLabel>
                     <ScStepBody variant="caption">
@@ -635,29 +1166,64 @@ function JourneyLight(): ReactElement {
  * monta cuando la rama oscura esta activa.
  *
  * Reparto de las JOURNEY_SLIDES diapositivas (spec seccion 4): 0 = intro
- * (kicker + h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso
- * cada una (icono -> etiqueta -> subtitulo, T5 de la spec
- * 2026-08-02-journey-deck-tipografia-design.md), la ultima = la cita.
- * `ScKicker`/`ScQuoteText` se REUTILIZAN tal cual (las comparten las dos
- * ramas, arriba en este archivo); el resto de piezas de cartel viven en
+ * (h2#journey-title + cuerpo), 1..JOURNEY_STEPS.length = un paso cada una
+ * (icono -> etiqueta -> subtitulo, T5 de la spec
+ * 2026-08-02-journey-deck-tipografia-design.md), la ultima = la cita. Hasta
+ * Task 11 (dieta de ornamento A, 2026-08-09) la diapositiva 0 abria con un
+ * kicker («Inspiración», `ScKicker`, reutilizado tal cual entre las dos
+ * ramas) antes del h2 -- se retira en las DOS ramas de Journey: solo Story
+ * conserva su kicker (voz propia, no etiqueta de marca repetida en cada
+ * seccion). `ScQuoteText` SI se sigue reutilizando tal cual (la comparten las
+ * dos ramas, arriba en este archivo); el resto de piezas de cartel viven en
  * journey.deck.tsx (`ScJourneyDeckTitle`/`ScJourneyIntroBody`/
  * `ScJourneyStepIconBox`/`ScJourneyStepLabel`/`ScJourneyStepSubtitle`/
  * `ScJourneyQuote`), con su PROPIA escala de tamanos (journey.layers.ts)
  * para no filtrar ningun ajuste a la rama clara.
  *
- * SIN numero de paso (retirado 2026-08-02, encargo explicito del usuario:
- * "quita las numeraciones de la seccion Journey", acotado a esta rama tras
- * preguntar el alcance). La diapositiva de paso compuso icono -> numero ->
- * etiqueta -> cuerpo (D11 de la spec de esta entrega) hasta hoy; la rama
- * CLARA conserva su "0N · Label" tal cual, verbatim del mockup aprobado --
- * este cambio es exclusivo de la presentacion oscura. `ScJourneyStepNumber`
- * (el styled que pintaba "01".."06") se retiro por completo de
- * journey.deck.tsx junto con la constante de tamano que consumia
- * (`JOURNEY_DECK_STEP_NUMBER_SIZE`, journey.layers.ts): sin numero que
- * mostrar, ninguna de las dos tenia ya consumidor.
+ * NUMERACION Y SENAL DE POSICION, historia completa porque este punto ya se
+ * ha decidido CUATRO veces:
+ *
+ * 1. La diapositiva compuso icono -> numero -> etiqueta -> cuerpo (D11 de la
+ *    spec de las 8 diapositivas) hasta el 2026-08-02, cuando el usuario pidio
+ *    explicitamente "quita las numeraciones de la seccion Journey" (acotado a
+ *    esta rama tras preguntar el alcance, D16 de esa misma spec) y se retiro
+ *    `ScJourneyStepNumber` con su constante de tamano
+ *    (`JOURNEY_DECK_STEP_NUMBER_SIZE`).
+ * 2. La Task 16 (2026-08-11) monto aqui un ordinal pequeno para igualar el
+ *    contenido con la rama clara. La revision encontro la evidencia primaria
+ *    de D16 y lo escalo: la asimetria era deliberada. RETIRADO el mismo dia.
+ * 3. Lo que queda de aquel hallazgo, aceptado por el dueno: el rail
+ *    (`ScJourneyRail`) es `aria-hidden`, asi que esta rama no daba ninguna
+ *    senal de posicion a un lector de pantalla. La diapositiva abre ahora con
+ *    un `VisuallyHidden` que dice "Paso N de 6" con PALABRAS
+ *    (`Home.journey.stepPosition`) -- no un "01" suelto, que leido en voz
+ *    alta no significa nada. Va delante de la etiqueta (tras el icono, que
+ *    es `aria-hidden` y no suena) para que la posicion se anuncie antes que
+ *    el nombre del paso, y no ocupa caja, asi que el ritmo
+ *    visual (icono -> etiqueta a space[4] -> subtitulo) es exactamente el que
+ *    D16 dejo.
+ *
+ * 4. Critica externa #11 (2026-08-18, hallazgo C, decision del dueno): esta
+ *    rama NO cambia -- ni gana el ordinal visible ni pierde nada. Lo que
+ *    cambia es la OTRA: la rama clara retira su "0N · Label" y monta este
+ *    mismo `VisuallyHidden` con la misma clave, asi que la senal de posicion
+ *    deja de ser una particularidad de esta rama y pasa a ser el contenido
+ *    unico de las dos. Ver el docblock de cabecera del fichero para la
+ *    disyuntiva completa y por que se eligio ese lado.
+ *
+ * El total (`JOURNEY_STEPS.length`) se lee del array en las dos ramas, nunca
+ * de un literal: si el viaje gana o pierde un paso, el anuncio se corrige solo
+ * (regla 39 de RULES.md).
  */
 function JourneyDeckDark(): ReactElement {
   const { t } = useTranslation("home");
+  // Namespace SEPARADO (Task 4, plan
+  // 2026-08-10-implementacion-plan-premium-f1-f5), MISMO motivo que
+  // StoryDeckDark (Story.tsx): `Common.Deck.scrollHint` vive en `common`, no
+  // en `home` -- patron de interfaz compartido entre presentaciones, no
+  // copia propia de esta seccion. Bajo `Common.Deck.*`, no como raiz plana
+  // (regla 29 de RULES.md).
+  const { t: tCommon } = useTranslation("common");
 
   // Refs ESTABLES (useRef, no callback-ref): useSlideDeck lee
   // getBoundingClientRect() de la pista en cada frame de rAF y escribe las
@@ -684,10 +1250,31 @@ function JourneyDeckDark(): ReactElement {
   // contrato -- pero aqui no se desestructura: D6 dice explicitamente que
   // Journey no consume "rewind", asi que no hay ningun `data-dir` en esta
   // seccion.
-  const { index } = useSlideDeck(trackRef, stageRef, JOURNEY_SLIDES, {
-    tailScreens: JOURNEY_DECK_TAIL_SCREENS,
-    cssVarPrefix: "journey",
-  });
+  // `scrollToSlide` (critica externa #10, hallazgo A): el rail deja de ser
+  // decorativo y sus marcas pasan a ser botones que llevan al tramo de pista
+  // que activa cada diapositiva. La geometria la invierte el hook, que es
+  // quien ya la calcula en el sentido directo -- ver su docblock.
+  const { index, scrollToSlide } = useSlideDeck(
+    trackRef,
+    stageRef,
+    JOURNEY_SLIDES,
+    {
+      tailScreens: JOURNEY_DECK_TAIL_SCREENS,
+      cssVarPrefix: "journey",
+    },
+  );
+
+  // EL PIN SOLO SE SOSTIENE SI CADA DIAPOSITIVA CABE (critica externa #19, P1
+  // numero 3; WCAG 1.4.4). `useDeckFit` observa el escenario y las
+  // diapositivas y escribe `data-deck-fit` en la PISTA en cuanto alguna deja
+  // de caber en la pantalla que el escenario pegado ocupa; el CSS del deck
+  // reacciona a ese atributo con el MISMO bloque de declaraciones que ya usa
+  // bajo `prefers-reduced-motion: reduce` (ver `deckStatic`), asi que el
+  // contenido que el recorte escondia vuelve al flujo del documento. El
+  // defecto medido, el porque de la medida y el motivo de que no consulte
+  // `matchMedia` viven en el docblock del hook. Recibe los MISMOS dos refs
+  // que `useSlideDeck` -- no hay geometria nueva que cablear.
+  useDeckFit(trackRef, stageRef);
 
   // Estado de cada diapositiva: se decide AQUI, comparando su indice con el
   // `index` que escribe el hook -- el CSS de ScJourneySlide
@@ -698,6 +1285,59 @@ function JourneyDeckDark(): ReactElement {
     if (slideIndex < index) return "past";
     if (slideIndex === index) return "current";
     return "next";
+  };
+
+  /*
+   * Nombre accesible de cada parada del rail (critica externa #12,
+   * 2026-08-19): el CONTENIDO de la diapositiva a la que lleva -- el h2 de la
+   * intro, la etiqueta del paso, la cita de cierre -- leido de las MISMAS
+   * claves que esa diapositiva pinta.
+   *
+   * SUSTITUYE A LA NUMERACION, y este punto se decide por SEGUNDA vez, asi que
+   * conviene dejar escrito por que cambia el sentido:
+   *
+   * 1. La critica #10 (2026-08-18) eligio numerar la posicion ("Ir a la
+   *    diapositiva N de 8") en vez de nombrar el destino, con este argumento:
+   *    nombrar los ocho destinos "duplicaria el copy de la seccion en una
+   *    segunda fuente que tendria que moverse a la vez que la primera".
+   * 2. La critica #12 MIDIO el coste de aquella eleccion, y era peor que el
+   *    riesgo que evitaba: el rail contaba OCHO diapositivas mientras las
+   *    diapositivas anunciaban "Paso N de 6" (`Home.journey.stepPosition`,
+   *    VisuallyHidden, en las DOS ramas desde la critica #11), y ademas con
+   *    DESFASE -- el boton 2 aterriza en "Paso 1 de 6", el 6 en "Paso 5 de 6".
+   *    Un usuario de tecnologia asistiva oia dos numeraciones desalineadas del
+   *    mismo mecanismo (P2 de la heuristica 7 de Nielsen, la misma que el rail
+   *    existe para servir).
+   *
+   * POR QUE NOMBRAR CIERRA EL HALLAZGO Y RENUMERAR NO: la pista tiene 8
+   * paradas porque incluye apertura y cierre, y los pasos son 6. Cualquier
+   * numeracion del rail tiene que elegir QUE cuenta, y las dos elecciones
+   * chocan con la otra numeracion de la seccion (contar diapositivas
+   * contradice "de 6"; contar pasos deja sin numero la apertura y el cierre, y
+   * miente sobre cuantas paradas hay). Nombrar el destino NO CUENTA NADA, asi
+   * que no puede contradecir a ninguna numeracion -- y dice mas: a donde vas,
+   * no cuantos hay. "Paso N de 6" sigue sonando al aterrizar, que es donde esa
+   * informacion siempre fue cierta.
+   *
+   * Y el riesgo que temia la critica #10 no se materializa: esto no es una
+   * segunda fuente de copy, es la MISMA -- `Home.journey.title`,
+   * `steps.<id>.label` y `quote` son las claves que ya pintan esas
+   * diapositivas unas lineas mas arriba, asi que el rail se mueve con ellas
+   * por construccion. Todo derivado de `JOURNEY_STEPS`/`JOURNEY_SLIDES`, nunca
+   * de un literal (regla 39 de RULES.md).
+   *
+   * Mismo contrato y mismas palabras que el rail de Story, que estrena esta
+   * gramatica en la misma ola: un rail de deck nombra sus destinos.
+   *
+   * `Home.journey.railGoTo` ("Ir a la diapositiva {{current}} de {{total}}")
+   * perdio con esto su UNICO consumidor; la integracion de la ola H la retiro
+   * de `es` y `en` en el mismo movimiento (regla 32 de RULES.md -- el agente
+   * del deck tenia los JSON fuera de su dominio y lo dejo declarado aqui).
+   */
+  const slideName = (slideIndex: number): string => {
+    if (slideIndex === 0) return t("Home.journey.title");
+    if (slideIndex === JOURNEY_SLIDES - 1) return t("Home.journey.quote");
+    return t(`Home.journey.steps.${JOURNEY_STEPS[slideIndex - 1].id}.label`);
   };
 
   return (
@@ -715,7 +1355,19 @@ function JourneyDeckDark(): ReactElement {
           ref={stageRef}
           data-slide={index}
         >
-          <ScJourneySceneWrap>
+          {/* Texto alternativo del arte del deck, gemelo del de Story
+              (critica externa #16, hallazgo A, decision del dueno del
+              2026-09-03): el mismo razonamiento completo vive en el
+              comentario equivalente de `Story.tsx`. En resumen: se nombra en
+              el consumidor porque `JourneyCosmicPortal` no cambia -- sus 6
+              capas siguen con `alt=""` bajo un `aria-hidden="true"`, que es
+              lo correcto para un fondo, mientras que la composicion entera
+              (la figura al final del sendero) si dice algo y es lo que la
+              rama clara ya describia con `figureAlt`. */}
+          <ScJourneySceneWrap
+            role="img"
+            aria-label={t("Home.journey.sceneAlt")}
+          >
             <JourneyCosmicPortal />
           </ScJourneySceneWrap>
           <ScJourneyDeck>
@@ -723,7 +1375,6 @@ function JourneyDeckDark(): ReactElement {
               data-slide-index={0}
               data-state={slideState(0)}
             >
-              <ScKicker variant="overline">{t("Home.journey.kicker")}</ScKicker>
               <ScJourneyDeckTitle id="journey-title">
                 {t("Home.journey.title")}
               </ScJourneyDeckTitle>
@@ -741,6 +1392,12 @@ function JourneyDeckDark(): ReactElement {
                 >
                   <StepIcon id={step.id} />
                 </ScJourneyStepIconBox>
+                <VisuallyHidden>
+                  {t("Home.journey.stepPosition", {
+                    current: stepIndex + 1,
+                    total: JOURNEY_STEPS.length,
+                  })}
+                </VisuallyHidden>
                 <ScJourneyStepLabel>
                   {t(`Home.journey.steps.${step.id}.label`)}
                 </ScJourneyStepLabel>
@@ -758,18 +1415,64 @@ function JourneyDeckDark(): ReactElement {
               </ScJourneyQuote>
             </ScJourneySlide>
           </ScJourneyDeck>
-          {/* Rail decorativo (D13): JOURNEY_SLIDES marcas, aria-hidden, que
-              reflejan data-slide del stage por CSS puro
-              (ScJourneyRailMark, journey.deck.tsx) -- no llevan estado
-              propio de React, solo su indice fijo. */}
-          <ScJourneyRail aria-hidden="true">
+          {/* Rail de progreso (D13), OPERABLE desde la critica externa #10
+              (hallazgo A): JOURNEY_SLIDES marcas que reflejan data-slide del
+              stage por CSS puro (ScJourneyRailMark, journey.deck.tsx) y que
+              ademas llevan a su diapositiva al pulsarlas.
+
+              De aria-hidden a role="group" + aria-label: ocho botones
+              operables no pueden estar fuera del arbol de accesibilidad, y
+              sin agrupar se anunciarian como ocho controles sin relacion
+              entre si.
+
+              EL aria-label DICE EL DESTINO, NO LA POSICION, desde la critica
+              externa #12 (2026-08-19): "Descubre", no "Ir a la diapositiva 2
+              de 8". La critica #10 habia elegido lo contrario, y lo que la #12
+              midio es que aquella numeracion contradecia la de las propias
+              diapositivas ("Paso N de 6", con desfase de uno). El porque
+              completo de las dos vueltas vive en el docblock de slideName, mas
+              arriba.
+
+              aria-current marca el activo. NO gobierna el estilo: eso lo
+              sigue haciendo el selector descendiente sobre data-slide, que ya
+              estaba probado -- ver el docblock de ScJourneyRailMark. */}
+          <ScJourneyRail
+            role="group"
+            aria-label={t("Home.journey.railLabel")}
+          >
+            {/* Rotulo de posicion (critica externa #16, decision del dueno),
+                gemelo del de Story: fraccion apilada, sin ninguna palabra y
+                por tanto sin clave de i18n, y aria-hidden. En esta seccion lo
+                ultimo importa el doble -- cuenta las OCHO paradas del rail,
+                mientras que el "Paso N de 6" que las diapositivas anuncian
+                cuenta pasos; anunciar las dos numeraciones a la vez es
+                literalmente el defecto que la critica #12 midio aqui y
+                retiro. Ver el docblock de ScJourneyRailStatus. */}
+            <ScJourneyRailStatus aria-hidden="true">
+              <ScJourneyRailStatusCurrent>
+                {index + 1}
+              </ScJourneyRailStatusCurrent>
+              <ScJourneyRailStatusTotal>
+                {JOURNEY_SLIDES}
+              </ScJourneyRailStatusTotal>
+            </ScJourneyRailStatus>
             {Array.from({ length: JOURNEY_SLIDES }, (_, railIndex) => (
               <ScJourneyRailMark
                 key={railIndex}
+                type="button"
                 $index={railIndex}
+                aria-label={slideName(railIndex)}
+                aria-current={railIndex === index ? "true" : undefined}
+                onClick={() => scrollToSlide(railIndex)}
               />
             ))}
           </ScJourneyRail>
+          {/* Pista de scroll (Task 4): visual, aria-hidden, se desvanece con
+              el PRIMER avance del deck reutilizando data-slide (ver el
+              docblock de ScJourneyScrollHint, journey.deck.tsx). */}
+          <ScJourneyScrollHint aria-hidden="true">
+            {tCommon("Common.Deck.scrollHint")}
+          </ScJourneyScrollHint>
         </ScJourneyStage>
       </ScJourneyTrack>
     </ScJourney>
