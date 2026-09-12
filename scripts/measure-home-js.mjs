@@ -579,7 +579,7 @@ export const BASELINE_PAGES = 9;
  * refresque solo es deliberado: obliga a que todo cambio de censo aparezca
  * también en el diff de este fichero.
  */
-export const BASELINE_DIGEST = "40906bc111b524ec";
+export const BASELINE_DIGEST = "c663800ad2129a47";
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
 export const HOME_PAGE = "index.html";
