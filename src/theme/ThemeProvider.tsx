@@ -309,18 +309,30 @@ export function ThemeProvider({
   }, [themeName, changeSource]);
 
   // El modo de restitución del scroll sale por la MISMA puerta que
-  // `data-theme` (misma guarda de "initial": en la pasada inicial el
-  // `themeName` es el "light" sin confirmar y escribir `"auto"` pisaría el
-  // `"manual"` que el script de arranque acaba de acertar para el visitante
-  // oscuro). Además depende de la ruta: una navegación blanda desde una legal
-  // oscura hacia la portada tiene que pasar a `"manual"`, y la inversa a
-  // `"auto"`. Con `changeSource === "initial"` el tema resuelto es el claro y
-  // la entrada ya lleva el `"auto"` que el script le puso, así que no hay nada
-  // que corregir tampoco al cambiar de ruta.
+  // `data-theme`, pero SIN saltarse la pasada inicial (P7-2B', 2026-09-12).
+  // Hasta esa fecha este efecto llevaba la misma guarda de "initial" que el de
+  // arriba, con el mismo argumento: en la pasada inicial el `themeName` es el
+  // "light" sin confirmar y escribir con él pisaría lo que el script de
+  // arranque acertó. El argumento solo valía mientras la regla distinguía
+  // claro de oscuro; desde P7-2 (`scrollRestorationFor`, "manual" en las dos
+  // portadas) el tema ya no cambia el resultado, y la guarda tenía un coste
+  // medido: el visitante CLARO nunca sale de `changeSource === "initial"`
+  // (resolver a "light" no dispara ningún setState), así que al llegar a la
+  // portada por el logo desde una legal cargada como documento este efecto no
+  // corría y la entrada se quedaba en el `"auto"` de la legal (familia 34:
+  // `logo@0[auto]` en `/` y `/en`, a 1440 y a 390). La regla depende de la
+  // ruta: una navegación blanda desde una legal hacia la portada tiene que
+  // pasar a `"manual"`, y la inversa a `"auto"`.
+  //
+  // Durante "initial" se escribe con el tema PINTADO (`data-theme`, que el
+  // script dejó antes de hidratar), igual que hace la vuelta desde la bfcache
+  // de abajo: es la única lectura fiable en esa pasada, y si el script no
+  // llegó a correr resuelve a `null`, que la regla deja en `"auto"`.
   const pathname = usePathname();
   useEffect(() => {
-    if (changeSource === "initial") return;
-    syncScrollRestoration(themeName);
+    syncScrollRestoration(
+      changeSource === "initial" ? readResolvedTheme() : themeName,
+    );
   }, [themeName, changeSource, pathname]);
 
   // Vuelta desde la bfcache (`pageshow` con `persisted`): el documento se

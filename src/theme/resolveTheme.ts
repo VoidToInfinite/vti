@@ -152,9 +152,18 @@ export function readResolvedTheme(): ThemeName | null {
  * corrección del sitio (`restoreReadingAnchor`, vía `useReloadLanding`) y la
  * deshace, porque restituye el píxel guardado contra la geometría clara del
  * HTML horneado. Experimento emparejado de 15 pares: con `"auto"` 47 de 75
- * páginas en rojo, con `"manual"` 0 de 75. Decisión del dueño: `"manual"` SOLO
- * en tema oscuro y SOLO en la portada; en el resto la nativa acierta y se
- * queda. Con `"manual"`, Atrás y Adelante los restituye el propio sitio.
+ * páginas en rojo, con `"manual"` 0 de 75. Decisión del dueño de esa fecha:
+ * `"manual"` SOLO en tema oscuro y SOLO en la portada. Con `"manual"`, Atrás y
+ * Adelante los restituye el propio sitio.
+ *
+ * DESDE EL 2026-09-11 (P7-2, opción 1 del dueño), `"manual"` en las DOS
+ * portadas, clara y oscura. En claro la nativa también fallaba en un caso: en
+ * un Atrás desde una legal a una entrada con fragmento (`/#contact`) llevaba al
+ * lector al destino del fragmento en vez de a donde estaba (5.688 -> 4.438,
+ * medido en P7-2A con el `scrollIntoView` del sitio bloqueado). El tema ya no
+ * decide el modo; solo se exige que haya uno RESUELTO: `null` (sin
+ * `data-theme`, el script de arranque no llegó a correr) o un valor
+ * desconocido se quedan en `"auto"`, el comportamiento anterior a F20.
  *
  * LAS RUTAS DE PORTADA van escritas aquí y en ningún otro sitio, con la misma
  * normalización mínima que la guarda de precargas del script de arranque:
@@ -168,7 +177,8 @@ export function readResolvedTheme(): ThemeName | null {
  * `resolveInitialTheme`: el script de arranque la incrusta con `.toString()` y
  * `ThemeProvider` la llama tal cual, así que las dos puertas no pueden
  * divergir. Recibe `string | null` para aceptar también la lectura de
- * `readResolvedTheme`; cualquier valor que no sea `"dark"` resuelve a `"auto"`.
+ * `readResolvedTheme`; cualquier valor que no sea `"dark"` ni `"light"`
+ * resuelve a `"auto"`.
  *
  * `"manual"` EXIGE ADEMÁS LA NAVIGATION API (2026-09-10). Con `"manual"` la
  * restitución la hace `useHistoryScrollRestoration`, que solo sabe distinguir
@@ -193,7 +203,8 @@ export function scrollRestorationFor(
     pathname === "/en" ||
     pathname === "/en.html";
   const navigationApi = navigation != null && navigation.currentEntry != null;
-  return theme === "dark" && home && navigationApi ? "manual" : "auto";
+  const resolved = theme === "dark" || theme === "light";
+  return resolved && home && navigationApi ? "manual" : "auto";
 }
 
 /**

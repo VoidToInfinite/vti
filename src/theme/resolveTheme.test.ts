@@ -477,16 +477,23 @@ describe("buildThemeBootstrapScript: modo de restitucion del scroll", () => {
     }
   }
 
+  // P7-2 (2026-09-11, decisión del dueño, opción 1): "manual" en las DOS
+  // portadas, clara y oscura. Hasta esa fecha la clara era el control en
+  // "auto"; la nativa la llevaba al fragmento en un Atrás desde una legal.
   it.each([
     ["dark", "/", "manual"],
     ["dark", "/index.html", "manual"],
     ["dark", "/en", "manual"],
     ["dark", "/en.html", "manual"],
-    ["light", "/", "auto"],
-    ["light", "/en", "auto"],
+    ["light", "/", "manual"],
+    ["light", "/index.html", "manual"],
+    ["light", "/en", "manual"],
+    ["light", "/en.html", "manual"],
     ["dark", "/privacidad", "auto"],
     ["dark", "/en/privacy", "auto"],
     ["dark", "/aviso-legal", "auto"],
+    ["light", "/privacidad", "auto"],
+    ["light", "/en/privacy", "auto"],
   ])(
     "tema guardado %s en %s escribe '%s' y lo escribe UNA vez",
     (stored, pathname, expected) => {
@@ -495,11 +502,14 @@ describe("buildThemeBootstrapScript: modo de restitucion del scroll", () => {
     },
   );
 
-  it("sin Navigation API la portada oscura se queda en 'auto' (como antes de F20)", () => {
-    vi.stubGlobal("navigation", undefined);
-    runAt("/", "dark");
-    expect(writes).toEqual(["auto"]);
-  });
+  it.each(["dark", "light"])(
+    "sin Navigation API la portada en tema %s se queda en 'auto' (como antes de F20)",
+    (stored) => {
+      vi.stubGlobal("navigation", undefined);
+      runAt("/", stored);
+      expect(writes).toEqual(["auto"]);
+    },
+  );
 
   it("sin storage y con el sistema en oscuro, la portada queda en 'manual'", () => {
     runAt("/", null, true);
@@ -522,21 +532,40 @@ describe("buildThemeBootstrapScript: modo de restitucion del scroll", () => {
 describe("scrollRestorationFor", () => {
   const nav = { currentEntry: { key: "entrada" } };
 
-  it("un tema que no es 'dark' (null incluido) resuelve a 'auto' tambien en la portada", () => {
+  it("los dos temas resueltos dan el MISMO modo en cada ruta (P7-2, opcion 1)", () => {
+    for (const pathname of [
+      "/",
+      "/index.html",
+      "/en",
+      "/en.html",
+      "/privacidad",
+      "/en/privacy",
+    ]) {
+      expect(scrollRestorationFor("light", pathname, nav)).toBe(
+        scrollRestorationFor("dark", pathname, nav),
+      );
+    }
+    expect(scrollRestorationFor("light", "/", nav)).toBe("manual");
+  });
+
+  it("un tema sin resolver (null o desconocido) resuelve a 'auto' tambien en la portada", () => {
     expect(scrollRestorationFor(null, "/", nav)).toBe("auto");
     expect(scrollRestorationFor("azul", "/en", nav)).toBe("auto");
   });
 
   it("'/en/' con barra final no es una ruta servida y queda en 'auto'", () => {
     expect(scrollRestorationFor("dark", "/en/", nav)).toBe("auto");
+    expect(scrollRestorationFor("light", "/en/", nav)).toBe("auto");
   });
 
   it("'manual' solo con la Navigation API: sin ella, o sin currentEntry, 'auto'", () => {
-    expect(scrollRestorationFor("dark", "/", nav)).toBe("manual");
-    expect(scrollRestorationFor("dark", "/", undefined)).toBe("auto");
-    expect(scrollRestorationFor("dark", "/", null)).toBe("auto");
-    expect(scrollRestorationFor("dark", "/en", { currentEntry: null })).toBe(
-      "auto",
-    );
+    for (const theme of ["dark", "light"]) {
+      expect(scrollRestorationFor(theme, "/", nav)).toBe("manual");
+      expect(scrollRestorationFor(theme, "/", undefined)).toBe("auto");
+      expect(scrollRestorationFor(theme, "/", null)).toBe("auto");
+      expect(scrollRestorationFor(theme, "/en", { currentEntry: null })).toBe(
+        "auto",
+      );
+    }
   });
 });

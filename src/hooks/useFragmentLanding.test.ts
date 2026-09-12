@@ -599,3 +599,240 @@ describe("useFragmentLanding: la puerta de la rama efectiva", () => {
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
 });
+
+/*
+ * LA LLEGADA POR UN RECORRIDO DEL HISTORIAL (P7-2, 2026-09-11; C2 de la
+ * pre-crítica P6).
+ *
+ * QUÉ DEFECTO ATRAPA: en un Atrás desde una legal a `/#contact`, `HomeSections`
+ * se vuelve a montar, este hook nace con un `loadHashRef` vacío y lee
+ * `#contact` como si fuera una CARGA. Sonda de P7-2A sobre el build de
+ * `4bc3b15`: el restituidor del historial pedía `scrollTo(10108)` y en el mismo
+ * milisegundo este hook pedía `scrollIntoView(#contact)`, que dejaba al lector
+ * en 9.046 (-1.062 px) en oscuro y a -1.250 px en claro.
+ *
+ * LA SEÑAL es la última navegación que CAMBIÓ de entrada, sin contar los
+ * `replace`: Next hace un `replaceState` justo después de cada recorrido, así
+ * que "el último `navigate`" a secas sale `replace` en el instante del
+ * montaje. Si no ha habido ninguna desde la carga, la entrada es la de la
+ * carga y se aterriza SIEMPRE: `navigation.activation.navigationType` ya no
+ * decide (P7-2B', 2026-09-12: con `"traverse"` dejaba al lector en y=0 en un
+ * Atrás entre documentos, porque nadie más lo colocaba).
+ *
+ * MATRIZ: los dos temas; carga en frío, llegada nueva por enlace, clic dentro
+ * de la portada ya montada, recorrido, recorrido seguido del `replace` de
+ * Next, enlace nuevo después de un recorrido y primera carga por recorrido.
+ * Además, la puerta de la rama efectiva, la guarda de intención humana y el
+ * navegador sin Navigation API.
+ *
+ * El módulo se vuelve a cargar en cada caso (`vi.resetModules`) con una
+ * Navigation API simulada ya instalada, porque su oyente de `navigate` se
+ * registra al evaluarse, igual que en el navegador.
+ */
+describe("useFragmentLanding: la llegada por un recorrido del historial (P7-2)", () => {
+  type NavegacionFalsa = EventTarget & {
+    currentEntry: { key: string };
+    activation: { navigationType: string } | null;
+  };
+  let navegacion: NavegacionFalsa;
+
+  function navega(tipo: string): void {
+    const evento = new Event("navigate");
+    Object.defineProperty(evento, "navigationType", { value: tipo });
+    navegacion.dispatchEvent(evento);
+  }
+
+  async function cargaElModulo(
+    activacion: string | null,
+  ): Promise<(branchKey: string) => void> {
+    navegacion = Object.assign(new EventTarget(), {
+      currentEntry: { key: "portada" },
+      activation: activacion === null ? null : { navigationType: activacion },
+    });
+    vi.stubGlobal("navigation", navegacion);
+    vi.resetModules();
+    const modulo = await import("./useFragmentLanding");
+    return modulo.useFragmentLanding;
+  }
+
+  function monta(hook: (branchKey: string) => void, rama: string) {
+    return renderHook(
+      ({ branchKey }: { branchKey: string }) => hook(branchKey),
+      { initialProps: { branchKey: rama } },
+    );
+  }
+
+  describe.each(["light", "dark"])("tema %s", (tema) => {
+    beforeEach(() => {
+      setResolvedTheme(tema);
+    });
+
+    it("carga en frío con fragmento: aterriza una vez", async () => {
+      const hook = await cargaElModulo("push");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it("llegada nueva desde una legal por un enlace a /#contact: aterriza", async () => {
+      const hook = await cargaElModulo("push");
+      navega("push");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it("clic a un fragmento con la portada ya montada: no rearma nada", async () => {
+      const hook = await cargaElModulo("push");
+      setLoadHash("");
+      const scrollIntoView = mountSection("features");
+
+      const { rerender } = monta(hook, tema);
+      setLoadHash("#features");
+      navega("push");
+      rerender({ branchKey: tema });
+      flushFrame();
+      flushFrame();
+
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("Atrás desde una legal con la restitución pendiente: ni aterriza ni arma", async () => {
+      const hook = await cargaElModulo("push");
+      navega("push");
+      navega("traverse");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+
+      expect(
+        armados(),
+        "el remontaje tras un recorrido armó el aterrizaje: pisaría la lectura restituida",
+      ).toBe(0);
+      expect(guardListenersAdded()).toEqual([]);
+      flushFrame();
+      flushFrame();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+    });
+
+    it("el replace que Next hace tras el recorrido no reactiva el aterrizaje", async () => {
+      const hook = await cargaElModulo("push");
+      navega("push");
+      navega("traverse");
+      navega("replace");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(
+        scrollIntoView,
+        "el replace de Next se tomó por la navegación que trajo la entrada",
+      ).not.toHaveBeenCalled();
+      expect(armados()).toBe(0);
+    });
+
+    it("tras un recorrido, un enlace nuevo a /#contact vuelve a aterrizar", async () => {
+      const hook = await cargaElModulo("push");
+      navega("traverse");
+      navega("push");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it("un documento cargado por un recorrido y un enlace posterior: manda el enlace", async () => {
+      const hook = await cargaElModulo("traverse");
+      navega("push");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it("primera carga del documento por un recorrido (activation traverse): aterriza, como la base", async () => {
+      const hook = await cargaElModulo("traverse");
+      setLoadHash("#contact");
+      const scrollIntoView = mountSection("contact");
+
+      monta(hook, tema);
+      flushFrame();
+      flushFrame();
+
+      expect(
+        scrollIntoView,
+        "un Atrás entre documentos dejaba al lector en y=0: nadie más lo coloca",
+      ).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("la puerta de la rama efectiva sigue en pie con una llegada por enlace", async () => {
+    const hook = await cargaElModulo("push");
+    navega("push");
+    setResolvedTheme("dark");
+    setLoadHash("#features");
+    const scrollIntoView = mountSection("features");
+
+    const { rerender } = monta(hook, "light");
+    expect(armados()).toBe(0);
+
+    rerender({ branchKey: "dark" });
+    expect(armados()).toBe(1);
+    flushFrame();
+    flushFrame();
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("la guarda de intención humana sigue en pie con una llegada por enlace", async () => {
+    const hook = await cargaElModulo("push");
+    navega("push");
+    setResolvedTheme("light");
+    setLoadHash("#features");
+    const scrollIntoView = mountSection("features");
+
+    monta(hook, "light");
+    window.dispatchEvent(new Event("wheel"));
+    flushFrame();
+    flushFrame();
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(guardListenersRemoved()).toEqual(ALL_GUARD_EVENTS);
+  });
+
+  it("sin Navigation API se conserva el comportamiento de antes: aterriza", async () => {
+    vi.stubGlobal("navigation", undefined);
+    vi.resetModules();
+    const { useFragmentLanding: hook } = await import("./useFragmentLanding");
+    setResolvedTheme("light");
+    setLoadHash("#contact");
+    const scrollIntoView = mountSection("contact");
+
+    monta(hook, "light");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+});

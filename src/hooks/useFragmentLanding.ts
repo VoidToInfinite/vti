@@ -167,6 +167,61 @@ import {
 export const FRAGMENT_LANDING_SETTLE_MS = 200;
 
 /**
+ * LA LLEGADA POR UN RECORRIDO DEL HISTORIAL (P7-2, 2026-09-11; C2 de la
+ * pre-crítica P6).
+ *
+ * EL DEFECTO, MEDIDO en P7-2A sobre el build de `4bc3b15`: portada, clic en
+ * «Contacto» de la cabecera, rueda hasta y=10.108, enlace del pie a una legal y
+ * Atrás. La portada se vuelve a montar, este hook nace con `loadHashRef`
+ * vacío y lee `#contact` como si fuera una carga: en el mismo milisegundo el
+ * restituidor del historial pedía `scrollTo(10108)` y este hook
+ * `scrollIntoView(#contact)`, que dejaba al lector en 9.046 (−1.062 px).
+ *
+ * LA SEÑAL es el tipo de la última navegación que CAMBIÓ de entrada. Los
+ * `replace` no cuentan: Next hace un `replaceState` justo después de cada
+ * recorrido, así que "el último `navigate`" a secas sale `replace` en el
+ * instante del montaje. Ninguna señal de la plataforma lo dice en ese
+ * instante (`navigation.transition` ya es `null`), y la de
+ * `useHistoryScrollRestoration` se consume en su `popstate`: leerla de allí
+ * acoplaría los dos hooks. Por eso el oyente es propio y vive en el módulo,
+ * que se evalúa al cargar el documento (lo importan `Providers`), antes de
+ * cualquier navegación dentro de él.
+ *
+ * Si no ha habido ninguna desde la carga, la entrada activa es la de la carga
+ * y SE ATERRIZA SIEMPRE, también cuando el documento llegó por un recorrido
+ * (`navigation.activation.navigationType === "traverse"`: un Atrás ENTRE
+ * documentos, sin bfcache). Hasta el 2026-09-12 esa lectura de `activation`
+ * decidía "no aterrizar", y medido sobre el build de P7-2B (Chrome con
+ * `--disable-features=BackForwardCache`, 1440x900, `/` → Contacto → rueda →
+ * `/privacidad` como documento → Atrás) dejaba al lector en y=0 en los dos
+ * temas: con la portada en `"manual"` la nativa no restituye,
+ * `useReloadLanding` excluye las URL con fragmento y este hook se callaba.
+ * Nadie colocaba al lector. Aterrizar en el ancla es lo que hacía la base
+ * (`4bc3b15`) y lo que sigue haciendo; el filtro solo actúa en los recorridos
+ * DENTRO del documento, que es el defecto C2. Sin la Navigation API el oyente
+ * no existe y el hook aterriza como antes de P7-2.
+ */
+let ultimaNavegacionDeEntrada: string | null = null;
+
+if (typeof window !== "undefined") {
+  const { navigation } = window as Window & {
+    navigation?: Partial<EventTarget>;
+  };
+  navigation?.addEventListener?.("navigate", (event: Event) => {
+    const { navigationType } = event as Event & { navigationType?: unknown };
+    if (typeof navigationType === "string" && navigationType !== "replace") {
+      ultimaNavegacionDeEntrada = navigationType;
+    }
+  });
+}
+
+/** `true` si la entrada activa se alcanzó por Atrás o Adelante DENTRO de este
+ *  documento (la primera carga, venga de donde venga, aterriza). */
+function llegadaPorRecorrido(): boolean {
+  return ultimaNavegacionDeEntrada === "traverse";
+}
+
+/**
  * @param branchKey Identidad de la rama montada. `HomeSections.tsx` pasa el
  * `themeName` del proveedor: cuando cambia, la corrección pendiente se cancela
  * y se vuelve a armar contra el maquetado nuevo (ver el docblock de cabecera).
@@ -185,7 +240,12 @@ export function useFragmentLanding(branchKey: string): void {
 
   useEffect(() => {
     if (loadHashRef.current === null) {
-      loadHashRef.current = window.location.hash.slice(1);
+      // Una entrada alcanzada por un recorrido del historial ya trae su
+      // posición: el fragmento de su URL no es una petición nueva, y aterrizar
+      // en él pisaría la lectura restituida (P7-2, ver `llegadaPorRecorrido`).
+      loadHashRef.current = llegadaPorRecorrido()
+        ? ""
+        : window.location.hash.slice(1);
     }
     const id = loadHashRef.current;
     if (id === "" || finishedRef.current) return;

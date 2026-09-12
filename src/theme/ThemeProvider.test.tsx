@@ -148,56 +148,91 @@ describe("ThemeProvider — modo de restitucion del scroll", () => {
     return { rerender: () => rerender(tree()) };
   }
 
-  it("la pasada inicial no escribe: con el tema claro el modo del script se queda", () => {
+  // P7-2B' (2026-09-12): la pasada inicial TAMBIÉN escribe, con el tema que el
+  // script dejó pintado en <html>. El visitante claro nunca sale de "initial"
+  // (resolver a "light" no dispara ningún setState), así que sin esta pasada
+  // la portada a la que llega por el logo desde una legal cargada como
+  // documento se quedaba en el "auto" de la legal (familia 34, `logo@0[auto]`).
+  it("la pasada inicial escribe con el tema pintado por el script: claro en la portada, 'manual'", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+    document.documentElement.setAttribute("data-theme", "light");
+    renderWithToggle();
+    expect(writes).toEqual(["manual"]);
+  });
+
+  it("si el script no llegó a pintar el tema, la pasada inicial resuelve a 'auto' (regla con null)", () => {
     stubMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEYS.theme, "light");
     renderWithToggle();
-    expect(writes).toEqual([]);
+    expect(writes).toEqual(["auto"]);
   });
 
-  it("con el oscuro guardado en la portada escribe 'manual' y al conmutar a claro 'auto'", () => {
+  it("P1 de P7-2B: el visitante claro llega a la portada por el logo desde una legal y la entrada pasa a 'manual'", () => {
+    stubMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEYS.theme, "light");
+    document.documentElement.setAttribute("data-theme", "light");
+    window.history.replaceState(null, "", "/privacidad");
+    routerState.pathname = "/privacidad";
+    const { rerender } = renderWithToggle();
+    expect(writes).toEqual(["auto"]);
+    window.history.pushState(null, "", "/");
+    routerState.pathname = "/";
+    rerender();
+    expect(writes).toEqual(["auto", "manual"]);
+  });
+
+  // P7-2 (2026-09-11, opcion 1 del dueño): la portada clara también va en
+  // "manual", así que conmutar de tema en la portada ya no cambia el modo.
+  it("con el oscuro guardado en la portada escribe 'manual' y al conmutar a claro sigue en 'manual'", () => {
     stubMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
     renderWithToggle();
-    expect(writes).toEqual(["manual"]);
+    // Pasada inicial (con el tema pintado) e hidratación: nunca pasa por "auto".
+    expect(writes).toEqual(["manual", "manual"]);
     act(() => {
       screen.getByRole("button", { name: "toggle" }).click();
     });
-    expect(writes).toEqual(["manual", "auto"]);
+    expect(writes).toEqual(["manual", "manual", "manual"]);
   });
 
   it("sin Navigation API la portada oscura se resincroniza a 'auto'", () => {
     vi.stubGlobal("navigation", undefined);
     stubMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
     renderWithToggle();
-    expect(writes).toEqual(["auto"]);
+    expect(writes).toEqual(["auto", "auto"]);
   });
 
   it("una navegacion blanda fuera de la portada reescribe el modo de la entrada nueva", () => {
     stubMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEYS.theme, "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
     const { rerender } = renderWithToggle();
-    expect(writes).toEqual(["manual"]);
+    expect(writes).toEqual(["manual", "manual"]);
     window.history.pushState(null, "", "/privacidad");
     routerState.pathname = "/privacidad";
     rerender();
-    expect(writes).toEqual(["manual", "auto"]);
+    expect(writes).toEqual(["manual", "manual", "auto"]);
   });
 
   it("la vuelta desde la bfcache reaplica la regla con el tema pintado, y solo con persisted", () => {
     stubMatchMedia(false);
     window.localStorage.setItem(STORAGE_KEYS.theme, "light");
     renderWithToggle();
+    // Sin tema pintado, la pasada inicial resuelve a "auto" (regla con null).
+    expect(writes).toEqual(["auto"]);
     document.documentElement.setAttribute("data-theme", "dark");
     const noPersisted = new Event("pageshow");
     Object.defineProperty(noPersisted, "persisted", { value: false });
     window.dispatchEvent(noPersisted);
-    expect(writes).toEqual([]);
+    expect(writes).toEqual(["auto"]);
     const persisted = new Event("pageshow");
     Object.defineProperty(persisted, "persisted", { value: true });
     window.dispatchEvent(persisted);
-    expect(writes).toEqual(["manual"]);
+    expect(writes).toEqual(["auto", "manual"]);
   });
 });
 

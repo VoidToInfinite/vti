@@ -68,21 +68,27 @@ import {
  * `<html>`. Ver ese docblock: ahí están las cifras y el porqué de leer el
  * atributo en vez de subir el tope de espera.
  *
- * `history.scrollRestoration` NO lo toca nadie en este repo ni en el
- * framework (censo sobre `node_modules/next/dist/client`: cero ficheros),
- * así que la restitución que se está corrigiendo es la NATIVA del navegador.
+ * `history.scrollRestoration` lo fija el sitio desde el 2026-09-10 (F20,
+ * `scrollRestorationFor` en `resolveTheme.ts`): `"manual"` en la portada
+ * --primero solo en oscuro y, desde el 2026-09-11 (P7-2, opción 1 del
+ * dueño), en los DOS temas-- y `"auto"` fuera de ella. Cuando este hook se
+ * escribió (crítica #19) nadie lo tocaba y la restitución que corregía era la
+ * NATIVA del navegador; hoy, en la portada, ES ESTE HOOK quien restituye la
+ * recarga, y en las legales sigue corrigiendo detrás de la nativa.
  *
- * ## Por qué no se apaga la restitución nativa, que sería lo obvio
+ * ## Por qué NO se apagaba la restitución nativa, y por qué en la portada hoy sí
  *
- * `history.scrollRestoration = "manual"` la desactivaría de raíz y dejaría
- * este hook como única vía. Se descarta a propósito: en la rama CLARA el
- * navegador acierta (control medido arriba: 5.000 -> 5.016, +16 px) y lo hace
- * ANTES del primer pintado. Apagarlo cambiaría una restitución correcta e
- * invisible por otra que llega dos frames más tarde, es decir, por un salto
- * visible desde el principio de la página. Se conserva la nativa y se corrige
- * DESPUÉS solo lo que haga falta; en claro esa corrección es un no-op
- * observable, porque el ancla no se ha movido y la aritmética devuelve el
- * mismo `scrollY` (ver `anchoredScrollY`, propiedad 1).
+ * Hasta F20 se descartaba a propósito: en la rama CLARA el navegador acierta
+ * (control medido arriba: 5.000 -> 5.016, +16 px) y lo hace ANTES del primer
+ * pintado; apagarlo cambiaba una restitución correcta e invisible por otra
+ * que llega dos frames más tarde. Lo que cambió la decisión fue Atrás y
+ * Adelante: con `"auto"` la nativa llega DESPUÉS de la única corrección de
+ * este hook y pisa la lectura (F20, experimento emparejado de 15 pares: 47 de
+ * 75 páginas en rojo con `"auto"`, 0 con `"manual"`), y en claro P7-2A midió
+ * que la nativa llevaba el Atrás al fragmento de la URL en vez de a la
+ * lectura. El salto visible de la recarga en claro es el precio declarado de
+ * esa decisión: la familia 20 del candado lo acota (deriva <= 64 px) y exige
+ * la llamada de restitución propia (`exigeLlamada`) en los dos temas.
  *
  * ## Qué se guarda, dónde y por qué ahí
  *
