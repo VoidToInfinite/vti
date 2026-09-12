@@ -225,8 +225,8 @@
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.tsx": {
-    "mtime": 1789069956.427183,
-    "ast_hash": "3352a391569d3f5bd11079f1557746c6",
+    "mtime": 1789200458.2282245,
+    "ast_hash": "f472405dff3e852b4db520f0fdc43ac4",
     "semantic_hash": ""
   },
   "src/theme/registry.tsx": {
@@ -1850,8 +1850,8 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1789138596.3748832,
-    "ast_hash": "6eb6c009794251bdc932d608c9cd26ae",
+    "mtime": 1789202708.9914377,
+    "ast_hash": "94e0f5184aa86faa6818d1e3a8d905d9",
     "semantic_hash": ""
   },
   "src/components/scenes/aura/Aura.test.tsx": {
@@ -2655,18 +2655,18 @@
     "semantic_hash": ""
   },
   "src/theme/ThemeProvider.test.tsx": {
-    "mtime": 1789069986.433087,
-    "ast_hash": "07627b8d57861284f8e50ffca48d9966",
+    "mtime": 1789200248.150481,
+    "ast_hash": "bb92ae7a502e603e8902f55484d7cf65",
     "semantic_hash": ""
   },
   "src/theme/resolveTheme.test.ts": {
-    "mtime": 1789069980.2038653,
-    "ast_hash": "13d61d8e4bd9175e370f7a171046ae88",
+    "mtime": 1789141680.3608828,
+    "ast_hash": "f9b8400ac47d793eaa8a39685c284583",
     "semantic_hash": ""
   },
   "src/theme/resolveTheme.ts": {
-    "mtime": 1789070163.5316815,
-    "ast_hash": "a53df6544a013705f81ae03a3779f691",
+    "mtime": 1789142106.3196378,
+    "ast_hash": "f7eb568e9b332b862451e0d7e4d67111",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-10-implementacion-plan-premium-f1-f5/task-9-brief.md": {
@@ -3510,13 +3510,13 @@
     "semantic_hash": ""
   },
   "src/hooks/useFragmentLanding.test.ts": {
-    "mtime": 1788711713.6484458,
-    "ast_hash": "1e92923186eefa3fb4cb2a48bf80e25d",
+    "mtime": 1789200248.203415,
+    "ast_hash": "3c8373d86617b689997c8b4dd26feb6c",
     "semantic_hash": ""
   },
   "src/hooks/useFragmentLanding.ts": {
-    "mtime": 1788711713.512241,
-    "ast_hash": "1fb2d803aca35b33b9aac0ee0c58e9bc",
+    "mtime": 1789200460.7366128,
+    "ast_hash": "d143047488f2e7cc07c6c526ae8a4581",
     "semantic_hash": ""
   },
   "app/(es)/aviso-legal/page.tsx": {
@@ -3600,8 +3600,8 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1789135695.7194023,
-    "ast_hash": "e8434b337ac428cb174596d8ba9682ef",
+    "mtime": 1789200533.6882017,
+    "ast_hash": "a72c858d758893abeb8c2795c387cc28",
     "semantic_hash": ""
   },
   "src/theme/tokens/focus.test.ts": {
@@ -3670,8 +3670,8 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.json": {
-    "mtime": 1789135696.902799,
-    "ast_hash": "90ac27752c2f54a03fc5179387de6071",
+    "mtime": 1789200535.2442808,
+    "ast_hash": "6cc30bf23fbe200746ea934479ec39cc",
     "semantic_hash": ""
   },
   "scripts/measure-home-js.test.mjs": {
@@ -3680,13 +3680,13 @@
     "semantic_hash": ""
   },
   "scripts/check-site-surfaces.mjs": {
-    "mtime": 1789135423.3855412,
-    "ast_hash": "e6eac984f7cb9d43acaee1647e447993",
+    "mtime": 1789200463.526003,
+    "ast_hash": "e985d36f5d59a8632c2c8e0f15d1f797",
     "semantic_hash": ""
   },
   "scripts/check-site-surfaces.test.mjs": {
-    "mtime": 1789135351.2044854,
-    "ast_hash": "7d3b2cf546f9e37f749e655e1ac8dab2",
+    "mtime": 1789200248.307387,
+    "ast_hash": "d93616e9cd24c02aedcca59d111c07c0",
     "semantic_hash": ""
   },
   "src/theme/tokens/inlineSpace.test.ts": {
@@ -3745,8 +3745,8 @@
     "semantic_hash": ""
   },
   "src/hooks/useReloadLanding.ts": {
-    "mtime": 1789067960.290199,
-    "ast_hash": "3f33f2c71672f4ef3301682a37dfd455",
+    "mtime": 1789200248.309401,
+    "ast_hash": "e8f0dccb45b6069d0f8c6b68579034dc",
     "semantic_hash": ""
   },
   "app/NotFoundRoute.tsx": {
