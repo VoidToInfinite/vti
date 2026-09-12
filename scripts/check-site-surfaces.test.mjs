@@ -130,6 +130,10 @@ import {
     INSTANTES_TRAS_ADELANTE_MS,
     PROFUNDIDAD_EN_LA_LEGAL_PX,
     VIEWPORTS_DE_ADELANTE,
+    VIEWPORTS_DE_ATRAS_CON_FRAGMENTO,
+    INSTANTES_TRAS_ATRAS_MS,
+    PASOS_DE_RUEDA_DESDE_EL_ANCLA,
+    evaluaAtrasConFragmento,
 } from "./check-site-surfaces.mjs";
 /* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
    parser de Rollup no admite un `.ts` explicito en el especificador. */
@@ -617,6 +621,7 @@ const FAMILIAS_ESPERADAS = [
     "aterrizaje-de-ancla-constante",
     "atras-y-adelante-restituyen-la-lectura",
     "adelante-a-la-portada-vuelve-a-su-lectura",
+    "atras-con-fragmento-vuelve-a-la-lectura",
 ];
 
 /**
@@ -700,8 +705,11 @@ const FAMILIAS_ESPERADAS = [
  *
  * Sube a 34 el 2026-09-11 con `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B,
  * C1 de la pre-critica P6), en el mismo cambio que la anade.
+ *
+ * Sube a 35 el 2026-09-11 con `atras-con-fragmento-vuelve-a-la-lectura` (P7-2B,
+ * C2 de la pre-critica P6), en el mismo cambio que la anade.
  */
-const FAMILIAS_MINIMAS = 34;
+const FAMILIAS_MINIMAS = 35;
 
 /**
  * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
@@ -2191,9 +2199,10 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
  * «Tests 2 failed | 45 passed (47)». Restaurada la tolerancia, 47/47 en verde.
  */
 describe("el veredicto del modo de restitucion tras recargar", () => {
-    /* La tabla de la politica (F20-A): "manual" solo en la portada oscura,
-       "auto" en la clara y fuera de la portada. Cada fila es una lectura
-       posible de `history.scrollRestoration` tras la recarga. */
+    /* La tabla de la politica: desde el 2026-09-11 (P7-2, opcion 1 del
+       dueno) "manual" en las DOS portadas y "auto" fuera de ellas. Hasta esa
+       fecha la clara iba en "auto" (F20-A). Cada fila es una lectura posible
+       de `history.scrollRestoration` tras la recarga. */
     it.each([
         ["dark", "/", "manual", true],
         ["dark", "/en", "manual", true],
@@ -2201,12 +2210,14 @@ describe("el veredicto del modo de restitucion tras recargar", () => {
         ["dark", "/en.html", "manual", true],
         ["dark", "/", "auto", false],
         ["dark", "/en", "auto", false],
-        ["light", "/", "auto", true],
-        ["light", "/en", "auto", true],
-        ["light", "/", "manual", false],
-        ["light", "/en", "manual", false],
+        ["light", "/", "manual", true],
+        ["light", "/en", "manual", true],
+        ["light", "/", "auto", false],
+        ["light", "/en", "auto", false],
         ["dark", "/privacidad", "auto", true],
         ["dark", "/privacidad", "manual", false],
+        ["light", "/privacidad", "auto", true],
+        ["light", "/privacidad", "manual", false],
     ])(
         "tema %s en %s con modo %s -> cumple %s",
         (theme, pathname, modo, cumple) => {
@@ -2229,7 +2240,7 @@ describe("el veredicto del modo de restitucion tras recargar", () => {
     it("la tabla del instrumento es la acordada con el dueno", () => {
         expect(MODO_DE_RESTITUCION_EN_LA_PORTADA).toEqual({
             dark: "manual",
-            light: "auto",
+            light: "manual",
         });
         expect(RUTAS_DE_PORTADA).toEqual([
             "/",
@@ -5978,10 +5989,15 @@ describe("evaluaAdelanteALaPortada: Adelante devuelve la portada a donde se dejo
         expect(evaluaAdelanteALaPortada(verde()).cumple).toBe(true);
     });
 
-    it("en claro no exige 'manual': es el control de la nativa", () => {
+    it("en claro tambien exige 'manual' (P7-2B'): la portada por el logo salia en 'auto'", () => {
         const m = verde("light");
         for (const x of m.medidas) for (const l of x.adelante) l.modo = "auto";
-        expect(evaluaAdelanteALaPortada(m).cumple).toBe(true);
+        const v = evaluaAdelanteALaPortada(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join("\n")).toContain(
+            '1440x900 (/ light): la portada tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        );
+        expect(evaluaAdelanteALaPortada(verde("light")).cumple).toBe(true);
     });
 
     it.each([
@@ -6065,6 +6081,173 @@ describe("evaluaAdelanteALaPortada: Adelante devuelve la portada a donde se dejo
         const m = verde();
         rompe(m);
         const v = evaluaAdelanteALaPortada(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(motivo);
+    });
+});
+
+/*
+ * FAMILIA 35, `atras-con-fragmento-vuelve-a-la-lectura` (P7-2B). Tabla del
+ * evaluador puro, con las cifras de C2 medidas en P7-2A sobre `4bc3b15`
+ * (oscuro, 1440x900): el ancla en y=9.046, la lectura en y=10.108 y el Atras
+ * de vuelta en y=9.046. El rojo de navegador se mide con el runner aislado.
+ */
+describe("evaluaAtrasConFragmento: Atras con fragmento vuelve a la lectura", () => {
+    const T = DERIVA_MAXIMA_DE_RECARGA_PX;
+    const lee = (pathname, hash, y, contactTop, modo = "manual") => ({
+        pathname,
+        hash,
+        y,
+        modo,
+        contactTop,
+        margen: 128,
+    });
+    const enLaLectura = () => lee("/", "#contact", 10108, -934);
+    const enElAncla = () => lee("/", "#contact", 9046, 128);
+    const medida = (viewport) => ({
+        viewport,
+        enlace: true,
+        porHoja: false,
+        rutaPortada: "/",
+        rutaLegal: "/privacidad",
+        salida: enElAncla(),
+        lectura: enLaLectura(),
+        legal: lee("/privacidad", "", 0, null, "auto"),
+        atras: INSTANTES_TRAS_ATRAS_MS.map((ms) => ({ ms, ...enLaLectura() })),
+        nuevoEnlace: { via: "pie", ...enElAncla() },
+        fria: enElAncla(),
+    });
+    const verde = (theme = "dark") => ({
+        theme,
+        surface: "/",
+        tolerancia: T,
+        medidas: VIEWPORTS_DE_ATRAS_CON_FRAGMENTO.map((v) =>
+            medida(`${v.width}x${v.height}`),
+        ),
+    });
+
+    it("la matriz declarada: dos viewports, tres instantes y una rueda que se aleja del ancla", () => {
+        expect(VIEWPORTS_DE_ATRAS_CON_FRAGMENTO).toEqual([
+            { width: 1440, height: 900 },
+            { width: 390, height: 844 },
+        ]);
+        expect(INSTANTES_TRAS_ATRAS_MS).toEqual([400, 1500, 4000]);
+        expect(PASOS_DE_RUEDA_DESDE_EL_ANCLA * 100).toBeGreaterThanOrEqual(
+            2 * T,
+        );
+    });
+
+    it("pasa con la lectura restituida, en los dos temas", () => {
+        expect(evaluaAtrasConFragmento(verde("dark")).cumple).toBe(true);
+        expect(evaluaAtrasConFragmento(verde("light")).cumple).toBe(true);
+    });
+
+    it("en claro tambien exige 'manual' (P7-2, opcion 1): la nativa llevaba al fragmento", () => {
+        const m = verde("light");
+        for (const l of m.medidas[0].atras) l.modo = "auto";
+        const v = evaluaAtrasConFragmento(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(
+            '1440x900 (/ light): la portada tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        );
+    });
+
+    it.each([
+        [
+            "C2 medido: el Atras aterriza en el ancla",
+            (m) => {
+                m.medidas[0].atras = INSTANTES_TRAS_ATRAS_MS.map((ms) => ({
+                    ms,
+                    ...enElAncla(),
+                }));
+            },
+            "1440x900 (/ dark): a los 400 ms del Atras la portada esta en y=9046 y se leia en y=10108",
+        ],
+        [
+            "una restitucion que se deshace a los 4 s",
+            (m) => {
+                m.medidas[1].atras[2] = { ms: 4000, ...enElAncla() };
+            },
+            "390x844 (/ dark): a los 4000 ms del Atras la portada esta en y=9046",
+        ],
+        [
+            "una lectura pegada al ancla no distingue restituir de aterrizar",
+            (m) => {
+                m.medidas[0].lectura = lee("/", "#contact", 9100, 74);
+                for (const l of m.medidas[0].atras) l.y = 9100;
+            },
+            "a menos de 128 px: volver al ancla no se distinguiria de restituir",
+        ],
+        [
+            "un viewport sin medir no es un verde",
+            (m) => {
+                m.medidas.pop();
+            },
+            "390x844 (/ dark): el viewport no se midio",
+        ],
+        [
+            "sin el enlace de Contacto la cadena no se ejercio",
+            (m) => {
+                m.medidas[0] = { viewport: "1440x900", enlace: false };
+            },
+            "no se encontro el enlace de Contacto",
+        ],
+        [
+            "el clic interno no aterriza en el ancla",
+            (m) => {
+                m.medidas[0].salida = lee("/", "#contact", 8000, 1174);
+            },
+            "control del clic interno",
+        ],
+        [
+            "el enlace nuevo tras el recorrido no aterriza",
+            (m) => {
+                m.medidas[0].nuevoEnlace = { via: "pie", ...enLaLectura() };
+            },
+            "control del enlace nuevo: tras el recorrido",
+        ],
+        [
+            "el enlace nuevo sin medir no es un verde",
+            (m) => {
+                m.medidas[0].nuevoEnlace = null;
+            },
+            "control del enlace nuevo: no se midio",
+        ],
+        [
+            "la carga en frio no aterriza",
+            (m) => {
+                m.medidas[0].fria = lee("/", "#contact", 5623, 3551);
+            },
+            "control de la carga en frio",
+        ],
+        [
+            "el Atras no vuelve a la entrada con fragmento",
+            (m) => {
+                m.medidas[0].atras[0] = {
+                    ms: 400,
+                    ...lee("/", "", 10108, -934),
+                };
+            },
+            "a los 400 ms el Atras deja / y la entrada de destino era /#contact",
+        ],
+        [
+            "falta una lectura del Atras",
+            (m) => {
+                m.medidas[0].atras = [m.medidas[0].atras[0]];
+            },
+            "la portada no se leyo a los 1500 ms del Atras",
+        ],
+        [
+            "el enlace del pie no sale de la portada",
+            (m) => {
+                m.medidas[0].legal = null;
+            },
+            "el enlace del pie no llevo a /privacidad",
+        ],
+    ])("%s", (_nombre, rompe, motivo) => {
+        const m = verde();
+        rompe(m);
+        const v = evaluaAtrasConFragmento(m);
         expect(v.cumple).toBe(false);
         expect(v.motivos.join(" | ")).toContain(motivo);
     });

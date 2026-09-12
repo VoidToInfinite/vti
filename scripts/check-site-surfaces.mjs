@@ -677,6 +677,7 @@ export const CHECKS = [
     "aterrizaje-de-ancla-constante",
     "atras-y-adelante-restituyen-la-lectura",
     "adelante-a-la-portada-vuelve-a-su-lectura",
+    "atras-con-fragmento-vuelve-a-la-lectura",
 ];
 
 /**
@@ -1226,17 +1227,21 @@ export const RECARGAS_SIMULTANEAS = 5;
  * La causa confirmada: con `history.scrollRestoration = "auto"` la restitucion
  * NATIVA llega despues de la unica correccion del sitio y la deshace (15 pares
  * emparejados: `auto` 47 de 75 paginas en rojo, `manual` 0 de 75). Decision del
- * dueno: `"manual"` solo en oscuro y solo en la portada. El claro es el CONTROL:
- * tiene que seguir en `"auto"`, porque ahi la nativa acierta y un `"manual"`
- * forzado siempre dejaria Atras y Adelante en manos de un restituidor que la
- * rama clara no necesita.
+ * dueno de esa fecha: `"manual"` solo en oscuro y solo en la portada, con el
+ * claro de CONTROL en `"auto"`.
+ *
+ * Desde el 2026-09-11 (P7-2, opcion 1 del dueno) las DOS portadas van en
+ * `"manual"`: en claro la nativa llevaba al lector al fragmento en un Atras
+ * desde una legal (5.688 -> 4.438, medido en P7-2A). Con `"manual"` en los dos
+ * temas el sitio es el unico motor tambien en claro, y la guarda de vacuidad
+ * (`exigeLlamada`) se exige en los dos.
  *
  * La tabla vive aqui, escrita a mano, y NO se importa de `src/theme`: un
  * instrumento que lee la regla del codigo que juzga no prueba nada.
  */
 export const MODO_DE_RESTITUCION_EN_LA_PORTADA = {
     dark: "manual",
-    light: "auto",
+    light: "manual",
 };
 
 /** Las rutas servidas de las dos portadas (`trailingSlash: false`). */
@@ -1694,7 +1699,8 @@ export function evaluaTestigoDeScroll({
  * `scrollY`. Con `"manual"` en la portada oscura el Atras/Adelante deja de ser
  * de la nativa y pasa a `useHistoryScrollRestoration` (fragmento, legal) y a
  * `useReloadLanding` (entre documentos): un restituidor apagado no lo veria
- * nadie. El claro, en `"auto"`, es el CONTROL: ahi sigue mandando la nativa.
+ * nadie. Desde el 2026-09-11 (P7-2) el claro tambien va en `"manual"`: ya no
+ * es un control de la nativa, y la familia lo exige igual en los dos temas.
  *
  * MATRIZ: 1440x900, los dos temas (los pone la corrida), `/` y `/en`, tres
  * rutas por portada, cada una en su contexto limpio y leyendo a
@@ -2064,16 +2070,22 @@ export async function mideAtrasYAdelante(browser, base, theme, surface) {
  * Medido el 2026-09-11 en oscuro: la portada a la que se llega por el logo nace
  * en "auto", su unico scroll (a y=0) se procesa antes de que el interruptor la
  * pase a "manual" y el restituidor no la anotaba; al volver con Adelante el
- * lector heredaba la posicion de la legal (1.500 px durante 5 s). En claro
- * manda la nativa y vuelve a 0 antes de 700 ms: es el CONTROL.
+ * lector heredaba la posicion de la legal (1.500 px durante 5 s). En claro,
+ * hasta P7-2, mandaba la nativa y volvia a 0 antes de 700 ms: era el CONTROL;
+ * desde P7-2B' el claro tambien va en "manual" y se le exige lo mismo.
  *
  * MATRIZ: portadas `/` y `/en` (su legal: `/privacidad` y `/en/privacy`), los
  * dos temas (los pone la corrida), 1440x900 y 390x844, sin `reduce`. En cada
  * una, en su contexto limpio: la legal leida a `PROFUNDIDAD_EN_LA_LEGAL_PX`,
  * clic REAL en el logo de la cabecera, Atras, Adelante, y la portada leida a
- * los instantes de `INSTANTES_TRAS_ADELANTE_MS`. En oscuro se exige ademas
- * `history.scrollRestoration === "manual"` en la portada: la familia no se
- * aprueba devolviendo la portada a la restitucion nativa.
+ * los instantes de `INSTANTES_TRAS_ADELANTE_MS`. Se exige ademas
+ * `history.scrollRestoration === "manual"` en la portada, EN LOS DOS TEMAS
+ * desde P7-2B' (2026-09-12; hasta entonces solo en oscuro, porque el claro
+ * era el control de la nativa): la familia no se aprueba devolviendo la
+ * portada a la restitucion nativa. Medido antes del arreglo de
+ * `ThemeProvider`: en claro la portada alcanzada por el logo salia
+ * `logo@0[auto]` en `/` y `/en`, a 1440 y a 390, y la familia pasaba gracias
+ * a la nativa.
  */
 export const PROFUNDIDAD_EN_LA_LEGAL_PX = 1500;
 
@@ -2092,7 +2104,7 @@ export const INSTANTES_TRAS_ADELANTE_MS = [700, 3000];
  * --heredar una posicion cercana a 0 no se distinguiria de volver--, (3) llegar
  * a la portada en la cima con el logo, (4) volver con Atras a la legal leida y
  * (5) volver con Adelante a la portada en la posicion en que se dejo, en cada
- * instante leido. En oscuro, (6) la portada en "manual".
+ * instante leido, y (6) la portada en "manual" en los dos temas.
  */
 export function evaluaAdelanteALaPortada({
     theme,
@@ -2151,13 +2163,11 @@ export function evaluaAdelanteALaPortada({
                     `${id}: a los ${ms} ms del Adelante la portada esta en y=${l.y} y se dejo en y=${m.portada.y} (la legal se leia en y=${m.legal.y}; tolerancia ${tolerancia} px; modo ${l.modo})`,
                 );
         }
-        if (theme === "dark") {
-            const ultima = lecturas[lecturas.length - 1];
-            if (ultima && ultima.modo !== "manual")
-                motivos.push(
-                    `${id}: en oscuro la portada tiene que estar en scrollRestoration "manual" y esta en ${JSON.stringify(ultima.modo)}: devolverla a la nativa no es el arreglo`,
-                );
-        }
+        const ultima = lecturas[lecturas.length - 1];
+        if (ultima && ultima.modo !== "manual")
+            motivos.push(
+                `${id}: la portada tiene que estar en scrollRestoration "manual" y esta en ${JSON.stringify(ultima.modo)}: devolverla a la nativa no es el arreglo`,
+            );
     }
     return { cumple: motivos.length === 0, motivos };
 }
@@ -2223,6 +2233,320 @@ export async function mideAdelanteALaPortada(browser, base, theme, surface) {
                 portada,
                 atras,
                 adelante,
+            });
+        } finally {
+            await ctx.close();
+        }
+    }
+    return {
+        theme,
+        surface: surface.nombre,
+        medidas,
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+    };
+}
+
+/**
+ * FAMILIA TREINTA Y CINCO, `atras-con-fragmento-vuelve-a-la-lectura` (P7-2B del
+ * objetivo >=98; C2 de la pre-critica P6). La 33 recorre portada -> legal ->
+ * Atras desde una lectura SIN fragmento en la URL. Nadie recorria la cadena en
+ * la que la entrada de la portada lleva `#contact`: clic en Contacto, rueda,
+ * enlace del pie a la legal y Atras. Medido el 2026-09-11 sobre `4bc3b15`: al
+ * volver, la portada se monta de nuevo y `useFragmentLanding` leia `#contact`
+ * como si fuera una carga; en oscuro pisaba la restitucion (10.108 -> 9.046) y
+ * en claro, en "auto", la nativa llevaba al fragmento (5.688 -> 4.438).
+ *
+ * MATRIZ: portadas `/` y `/en` (su legal: `/privacidad` y `/en/privacy`), los
+ * dos temas (los pone la corrida), 1440x900 y 390x844, sin `reduce`. En cada
+ * viewport, en su contexto limpio:
+ *   - la cadena: clic REAL en Contacto (en la cabecera; a 390, dentro de la
+ *     hoja movil), `PASOS_DE_RUEDA_DESDE_EL_ANCLA` pasos de rueda, el enlace de
+ *     la legal del pie (`el.click()`, como en la 33) y Atras; la portada se lee
+ *     a los instantes de `INSTANTES_TRAS_ATRAS_MS`;
+ *   - control del clic interno: ese clic en Contacto aterriza en el ancla;
+ *   - control del enlace nuevo: despues de esas lecturas, Adelante a la legal
+ *     y su enlace a `#contact` (una llegada NUEVA tras un recorrido) aterriza
+ *     en el ancla;
+ *   - control de la carga en frio: `/#contact` en una pagina nueva aterriza en
+ *     el ancla.
+ * "En el ancla" es `#contact` a su `scroll-margin-top` del borde superior, con
+ * la tolerancia de la familia. La lectura tiene que quedar a 2 x tolerancia o
+ * mas del ancla, para que volver al ancla no se pueda confundir con restituir.
+ * Y la portada, en "manual" en los dos temas (P7-2, opcion 1 del dueno).
+ */
+export const VIEWPORTS_DE_ATRAS_CON_FRAGMENTO = [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+];
+
+/** Los instantes (ms tras el Atras) en que la familia 35 lee la portada. */
+export const INSTANTES_TRAS_ATRAS_MS = [400, 1500, 4000];
+
+/** Pasos de rueda de 100 px con los que el lector se aleja del ancla. */
+export const PASOS_DE_RUEDA_DESDE_EL_ANCLA = 12;
+
+/**
+ * EL VEREDICTO DE LA FAMILIA 35: puro y tabulado en el gate. Cada viewport
+ * tiene que haberse medido con su gesto; el clic interno, el enlace nuevo y la
+ * carga en frio tienen que aterrizar en el ancla; la lectura tiene que quedar
+ * lejos del ancla; y el Atras tiene que devolver la portada con fragmento a la
+ * lectura en cada instante, sin estar en el ancla, y en "manual".
+ */
+export function evaluaAtrasConFragmento({
+    theme,
+    surface,
+    medidas,
+    tolerancia,
+}) {
+    const motivos = [];
+    const donde = `${surface} ${theme}`;
+    const enElAncla = (l) =>
+        !!l &&
+        typeof l.contactTop === "number" &&
+        typeof l.margen === "number" &&
+        Math.abs(l.contactTop - l.margen) <= tolerancia;
+    const vistos = new Set((medidas ?? []).map((m) => m.viewport));
+    for (const v of VIEWPORTS_DE_ATRAS_CON_FRAGMENTO) {
+        const id = `${v.width}x${v.height}`;
+        if (!vistos.has(id))
+            motivos.push(
+                `${id} (${donde}): el viewport no se midio y un viewport sin medir no es un verde`,
+            );
+    }
+    for (const m of medidas ?? []) {
+        const id = `${m.viewport} (${donde})`;
+        if (!m.enlace) {
+            motivos.push(
+                `${id}: no se encontro el enlace de Contacto de la cabecera; sin gesto la cadena no se ejercio`,
+            );
+            continue;
+        }
+        const destino = `${m.rutaPortada}#contact`;
+        if (m.salida.hash !== "#contact" || !enElAncla(m.salida))
+            motivos.push(
+                `${id}: control del clic interno: el clic en Contacto deja ${m.salida.pathname}${m.salida.hash} con #contact a top=${m.salida.contactTop} (margen ${m.salida.margen}); tenia que aterrizar en el ancla`,
+            );
+        const distancia = Math.abs(m.lectura.y - m.salida.y);
+        if (distancia < 2 * tolerancia)
+            motivos.push(
+                `${id}: la lectura (y=${m.lectura.y}) esta a ${distancia} px del ancla (y=${m.salida.y}), a menos de ${2 * tolerancia} px: volver al ancla no se distinguiria de restituir`,
+            );
+        if (!m.legal || m.legal.pathname !== m.rutaLegal) {
+            motivos.push(
+                `${id}: el enlace del pie no llevo a ${m.rutaLegal} (${m.legal ? m.legal.pathname : "sin enlace"}): sin salida el Atras no se ejercio`,
+            );
+            continue;
+        }
+        const lecturas = m.atras ?? [];
+        for (const ms of INSTANTES_TRAS_ATRAS_MS) {
+            const l = lecturas.find((x) => x.ms === ms);
+            if (!l) {
+                motivos.push(
+                    `${id}: la portada no se leyo a los ${ms} ms del Atras`,
+                );
+                continue;
+            }
+            const llega = `${l.pathname}${l.hash}`;
+            if (llega !== destino)
+                motivos.push(
+                    `${id}: a los ${ms} ms el Atras deja ${llega} y la entrada de destino era ${destino}`,
+                );
+            else if (Math.abs(l.y - m.lectura.y) > tolerancia)
+                motivos.push(
+                    `${id}: a los ${ms} ms del Atras la portada esta en y=${l.y} y se leia en y=${m.lectura.y} (deriva ${l.y - m.lectura.y} px, tolerancia ${tolerancia} px; #contact a top=${l.contactTop}; modo ${l.modo})`,
+                );
+            else if (enElAncla(l))
+                motivos.push(
+                    `${id}: a los ${ms} ms del Atras la portada esta en el ancla (#contact a top=${l.contactTop}): eso es aterrizar, no restituir`,
+                );
+        }
+        const ultima = lecturas[lecturas.length - 1];
+        if (ultima && ultima.modo !== "manual")
+            motivos.push(
+                `${id}: la portada tiene que estar en scrollRestoration "manual" y esta en ${JSON.stringify(ultima.modo)}: devolverla a la nativa no es el arreglo`,
+            );
+        if (!m.nuevoEnlace)
+            motivos.push(
+                `${id}: control del enlace nuevo: no se midio y un control sin medir no es un verde`,
+            );
+        else if (
+            `${m.nuevoEnlace.pathname}${m.nuevoEnlace.hash}` !== destino ||
+            !enElAncla(m.nuevoEnlace)
+        )
+            motivos.push(
+                `${id}: control del enlace nuevo: tras el recorrido, el enlace a #contact desde la legal deja ${m.nuevoEnlace.pathname}${m.nuevoEnlace.hash} con #contact a top=${m.nuevoEnlace.contactTop} (margen ${m.nuevoEnlace.margen}); tenia que aterrizar en el ancla`,
+            );
+        if (!m.fria)
+            motivos.push(
+                `${id}: control de la carga en frio: no se midio y un control sin medir no es un verde`,
+            );
+        else if (!enElAncla(m.fria))
+            motivos.push(
+                `${id}: control de la carga en frio: ${destino} deja #contact a top=${m.fria.contactTop} (margen ${m.fria.margen}); tenia que aterrizar en el ancla`,
+            );
+    }
+    return { cumple: motivos.length === 0, motivos };
+}
+
+/**
+ * Lee la entrada activa con la posicion de `#contact` y su margen de ancla. El
+ * margen es el `scroll-margin-top` de la seccion MAS el `scroll-padding-top`
+ * del documento, la misma suma que usa la familia 32: medido sobre `4bc3b15`,
+ * el margen de la seccion solo son 64 px y el ancla aterriza a 128.
+ */
+function leeEntradaConAncla() {
+    const c = document.getElementById("contact");
+    return {
+        y: Math.round(window.scrollY),
+        pathname: location.pathname,
+        hash: location.hash,
+        modo: history.scrollRestoration,
+        contactTop: c ? Math.round(c.getBoundingClientRect().top) : null,
+        margen: c
+            ? Math.round(
+                  (parseFloat(getComputedStyle(c).scrollMarginTop) || 0) +
+                      (parseFloat(
+                          getComputedStyle(document.documentElement)
+                              .scrollPaddingTop,
+                      ) || 0),
+              )
+            : null,
+    };
+}
+
+/**
+ * El enlace de Contacto que un visitante pulsaria: el visible de la cabecera o,
+ * si la cabecera lo guarda en la hoja movil (390), el de la hoja ya abierta.
+ */
+async function buscaContactoDeLaCabecera(page) {
+    for (const c of await page.$$('header a[href$="#contact"]'))
+        if (await c.boundingBox()) return { enlace: c, porHoja: false };
+    const hoja = await page.evaluate(() => {
+        const b = document.querySelector("[data-nav-sheet-trigger] button");
+        if (!b || b.getBoundingClientRect().width === 0) return null;
+        return b.getAttribute("aria-controls");
+    });
+    if (!hoja) return null;
+    await page.click("[data-nav-sheet-trigger] button");
+    await page.waitForTimeout(600);
+    for (const c of await page.$$(`[id="${hoja}"] a[href$="#contact"]`))
+        if (await c.boundingBox()) return { enlace: c, porHoja: true };
+    return null;
+}
+
+/** Mide la familia 35 en una portada: la cadena y sus tres controles. */
+export async function mideAtrasConFragmento(browser, base, theme, surface) {
+    const legal = LEGAL_DOCS[0][surface.locale];
+    const enRuta = (pathname) => (u) => new URL(u).pathname === pathname;
+    const medidas = [];
+    for (const v of VIEWPORTS_DE_ATRAS_CON_FRAGMENTO) {
+        const viewport = `${v.width}x${v.height}`;
+        const ctx = await nuevoContexto(browser, theme, {
+            viewport: v,
+            reducedMotion: "no-preference",
+        });
+        try {
+            const page = await ctx.newPage();
+            await page.goto(`${base}${surface.path}`, {
+                waitUntil: "networkidle",
+            });
+            await page.waitForTimeout(2200);
+            const contacto = await buscaContactoDeLaCabecera(page);
+            if (!contacto) {
+                medidas.push({ viewport, enlace: false });
+                continue;
+            }
+            await contacto.enlace.click();
+            await page.waitForTimeout(1200);
+            await esperaScrollQuieto(page);
+            const salida = await page.evaluate(leeEntradaConAncla);
+            await page.mouse.move(
+                Math.round(v.width / 2),
+                Math.round(v.height / 2),
+            );
+            for (let i = 0; i < PASOS_DE_RUEDA_DESDE_EL_ANCLA; i++) {
+                await page.mouse.wheel(0, 100);
+                await page.waitForTimeout(60);
+            }
+            await esperaScrollQuieto(page);
+            /* Mas de un frame: el restituidor anota la entrada en el rAF que
+               sigue al evento `scroll`. */
+            await page.waitForTimeout(900);
+            const lectura = await page.evaluate(leeEntradaConAncla);
+            const base35 = {
+                viewport,
+                enlace: true,
+                porHoja: contacto.porHoja,
+                rutaPortada: surface.path,
+                rutaLegal: legal,
+                salida,
+                lectura,
+            };
+            const pulsado = await page.evaluate((sel) => {
+                const a = document.querySelector(sel);
+                if (!a) return false;
+                a.click();
+                return true;
+            }, `footer a[href="${legal}"]`);
+            if (!pulsado) {
+                medidas.push({ ...base35, legal: null, atras: [] });
+                continue;
+            }
+            await page.waitForURL(enRuta(legal), { timeout: 10000 });
+            await page.waitForTimeout(1200);
+            const enLegal = await page.evaluate(leeEntradaConAncla);
+            await page.evaluate(() => history.back());
+            await page.waitForURL(enRuta(surface.path), { timeout: 10000 });
+            const t0 = Date.now();
+            const atras = [];
+            for (const ms of INSTANTES_TRAS_ATRAS_MS) {
+                const falta = ms - (Date.now() - t0);
+                if (falta > 0) await page.waitForTimeout(falta);
+                atras.push({
+                    ms,
+                    ...(await page.evaluate(leeEntradaConAncla)),
+                });
+            }
+            /* Control del enlace nuevo DESPUES de un recorrido. */
+            let nuevoEnlace = null;
+            await page.evaluate(() => history.forward());
+            await page.waitForURL(enRuta(legal), { timeout: 10000 });
+            await page.waitForTimeout(1200);
+            const via = await page.evaluate(() => {
+                const a =
+                    document.querySelector('footer a[href$="#contact"]') ??
+                    document.querySelector('header a[href$="#contact"]');
+                if (!a) return null;
+                a.click();
+                return a.closest("footer") ? "pie" : "cabecera";
+            });
+            if (via) {
+                await page.waitForURL(
+                    (u) =>
+                        new URL(u).pathname === surface.path &&
+                        new URL(u).hash === "#contact",
+                    { timeout: 15000 },
+                );
+                await page.waitForTimeout(1500);
+                await esperaScrollQuieto(page);
+                nuevoEnlace = {
+                    via,
+                    ...(await page.evaluate(leeEntradaConAncla)),
+                };
+            }
+            /* Control de la carga en frio. */
+            const fria = await ctx.newPage();
+            await fria.goto(`${base}${surface.path}#contact`, {
+                waitUntil: "networkidle",
+            });
+            await fria.waitForTimeout(2200);
+            await esperaScrollQuieto(fria);
+            medidas.push({
+                ...base35,
+                legal: enLegal,
+                atras,
+                nuevoEnlace,
+                fria: await fria.evaluate(leeEntradaConAncla),
             });
         } finally {
             await ctx.close();
@@ -9141,6 +9465,31 @@ async function auditarSuperficie(browser, base, theme, surface) {
         if (!veredictoAPortada.cumple)
             fallos.push(
                 `Adelante hacia la portada no la devuelve a donde se dejo: ${veredictoAPortada.motivos.join(" | ")}`,
+            );
+
+        /*
+         * --- atras con fragmento vuelve a la lectura
+         *
+         * Matriz y porque: docblock de `VIEWPORTS_DE_ATRAS_CON_FRAGMENTO`.
+         */
+        const conFragmento = await mideAtrasConFragmento(
+            browser,
+            base,
+            theme,
+            surface,
+        );
+        const veredictoConFragmento = evaluaAtrasConFragmento(conFragmento);
+        datos.atrasConFragmento = conFragmento.medidas
+            .map((m) =>
+                m.enlace
+                    ? `${m.viewport}${m.porHoja ? " (hoja)" : ""} ancla@${m.salida.y} lectura@${m.lectura.y} atras ${(m.atras ?? []).map((l) => `${l.ms}ms@${l.y}[${l.modo}]`).join(" ")} enlace ${m.nuevoEnlace ? `${m.nuevoEnlace.via} top=${m.nuevoEnlace.contactTop}` : "sin-medir"} fria top=${m.fria ? m.fria.contactTop : "sin-medir"} margen=${m.salida.margen}`
+                    : `${m.viewport} sin-enlace`,
+            )
+            .join(" | ");
+        // [check: atras-con-fragmento-vuelve-a-la-lectura]
+        if (!veredictoConFragmento.cumple)
+            fallos.push(
+                `Atras con fragmento no devuelve al lector a su lectura: ${veredictoConFragmento.motivos.join(" | ")}`,
             );
     }
 
