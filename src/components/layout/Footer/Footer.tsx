@@ -1,17 +1,14 @@
 "use client";
 
-import type { CSSProperties, ReactElement } from "react";
+import type { ReactElement } from "react";
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import styled, {
-  css,
-  keyframes,
-  useTheme as useStyledTheme,
-} from "styled-components";
+import styled, { css } from "styled-components";
 import { backToTopClearance } from "@/components/layout/BackToTop/BackToTop";
 import { BrandName } from "@/components/layout/Brand/BrandName";
 import { focusNavAnchorTarget } from "@/components/layout/Navbar/navAnchorFocus";
 import { SectionBeam } from "@/components/scenes/sectionBeam/SectionBeam";
+import { StarField } from "@/components/scenes/starField/StarField";
 import { Logo } from "@/components/ui/Logo/Logo";
 import { Typography } from "@/components/ui/Typography/Typography";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden/VisuallyHidden";
@@ -19,18 +16,8 @@ import { EMAIL_ADDRESS, links } from "@/config/links";
 import { navGroupsFor, navLocale } from "@/config/navigation";
 import { LEGAL_ROUTE_KEYS, routePath } from "@/config/site";
 import { PRESS } from "@/motion/vocabulary";
-import type { ThemeDefinition } from "@/theme/theme.types";
 import { useTheme } from "@/theme/ThemeProvider";
-import {
-  type FooterStar,
-  FOOTER_DARK_BG,
-  FOOTER_STARS,
-  FOOTER_STAR_TWINKLE_MAX_SCALE,
-  FOOTER_STAR_TWINKLE_MIN_OPACITY,
-  FOOTER_STAR_TWINKLE_MIN_SCALE,
-  footerStarGlow,
-  footerStarTint,
-} from "./footer.layers";
+import { FOOTER_DARK_BG } from "./footer.layers";
 
 /*
  * Footer (spec 2026-07-28-landing-v2-secciones-design.md §7.5, D6, mockup
@@ -104,131 +91,6 @@ const ScFooter = styled.footer<{ $dark: boolean }>`
           background-color: ${theme.data.semantic.surfaceSunken};
         `}
 `;
-
-/* Campo de estrellas titilantes (D9/D10, D3/D6 de la spec
-   2026-08-07-footer-beam-estrellas-tema-claro-design.md): contenedor
-   decorativo, sin captura de puntero, del mismo tamaño que el footer -- se
-   monta en los DOS temas desde esta entrega. Su tinte por estrella se
-   resuelve contra el tema activo en `starVars`, más abajo (D4); este
-   contenedor en sí no cambia entre temas. */
-const ScStars = styled.div`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-`;
-
-/* `starTwinkle`, VERBATIM del mockup (`Footer animado v2.dc.html` L29):
-   solo `opacity`/`transform`. Infinita -- se declara solo bajo
-   `no-preference` y el bloque `reduce` fuerza `animation: none` explícito
-   (D8: con el colapso global `animation-iteration-count: 1 !important`, una
-   animación infinita corre una vez y deja un fotograma arbitrario, no el
-   último). */
-const starTwinkle = keyframes`
-  0%,
-  100% {
-    opacity: ${FOOTER_STAR_TWINKLE_MIN_OPACITY};
-    transform: scale(${FOOTER_STAR_TWINKLE_MIN_SCALE});
-  }
-  50% {
-    opacity: 1;
-    transform: scale(${FOOTER_STAR_TWINKLE_MAX_SCALE});
-  }
-`;
-
-/*
- * Una estrella. Su variación (posición, tamaño, tinte, halo, ritmo) NO entra
- * por props interpoladas en el template sino por PROPIEDADES PERSONALIZADAS
- * que cada instancia escribe en su atributo `style` (`starVars`, más abajo).
- *
- * La diferencia no es de gusto, está MEDIDA. Con las cinco interpolaciones
- * como props transitorias, styled-components genera una clase distinta por
- * estrella -- y con ella sus dos bloques `@media` -- así que 24 estrellas son
- * 24 clases y ~72 reglas inyectadas en la hoja en tiempo de ejecución. Coste
- * real del render completo de la página en oscuro: **5160 ms con las 24
- * estrellas frente a 4315 ms con cero** (media de varias corridas del mismo
- * fichero de integración, `app/home-page.flujo.test.tsx`), es decir ~850 ms
- * y ~35 ms por estrella, solo en inyección de CSS. Eso bastaba para que ese
- * test síncrono desbordara el presupuesto de 5000 ms de Vitest con los
- * workers por defecto. Con variables, el template es ESTÁTICO: una sola
- * clase para las 24, y la variación viaja en el atributo `style`, que el
- * navegador resuelve sin tocar la hoja de estilos.
- *
- * En reposo (`reduce`, o antes de que `no-preference` aplique la animación)
- * queda en su opacidad mínima -- el mismo valor que el 0%/100% del propio
- * keyframe -- para no destellar de golpe a opacidad 1.
- *
- * CURVA (crítica externa #9, encargo transversal de tokens de movimiento):
- * hasta hoy el titileo declaraba la palabra clave `ease-in-out`, la única
- * curva de este fichero que no salía de ningún token -- exactamente lo que
- * prohíbe la regla 48 de `RULES.md`. Pasa a `motion.easing.standard`
- * (`cubic-bezier(0.4, 0, 0.2, 1)`), el paso del sistema que ocupa ese rol:
- * acelera y frena, sin rebote. No es idéntica (`ease-in-out` es simétrica y
- * `standard` frena más tarde), y esa diferencia es la razón de elegirla
- * frente a `PRESS.easing`/`REVEAL.easing` (`cubic-bezier(0.23, 1, 0.32, 1)`),
- * la otra candidata del vocabulario: esa curva es un ease-out fuerte que
- * llegaría al pico casi de golpe y convertiría el titileo en un parpadeo.
- *
- * La interpolación de tema NO reabre el coste medido que documenta el párrafo
- * anterior: lo que generaba 24 clases era la variación POR INSTANCIA (cinco
- * props distintas por estrella). El valor de esta curva es el mismo para las
- * 24, así que styled-components resuelve el mismo texto CSS para todas y sigue
- * emitiendo UNA sola clase -- la variación por estrella sigue viajando entera
- * por el atributo `style`, que es la propiedad que este docblock protege.
- */
-const ScStar = styled.div`
-  position: absolute;
-  top: var(--star-top);
-  left: var(--star-left);
-  width: var(--star-size);
-  height: var(--star-size);
-  /* Circulo por token, no por porcentaje (critica externa #18, ola O+P):
-     la caja es cuadrada (width = height = var(--star-size)), asi que
-     radius.full la redondea igual que el 50 % que habia aqui -- y es lo que
-     escriben ya los circulos de Sol, Wormhole, Contact, Journey, Story y
-     Navbar. Esta era la unica que se salia. */
-  border-radius: ${({ theme }) => theme.data.radius.full};
-  background: var(--star-tint);
-  box-shadow: var(--star-glow);
-  opacity: ${FOOTER_STAR_TWINKLE_MIN_OPACITY};
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: ${starTwinkle} var(--star-duration)
-      ${({ theme }) => theme.data.motion.easing.standard} var(--star-delay)
-      infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-/*
- * Las cinco variables de una estrella, en el formato que espera el CSS de
- * `ScStar`. Recibe `theme` (D3/D4/D5, spec
- * `2026-08-07-footer-beam-estrellas-tema-claro-design.md`) porque el tinte y
- * el halo ya NO son literales fijos en `FooterStar` -- son `tintKey`/
- * `glowBlurPx`, y `footerStarTint`/`footerStarGlow` (`footer.layers.ts`) los
- * componen contra el tema activo. Esta composición ocurre AQUÍ, en JS, y no
- * como interpolación del template de `ScStar`, a propósito: ese template
- * tiene que seguir siendo ESTÁTICO por rendimiento (ver su docblock, más
- * arriba) -- la variación, de tema o de estrella, viaja siempre por el
- * atributo `style`.
- *
- * `box-shadow` necesita `none` explícito cuando la estrella no lleva halo:
- * una variable sin valor dejaría la declaración inválida.
- */
-function starVars(star: FooterStar, theme: ThemeDefinition): CSSProperties {
-  return {
-    "--star-top": star.top,
-    "--star-left": star.left,
-    "--star-size": star.size,
-    "--star-tint": footerStarTint(theme, star.tintKey),
-    "--star-glow":
-      footerStarGlow(theme, star.tintKey, star.glowBlurPx) ?? "none",
-    "--star-duration": `${star.durationMs}ms`,
-    "--star-delay": `${star.delayMs}ms`,
-  } as CSSProperties;
-}
 
 /* Grid de columnas ≥ md (spec: "grid de columnas ≥ md / apilado debajo").
    `auto-fit`/`minmax`, no las fracciones literales del mockup (1.4fr 1fr 1fr
@@ -637,27 +499,15 @@ export function Footer(): ReactElement {
   const { themeName } = useTheme();
   const year = new Date().getFullYear();
   const isDark = themeName === "dark";
-  // El tema AMBIENTAL de styled-components, no `themes[themeName]` construido
-  // a mano (integración 2026-08-07): `ThemeProvider.tsx:90` ya expone
-  // exactamente `{ data: themes[themeName] }`, así que resolverlo otra vez
-  // aquí duplicaría la fuente de verdad de "qué tema está activo" -- la misma
-  // clase de divergencia que Navbar.tsx documenta al retirar su ThemeProvider
-  // anidado (su docblock, "no hay ningun segundo arbol de tema contra el que
-  // algo pueda divergir"). `useStyledTheme` lee el que de verdad están usando
-  // los styled-components de este mismo fichero.
-  const { data: theme } = useStyledTheme();
 
   return (
     <ScFooter $dark={isDark}>
       <SectionBeam />
-      <ScStars aria-hidden="true">
-        {FOOTER_STARS.map((star) => (
-          <ScStar
-            key={star.id}
-            style={starVars(star, theme)}
-          />
-        ))}
-      </ScStars>
+      {/* Campo de 24 estrellas titilantes (D9/D10; en los dos temas desde D6.3
+          de la spec 2026-08-07-footer-beam-estrellas-tema-claro-design.md).
+          Vive en `scenes/starField` desde el 2026-09-13, cuando `About` pasó a
+          llevar el mismo fondo: es la misma pieza en los dos sitios. */}
+      <StarField />
 
       <ScInner>
         <ScBrandCol>

@@ -32,6 +32,15 @@ import type { ThemeDefinition } from "@/theme/theme.types";
  * así que no asciende a token semántico: mismo criterio D10 de
  * `docs/superpowers/specs/2026-07-28-landing-v2-secciones-design.md` y el
  * que ya documenta `contact.layers.ts:1-27` para sus propios literales.
+ *
+ * ENMIENDA 2026-09-13, por decisión del dueño: este casi-negro pinta TAMBIÉN
+ * el fondo oscuro de `About`, que va justo antes del pie y lleva su mismo
+ * campo de estrellas (`scenes/starField`). Sigue sin ascender a token
+ * semántico porque no es un rol nuevo: es la MISMA banda estrellada extendida
+ * una sección hacia arriba, y `About.test.tsx` compara el fondo de las dos
+ * superficies en cada tema para que no puedan divergir (regla 13). Cambiar
+ * este valor exige volver a medir el contraste del texto de About, además del
+ * del pie.
  */
 export const FOOTER_DARK_BG = "oklch(0.055 0.01 288)";
 
@@ -196,8 +205,9 @@ function footerStarGlowTintLight(
  * La bifurcación vive AQUÍ, contra `theme.isLight` -- mismo criterio que
  * `themedBeamColor` en `sectionBeam.parts.tsx`, adaptado a función simple
  * porque este valor no entra por una interpolación de styled-components
- * sino por el atributo `style` de cada `ScStar` (`Footer.tsx`, docblock de
- * `ScStar`: el template tiene que seguir siendo ESTÁTICO por rendimiento, así
+ * sino por el atributo `style` de cada `ScStar` (`scenes/starField/StarField.tsx`
+ * desde el 2026-09-13, docblock de `ScStar`: el template tiene que seguir
+ * siendo ESTÁTICO por rendimiento, así
  * que la composición ocurre en JS, no en CSS).
  */
 export function footerStarTint(

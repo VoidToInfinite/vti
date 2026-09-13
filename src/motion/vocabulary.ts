@@ -586,7 +586,8 @@ export const PRESS = {
  * `markPulse`/`swirlFlash` solo corren bajo `[data-pulse="true"]`, con
  * `easing.standard`/`easing.emphasized` ya tokenizados -- no son candidatas a
  * `AMBIENT`, que es exclusivamente para movimiento infinito no disparado).
- * `Footer.tsx` anima el titileo de sus estrellas decorativas con
+ * `scenes/starField/StarField.tsx` (el campo de estrellas del pie, que desde el
+ * 2026-09-13 monta también `About`) anima el titileo de sus estrellas con
  * `var(--star-duration)`, un rango ALEATORIO por estrella escrito por
  * propiedad personalizada (no un literal fijo) -- no hay un solo número que
  * migrar ahí.

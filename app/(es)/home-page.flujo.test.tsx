@@ -262,7 +262,8 @@ describe("Home (pagina completa)", () => {
    * interpoladas, lo que generaba una clase de styled-components por
    * estrella; con propiedades personalizadas en el atributo `style` el
    * template es estatico y son 850 ms menos (ver el docblock de `ScStar` en
-   * `Footer.tsx`, con la medida). El timeout es lo que queda DESPUES de esa
+   * `scenes/starField/StarField.tsx`, adonde se extrajo del pie el 2026-09-13,
+   * con la medida). El timeout es lo que queda DESPUES de esa
    * optimizacion, no en lugar de ella.
    */
   it("con el tema de pagina en OSCURO (real), se montan las 4 secciones ademas del hero y el footer", () => {

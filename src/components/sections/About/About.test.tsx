@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import { links } from "@/config/links";
+import { Footer } from "@/components/layout/Footer/Footer";
+import {
+  FOOTER_DARK_BG,
+  FOOTER_STARS,
+} from "@/components/layout/Footer/footer.layers";
+import { themes } from "@/theme/themes";
 import { About } from "./About";
 
 /*
@@ -29,6 +35,15 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
+
+/** Los párrafos del bloque, en el orden del JSON: todas las claves de
+ *  `Home.about` salvo `title`. Derivados del JSON y no de una lista escrita
+ *  aquí, para que un párrafo nuevo entre solo en los candados de veracidad. */
+function paragraphsOf(copy: Record<string, string>): string[] {
+  return Object.entries(copy)
+    .filter(([clave]) => clave !== "title")
+    .map(([, texto]) => texto);
+}
 
 describe("About", () => {
   it("es una region con nombre accesible, anclada en #about", () => {
@@ -86,14 +101,30 @@ describe("About", () => {
     ).toBeInTheDocument();
   });
 
-  it("pinta los tres párrafos del bloque, comparados contra el JSON", () => {
-    const { container } = renderWithProviders(<About />);
-    const texto = container.textContent ?? "";
+  /* Igualdad exacta y en orden, no `toContain`: así una clave del JSON que el
+     componente no pinta, un párrafo pintado dos veces o dos párrafos
+     cambiados de sitio se ponen en rojo. Se comprueba en los dos idiomas
+     porque el orden de claves de cada JSON es independiente. */
+  it.each([
+    ["es", esHome.Home.about],
+    ["en", enHome.Home.about],
+  ] as const)(
+    "pinta en %s cada párrafo del JSON, en su orden y sin sobrantes",
+    async (idioma, copy) => {
+      await i18n.changeLanguage(idioma);
+      try {
+        const { container } = renderWithProviders(<About />);
 
-    expect(texto).toContain(esHome.Home.about.what);
-    expect(texto).toContain(esHome.Home.about.sdk);
-    expect(texto).toContain(esHome.Home.about.proof);
-  });
+        const pintados = Array.from(container.querySelectorAll("p"), (p) =>
+          p.textContent?.trim(),
+        );
+        expect(pintados).toEqual(paragraphsOf(copy));
+      } finally {
+        // Un fallo no puede dejar el resto del fichero en inglés.
+        await i18n.changeLanguage("es");
+      }
+    },
+  );
 
   /*
    * CANDADOS DE VERACIDAD. El resto de este fichero no comprueba que el
@@ -119,18 +150,19 @@ describe("About", () => {
        2026-08-08 elogian sin reservas, así que se protege con un candado en
        vez de con buena voluntad.
 
-       El año declarado (2020) es el ÚNICO número admitido: es un hecho del
-       dueño, no una métrica. Cualquier otra cifra en este bloque sería una
-       afirmación cuantitativa que nadie puede sostener. */
+       El año declarado (2020, punto 17) es el ÚNICO número admitido: es un
+       hecho del dueño, no una métrica. Desde el texto del 2026-09-13 el
+       bloque ya no lo nombra, así que se admite sin exigirse. Cualquier otra
+       cifra sería una afirmación cuantitativa que nadie puede sostener. */
     it("no contiene ninguna cifra salvo el año declarado", () => {
       for (const [idioma, copy] of [
         ["es", esHome.Home.about],
         ["en", enHome.Home.about],
       ] as const) {
-        const texto = [copy.what, copy.sdk, copy.proof].join(" ");
-        const numeros = texto.match(/\d+/g) ?? [];
+        const texto = paragraphsOf(copy).join(" ");
+        const cifras = (texto.match(/\d+/g) ?? []).filter((n) => n !== "2020");
 
-        expect(numeros, `${idioma}: cifras encontradas`).toEqual(["2020"]);
+        expect(cifras, `${idioma}: cifras encontradas`).toEqual([]);
       }
     });
 
@@ -148,7 +180,7 @@ describe("About", () => {
         ["es", esHome.Home.about],
         ["en", enHome.Home.about],
       ] as const) {
-        const texto = [copy.what, copy.sdk, copy.proof].join(" ").toLowerCase();
+        const texto = paragraphsOf(copy).join(" ").toLowerCase();
         for (const frase of prohibidas[idioma]) {
           expect(texto, `${idioma}: "${frase}"`).not.toContain(frase);
         }
@@ -157,7 +189,10 @@ describe("About", () => {
   });
 
   it("el bloque existe completo en los dos idiomas", async () => {
-    const claves = ["title", "what", "sdk", "proof"] as const;
+    const claves = Object.keys(esHome.Home.about) as Array<
+      keyof typeof esHome.Home.about
+    >;
+    expect(Object.keys(enHome.Home.about)).toEqual(claves);
 
     for (const clave of claves) {
       expect(esHome.Home.about[clave].trim()).not.toBe("");
@@ -223,5 +258,119 @@ describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
     );
     expect(base).toMatch(/overflow-wrap:\s*anywhere/);
     expect(base).not.toMatch(/overflow-wrap:\s*break-word/);
+  });
+});
+
+/*
+ * Encargo del dueño del 2026-09-13: el fondo de About es el MISMO que el del
+ * pie -- su color por tema y su campo de estrellas titilantes. Estos candados
+ * atan la igualdad contra el propio `Footer` renderizado, no contra una copia
+ * de sus valores: si alguien cambia el fondo del pie y no el de About (o al
+ * revés), el test de igualdad se pone en rojo (regla 13 de `RULES.md`).
+ *
+ * Candados de CSSOM y de DOM: jsdom no pinta ni hace layout, así que el orden
+ * de pintado (texto por encima de las estrellas) se ata por sus dos causas
+ * observables -- el contenido está posicionado y va DESPUÉS del campo en el
+ * marcado -- y se verifica a ojo en el navegador real.
+ */
+describe("About: fondo de estrellas animadas igual que el del pie (2026-09-13)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  /** Valor de la ÚNICA declaración `background-color` de las reglas de un
+   *  elemento; falla si hay cero o más de una (una segunda escondería cuál
+   *  gana). */
+  function backgroundColorOf(el: HTMLElement): string {
+    const valores = Array.from(
+      cssRuleTextFor(el).matchAll(/background-color:\s*([^;]+);/g),
+      (m) => m[1].trim(),
+    );
+    expect(valores, "declaraciones de background-color").toHaveLength(1);
+    return valores[0];
+  }
+
+  /** El campo de estrellas es el contenedor `aria-hidden` con
+   *  `FOOTER_STARS.length` hijos (mismo criterio que `Footer.test.tsx`). */
+  function findStarsContainer(root: HTMLElement): HTMLElement | undefined {
+    return Array.from(root.querySelectorAll('[aria-hidden="true"]')).find(
+      (el) => el.children.length === FOOTER_STARS.length,
+    ) as HTMLElement | undefined;
+  }
+
+  const ESPERADO = {
+    light: themes.light.semantic.surfaceSunken,
+    dark: FOOTER_DARK_BG,
+  } as const;
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s el fondo de About es el mismo background-color que el del pie",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(
+        <>
+          <About />
+          <Footer />
+        </>,
+      );
+      const about = container.querySelector("#about") as HTMLElement;
+      const footer = container.querySelector("footer") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      expect(backgroundColorOf(about)).toBe(ESPERADO[theme]);
+      expect(backgroundColorOf(about)).toBe(backgroundColorOf(footer));
+    },
+  );
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s monta el campo de 24 estrellas titilantes dentro de #about",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(<About />);
+      const about = container.querySelector("#about") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      const stars = findStarsContainer(about);
+      expect(stars, "campo de estrellas dentro de #about").toBeDefined();
+      expect((stars as HTMLElement).children).toHaveLength(FOOTER_STARS.length);
+    },
+  );
+
+  it("las estrellas quedan por debajo del texto: la sección las ancla y el contenido está posicionado después en el marcado", () => {
+    const { container } = renderWithProviders(<About />);
+    const about = container.querySelector("#about") as HTMLElement;
+    const stars = findStarsContainer(about) as HTMLElement;
+    const content = about.querySelector("[data-revealed]") as HTMLElement;
+
+    // La sección es el ancestro posicionado del campo (inset: 0 sobre ella).
+    expect(cssRuleTextFor(about)).toContain("position: relative");
+    // El contenido está posicionado: sin esto se pintaría ANTES que las
+    // estrellas, vaya donde vaya en el DOM.
+    expect(cssRuleTextFor(content)).toContain("position: relative");
+    // Y va después del campo en el marcado, que es lo que desempata.
+    expect(
+      stars.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(content.contains(stars)).toBe(false);
   });
 });

@@ -359,14 +359,16 @@ describe("Hero (lente funcional)", () => {
    * tokenización del tope de columna. El candado de FUENTE (más abajo, en el
    * segundo describe) prueba que el número ya no se escribe a mano; este
    * prueba lo complementario, que es lo que de verdad se ve: lo que llega al
-   * CSS renderizado sigue siendo el MISMO ancho de antes.
+   * CSS renderizado sigue siendo el MISMO ancho de antes (en aquella entrega;
+   * desde el 2026-09-13 el token vale 111ch por decisión del dueño, y este
+   * candado cambia con él).
    *
    * Se afirma contra el token importado, nunca contra el literal (regla 38, y
    * mismo patrón que `Journey.test.tsx`/`Story.test.tsx` ya usan con
    * `grid.prose`): si algún día el token cambia de valor, este candado no
    * miente sobre lo que el hero pinta, cambia con él.
    */
-  it("crítica #10: tagline y subtítulo topan su ancho en grid.heroCopyMax, el mismo valor que declaraban a mano", () => {
+  it("crítica #10: tagline y subtítulo topan su ancho en grid.heroCopyMax", () => {
     renderHero();
     const tagline = reglasDe(screen.getByTestId("hero-tagline")).join("\n");
     const subtitulo = reglasDe(screen.getByTestId("hero-subtitle")).join("\n");
@@ -599,7 +601,8 @@ describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado 
    * forma centrada y dentro del `min(..., 70%)` de escritorio, `ScTagline` y
    * `ScSubtitle`) mientras el sistema ya tenía dónde nombrarlo. Este es el
    * único candado que puede probar la migración: el CSS RENDERIZADO es
-   * idéntico antes y después (el token resuelve al mismo valor), así que la
+   * idéntico antes y después (el token resolvía al mismo valor, 70ch; el
+   * dueño lo subió a 111ch el 2026-09-13), así que la
    * propiedad "el número vive en el token, no en el componente" solo se
    * observa en la FUENTE (task/lessons.md, 2026-08-12, Task 19).
    *
@@ -610,6 +613,10 @@ describe("Hero.tsx / GlobalStyles.tsx — variables CSS del anti-flash (candado 
   it("crítica #10: Hero.tsx ya no escribe el tope de columna a mano -- las cuatro medidas leen grid.heroCopyMax", async () => {
     const source = despojarComentarios(await leerFuente("Hero.tsx"));
     expect(source).not.toContain("70ch");
+    /* El valor VIGENTE del token, no un literal fijo: el dueño lo subió de
+       70ch a 111ch el 2026-09-13, y buscar solo el valor viejo dejaba pasar en
+       verde un «111ch» escrito a mano. */
+    expect(source).not.toContain(grid.heroCopyMax);
     expect(source.match(/theme\.data\.grid\.heroCopyMax/g)?.length ?? 0).toBe(
       4,
     );

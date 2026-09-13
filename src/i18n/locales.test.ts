@@ -299,6 +299,32 @@ describe("locales", () => {
   });
 
   /*
+   * Claves retiradas del namespace `common`, mismo criterio que la lista de
+   * `home` de arriba:
+   *
+   * - `Common.ThemeToggle.stateLight` / `stateDark` (2026-09-13): el rótulo
+   *   visible del conmutador de tema («Tema claro»/«Tema oscuro»), que la
+   *   crítica externa #18 (hallazgo O-3) había puesto junto al icono en la
+   *   barra ancha. El dueño retiró el rótulo y las dos claves se quedaron sin
+   *   ningún `t()` que las leyera: el nombre accesible completo sigue en
+   *   `switchToDark`/`switchToLight`.
+   */
+  describe("claves retiradas de common", () => {
+    it.each(
+      [
+        { lang: "es", common: esCommon as JsonTree },
+        { lang: "en", common: enCommon as JsonTree },
+      ].flatMap(({ lang, common }) =>
+        ["Common.ThemeToggle.stateLight", "Common.ThemeToggle.stateDark"].map(
+          (path) => ({ lang, common, path }),
+        ),
+      ),
+    )("$lang: $path no reaparece", ({ common, path }) => {
+      expect(keyPaths(common)).not.toContain(path);
+    });
+  });
+
+  /*
    * Candado de rayas (Tarea 5, auditoría de copy, 2026-08-09). Nació porque
    * `en/home.json` tenía 5 em-dashes que eran artefacto de la traducción (2
    * de ellos en etiquetas ARIA) sin equivalente en `es/home.json`, y porque

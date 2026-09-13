@@ -700,7 +700,9 @@ const ScSurface = styled.div`
  * Sobre «container-type: inline-size;»:
  *   CONTENEDOR DE CONSULTA DE LA FILA (crítica externa #18, O-3 y O-4, movido
  *   aquí desde ScBar en la ola O+P). Las dos piezas que la barra estrena en esa
- *   crítica se preguntan por el ancho DE ESTA CAJA y por el tamaño de fuente
+ *   crítica (el quinto destino y el rótulo del conmutador de tema, este
+ *   último retirado por el dueño el 2026-09-13)
+ *   se preguntan por el ancho DE ESTA CAJA y por el tamaño de fuente
  *   que hereda, no por el de la ventana; y esta caja es la única de la banda
  *   cuyo ancho de contenido no se mueve durante la animación de despegue. El
  *   porqué completo, con las dos mediciones que lo obligan --la de 200 % de

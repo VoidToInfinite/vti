@@ -585,8 +585,8 @@ export const BASELINE_PAGES = 9;
  * también en el diff de este fichero.
  */
 export const BASELINE_DIGESTS = Object.freeze({
-    win32: "c663800ad2129a47",
-    linux: "102ede7c36a764b8",
+    win32: "58683fd65edcb99c",
+    linux: "1e0cffd699bc3001",
 });
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */

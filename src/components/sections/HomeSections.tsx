@@ -53,9 +53,10 @@ export function HomeSections(): ReactElement {
       <Journey />
       <Features />
       <Contact />
-      {/* `About` es la quinta y la única sin rama por tema: es un bloque de
-          hechos citable, no narrativa, y un hecho no cambia según la piel
-          (ver su docblock).
+      {/* `About` es la quinta y la única sin rama de CONTENIDO por tema: es un
+          bloque de hechos citable, no narrativa, y un hecho no cambia según la
+          piel (ver su docblock). Su fondo sí sigue al tema desde el 2026-09-13:
+          es el del pie, con su campo de estrellas.
 
           VA DESPUÉS DE CONTACTO, Y NO ENTRE FEATURES Y CONTACTO COMO EN SU
           ENTREGA ORIGINAL (Fase 3, 2026-08-14). El motivo NO es de ritmo

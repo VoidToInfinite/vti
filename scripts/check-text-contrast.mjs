@@ -170,7 +170,8 @@
  * `navbar/*` cubren lo que quedaba de texto en esa misma barra fija, medido
  * con el mismo metodo y en el mismo barrido: los cuatro enlaces de seccion mas
  * el quinto que solo cabe en la barra ancha, el disparador «Mas», la marca y
- * el rotulo del conmutador de tema. Ahi habia un P1 propio, en tema CLARO: las
+ * el rotulo del conmutador de tema (retirado por el dueno el 2026-09-13; su
+ * medicion de abajo queda como registro). Ahi habia un P1 propio, en tema CLARO: las
  * SEIS piezas de navegacion comparten tinta (`semantic.textMuted`,
  * `neutral/800`) y las seis bajaban de 4,5 sobre el arte que pasa por debajo
  * --p05 3,542 la peor («Caracteristicas», y=5150, 62,4 % de la caja bajo
@@ -189,9 +190,9 @@
  * dos filas de la MARCA (`navbar/light/neutral/1000` y `navbar/dark/neutral/50`)
  * llevan su propio fondo, mas hostil que el de los enlaces en los dos temas
  * (L = 0,54757 en claro, L = 0,08824 en oscuro), porque la marca vive a 300 px
- * a la izquierda y ahi el arte es otro; el rotulo del conmutador comparte
- * tinta con ella y su peor p05 es mejor (9,92 en claro, 11,81 en oscuro), asi
- * que la fila de la marca lo cubre.
+ * a la izquierda y ahi el arte es otro; el rotulo del conmutador compartia
+ * tinta con ella y su peor p05 era mejor (9,92 en claro, 11,81 en oscuro), asi
+ * que la fila de la marca lo cubria mientras existio (hasta el 2026-09-13).
  *
  * Las tres filas con `censo` son las que todavia no salen de una lectura en
  * navegador sino del calculo de la tinta NUEVA (o de un estado, el foco, que

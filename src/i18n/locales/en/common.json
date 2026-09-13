@@ -54,9 +54,7 @@
         },
         "ThemeToggle": {
             "switchToLight": "Dark theme active: switch to light theme, which recomposes the whole page with the sections as cards and a shorter read",
-            "switchToDark": "Light theme active: switch to dark theme, which recomposes the whole page with the sections as slides and a longer read",
-            "stateLight": "Light theme",
-            "stateDark": "Dark theme"
+            "switchToDark": "Light theme active: switch to dark theme, which recomposes the whole page with the sections as slides and a longer read"
         },
         "SkipLink": {
             "label": "Skip to content"
