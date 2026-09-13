@@ -445,8 +445,10 @@ function resolveVisibleSection(
  * resuelve el camino por geometría de más abajo.
  *
  * `about` rompe esa coincidencia: es una sección real de la home, con su
- * `h2` y su `id`, PLANA a propósito (sin escena, sin deck y sin ramificar por
- * tema, ver el docblock de `About.tsx`), así que no monta `useSectionProgress`
+ * `h2` y su `id`, PLANA a propósito (sin escena ilustrada, sin deck y sin
+ * ramificar el contenido por tema, ver el docblock de `About.tsx`; el campo de
+ * estrellas del pie que lleva de fondo desde el 2026-09-13 es decorativo y no
+ * escribe ninguna señal), así que no monta `useSectionProgress`
  * -- no tiene ningún parallax cuyo progreso describir -- y no escribe la señal
  * en NINGUNA de las dos ramas. En la rama clara, donde las otras cuatro sí la
  * escriben, `haySenal` es cierto y el camino normal era el único que decidía:

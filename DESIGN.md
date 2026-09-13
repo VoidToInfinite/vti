@@ -222,6 +222,8 @@ Cada escena vive en su propio directorio, `src/components/scenes/<nombre>/`, con
 - `<nombre>.parts.tsx` — piezas styled-components.
 - `<Nombre>.tsx` — composición (nombre en PascalCase).
 
+**Excepción declarada (2026-09-13): `starField`.** Es el campo de 24 estrellas titilantes que nació en el pie y se extrajo para montarse también en `About`, que desde ese día lleva el mismo fondo que el `Footer` (decisión del dueño). Solo tiene `StarField.tsx` y su test, sin `.layers.ts` ni `.parts.tsx` propios: sus datos (la tabla `FOOTER_STARS`, las tintas por tema y el keyframe) siguen en `src/components/layout/Footer/footer.layers.ts`, con sus candados byte a byte, y los estilos son dos piezas dentro del propio componente. No lleva capas WebP ni parallax.
+
 Las capas son WebP, animadas con `useSceneParallax` (`src/hooks/useSceneParallax.ts`), con `loading="lazy"` en todas las escenas salvo el hero (`Aura.tsx`/`Eye.tsx`, `loading="eager"`, y solo la capa de mayor prioridad LCP lleva además `fetchPriority="high"`).
 
 `mix-blend-mode` y `transform` viven siempre en el **mismo** elemento: un contexto de apilamiento intermedio entre los dos rompe el modo de mezcla aditivo.

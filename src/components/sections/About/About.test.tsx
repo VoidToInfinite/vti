@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderWithProviders, screen } from "@/test/test-utils";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
 import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import { links } from "@/config/links";
+import { Footer } from "@/components/layout/Footer/Footer";
+import {
+  FOOTER_DARK_BG,
+  FOOTER_STARS,
+} from "@/components/layout/Footer/footer.layers";
+import { themes } from "@/theme/themes";
 import { About } from "./About";
 
 /*
@@ -252,5 +258,119 @@ describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", 
     );
     expect(base).toMatch(/overflow-wrap:\s*anywhere/);
     expect(base).not.toMatch(/overflow-wrap:\s*break-word/);
+  });
+});
+
+/*
+ * Encargo del dueño del 2026-09-13: el fondo de About es el MISMO que el del
+ * pie -- su color por tema y su campo de estrellas titilantes. Estos candados
+ * atan la igualdad contra el propio `Footer` renderizado, no contra una copia
+ * de sus valores: si alguien cambia el fondo del pie y no el de About (o al
+ * revés), el test de igualdad se pone en rojo (regla 13 de `RULES.md`).
+ *
+ * Candados de CSSOM y de DOM: jsdom no pinta ni hace layout, así que el orden
+ * de pintado (texto por encima de las estrellas) se ata por sus dos causas
+ * observables -- el contenido está posicionado y va DESPUÉS del campo en el
+ * marcado -- y se verifica a ojo en el navegador real.
+ */
+describe("About: fondo de estrellas animadas igual que el del pie (2026-09-13)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  /** Valor de la ÚNICA declaración `background-color` de las reglas de un
+   *  elemento; falla si hay cero o más de una (una segunda escondería cuál
+   *  gana). */
+  function backgroundColorOf(el: HTMLElement): string {
+    const valores = Array.from(
+      cssRuleTextFor(el).matchAll(/background-color:\s*([^;]+);/g),
+      (m) => m[1].trim(),
+    );
+    expect(valores, "declaraciones de background-color").toHaveLength(1);
+    return valores[0];
+  }
+
+  /** El campo de estrellas es el contenedor `aria-hidden` con
+   *  `FOOTER_STARS.length` hijos (mismo criterio que `Footer.test.tsx`). */
+  function findStarsContainer(root: HTMLElement): HTMLElement | undefined {
+    return Array.from(root.querySelectorAll('[aria-hidden="true"]')).find(
+      (el) => el.children.length === FOOTER_STARS.length,
+    ) as HTMLElement | undefined;
+  }
+
+  const ESPERADO = {
+    light: themes.light.semantic.surfaceSunken,
+    dark: FOOTER_DARK_BG,
+  } as const;
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s el fondo de About es el mismo background-color que el del pie",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(
+        <>
+          <About />
+          <Footer />
+        </>,
+      );
+      const about = container.querySelector("#about") as HTMLElement;
+      const footer = container.querySelector("footer") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      expect(backgroundColorOf(about)).toBe(ESPERADO[theme]);
+      expect(backgroundColorOf(about)).toBe(backgroundColorOf(footer));
+    },
+  );
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s monta el campo de 24 estrellas titilantes dentro de #about",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(<About />);
+      const about = container.querySelector("#about") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      const stars = findStarsContainer(about);
+      expect(stars, "campo de estrellas dentro de #about").toBeDefined();
+      expect((stars as HTMLElement).children).toHaveLength(FOOTER_STARS.length);
+    },
+  );
+
+  it("las estrellas quedan por debajo del texto: la sección las ancla y el contenido está posicionado después en el marcado", () => {
+    const { container } = renderWithProviders(<About />);
+    const about = container.querySelector("#about") as HTMLElement;
+    const stars = findStarsContainer(about) as HTMLElement;
+    const content = about.querySelector("[data-revealed]") as HTMLElement;
+
+    // La sección es el ancestro posicionado del campo (inset: 0 sobre ella).
+    expect(cssRuleTextFor(about)).toContain("position: relative");
+    // El contenido está posicionado: sin esto se pintaría ANTES que las
+    // estrellas, vaya donde vaya en el DOM.
+    expect(cssRuleTextFor(content)).toContain("position: relative");
+    // Y va después del campo en el marcado, que es lo que desempata.
+    expect(
+      stars.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(content.contains(stars)).toBe(false);
   });
 });

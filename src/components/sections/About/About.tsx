@@ -1,9 +1,12 @@
 "use client";
 
 import type { ReactElement } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { useTranslation } from "react-i18next";
+import { FOOTER_DARK_BG } from "@/components/layout/Footer/footer.layers";
+import { StarField } from "@/components/scenes/starField/StarField";
 import { useReveal } from "@/hooks/useReveal";
+import { useTheme } from "@/theme/ThemeProvider";
 import { motion } from "@/theme/tokens/motion";
 
 /**
@@ -31,9 +34,22 @@ import { motion } from "@/theme/tokens/motion";
  * que es exactamente el coste que `CLAUDE.md` §5.1 avisa. Una sección nueva es
  * código aislado: no toca ninguna de las cuatro existentes.
  *
- * POR QUÉ ES PLANA A PROPÓSITO. Es la única sección del sitio SIN escena, sin
- * deck y sin ramificación por tema — y eso no es una carencia, es el vehículo
- * correcto para lo que hace:
+ * FONDO DE ESTRELLAS DESDE EL 2026-09-13, por decisión del dueño: About lleva
+ * el MISMO fondo que el pie -- su color por tema (`FOOTER_DARK_BG` en oscuro,
+ * `semantic.surfaceSunken` en claro) y el mismo campo de 24 estrellas
+ * titilantes (`StarField`, extraído del `Footer` para montarse en los dos
+ * sitios). Como About va justo antes del pie, las dos piezas se leen como una
+ * sola banda estrellada; el haz (`SectionBeam`) sigue marcando la costura con
+ * el pie. El color no se ramifica por sección: se decide con la misma regla que
+ * `ScFooter`, y `About.test.tsx` compara las dos declaraciones en cada tema
+ * para que no puedan divergir (regla 13 de `RULES.md`). Lo que sigue de esta
+ * sección NO cambia: el contenido es uno solo, sin deck y sin rama por tema;
+ * lo único que conoce el tema es el fondo, igual que en el pie.
+ *
+ * POR QUÉ ES PLANA A PROPÓSITO (el contenido; el fondo, ver el párrafo
+ * anterior). Es la única sección del sitio sin escena ilustrada, sin deck y
+ * sin ramificación de contenido por tema — y eso no es una carencia, es el
+ * vehículo correcto para lo que hace:
  *
  *   1. Es un bloque de HECHOS VERIFICABLES, no de narrativa. El contrato de
  *      F3.3 es que sea citable por un buscador o un asistente; una diapositiva
@@ -42,8 +58,9 @@ import { motion } from "@/theme/tokens/motion";
  *      rejilla consecutiva que las auditorías del 2026-08-08 señalaron—, un
  *      bloque tranquilo es un cambio de ritmo, no un hueco.
  *   3. Desde la unificación de contenido (Tasks 15-16, D-C) el tema es piel.
- *      Esta sección lleva esa decisión al extremo honesto: mismo contenido y
- *      misma piel, porque un hecho no cambia según el tema.
+ *      Esta sección lleva esa decisión al extremo honesto: el mismo contenido
+ *      en los dos temas, porque un hecho no cambia según el tema. La piel sí
+ *      cambia desde el 2026-09-13, y solo en el fondo: la del pie.
  *
  * VERACIDAD, que aquí no es un adorno. Cada afirmación del copy sale de una
  * respuesta del dueño registrada en `PRODUCT.md` §10 (puntos 12, 14, 15, 16
@@ -72,7 +89,11 @@ import { motion } from "@/theme/tokens/motion";
  * viewport.
  */
 
-const ScAbout = styled.section`
+/* Fondo: la MISMA regla que `ScFooter` (`Footer.tsx`) -- casi negro del pie en
+   oscuro y `surfaceSunken` en claro --, con `$dark` decidido igual que allí
+   (`themeName === "dark"`). `position: relative` ya estaba y ahora además
+   ancla el campo de estrellas (`position: absolute; inset: 0`) a esta sección. */
+const ScAbout = styled.section<{ $dark: boolean }>`
   position: relative;
   z-index: 2;
   display: grid;
@@ -94,12 +115,26 @@ const ScAbout = styled.section`
      El valor pasa de break-word a anywhere en la critica #19, por el mismo
      motivo y con la misma medicion que documenta ScStory. */
   overflow-wrap: anywhere;
-  background-color: ${({ theme }) => theme.data.semantic.surface};
+  ${({ $dark, theme }) =>
+    $dark
+      ? css`
+          background-color: ${FOOTER_DARK_BG};
+        `
+      : css`
+          background-color: ${theme.data.semantic.surfaceSunken};
+        `}
   padding: ${({ theme }) => theme.data.space[9]}
     ${({ theme }) => theme.data.inlineSpace[5]};
 `;
 
+/* `position: relative` SIN `z-index`: con el campo de estrellas absoluto como
+   hermano ANTERIOR en el DOM, los dos quedan posicionados con `z-index: auto`
+   en el mismo paso de pintado, y ahí el orden del marcado decide -- el texto
+   por encima de las estrellas. Sin posicionar, este bloque se pintaría ANTES
+   que las estrellas (orden de pintado de CSS 2.1, `task/lessons.md`,
+   2026-08-07). No hace falta un `z-index` literal nuevo. */
 const ScInner = styled.div`
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[5]};
@@ -174,12 +209,15 @@ const ABOUT_PARAGRAPH_KEYS = [
 export function About(): ReactElement {
   const { t } = useTranslation("home");
   const { ref, revealed } = useReveal<HTMLDivElement>();
+  const { themeName } = useTheme();
 
   return (
     <ScAbout
       id="about"
       aria-labelledby="about-title"
+      $dark={themeName === "dark"}
     >
+      <StarField />
       <ScInner
         ref={ref}
         data-revealed={revealed}

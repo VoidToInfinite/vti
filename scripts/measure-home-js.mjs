@@ -585,7 +585,7 @@ export const BASELINE_PAGES = 9;
  * también en el diff de este fichero.
  */
 export const BASELINE_DIGESTS = Object.freeze({
-    win32: "c663800ad2129a47",
+    win32: "87ed5653d1551660",
     linux: "102ede7c36a764b8",
 });
 

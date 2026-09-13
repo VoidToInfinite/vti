@@ -124,12 +124,17 @@ const EXTENSIONES = new Set([".ts", ".tsx"]);
  * renombrado biyectivo de las clases, que styled-components deriva del texto
  * del template. Sin margen, por el mismo motivo que el techo anterior.
  *
+ * 2026-09-13 (extracción de `StarField` del pie para montarlo también en
+ * `About`): BAJA a 77.522 B (-340 B). El único comentario que vivía dentro del
+ * template de `ScStar` («Círculo por token…», `Footer.tsx`) pasó al docblock JS
+ * de `scenes/starField/StarField.tsx` al mover la pieza.
+ *
  * Lo que queda por debajo del techo es prosa que todavía vive dentro de
  * templates: `legalPage.parts.tsx`, `Contact.tsx`, `Button.tsx`,
  * `Features.tsx` y `story.deck.tsx` son los mayores, y bajarlos es trabajo
  * futuro con su propia medición delante.
  */
-const TEMPLATE_COMMENT_BYTES_MAX = 77862;
+const TEMPLATE_COMMENT_BYTES_MAX = 77522;
 
 /**
  * Suelo del barrido, TECLEADO A MANO (atadura de extensión, dirección 1: que
