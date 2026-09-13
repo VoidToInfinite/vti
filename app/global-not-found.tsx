@@ -145,13 +145,14 @@ export const viewport: Viewport = ROOT_VIEWPORT;
  * con `lang="en"`. Quién recibe cuál depende del servidor, y no es lo mismo en
  * los dos sitios donde se sirve el `out/`:
  *
- * - En producción (Netlify), la regla `from = "/en/*"` de `netlify.toml` sirve
+ * - En producción (Vercel), la regla `routes` de `vercel.json`
+ *   (`src: "/en/(.*)"`, detrás de la fase `filesystem`) sirve
  *   `out/en/404.html` con estado 404 a todo camino inexistente bajo `/en/`; el
  *   resto sigue recibiendo este `out/404.html`.
  * - El servidor local de medición, desde `bf925ec`, es
  *   `scripts/serve-measure.mjs` (el vigilante lo lanza por defecto): usa el
  *   mismo `serve-handler` y la misma `compression` que `serve`, pero reproduce
- *   la 404 por prefijo de Netlify, así que también ahí `/en/<roto>` recibe
+ *   esa 404 por prefijo, así que también ahí `/en/<roto>` recibe
  *   `out/en/404.html` con estado 404. La familia 19 de
  *   `scripts/check-site-surfaces.mjs` ya no necesita ninguna excepción de
  *   idioma horneado para la 404 inglesa: la que hubo se retiró con ese cambio.

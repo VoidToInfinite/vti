@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
- * SERVIDOR DE MEDICIÓN: `serve` con la 404 por prefijo de Netlify.
+ * SERVIDOR DE MEDICIÓN: `serve` con la 404 por prefijo de producción.
  *
- * POR QUÉ EXISTE. Desde el 2026-09-10 `netlify.toml` sirve `out/en/404.html`
- * con estado 404 para cualquier camino inexistente bajo `/en/` (regla
- * `from = "/en/*"`, `status = 404`, `force = false`). `serve` no puede
- * reproducirlo: `serve-handler` solo sirve el `${statusCode}.html` de la raíz,
+ * POR QUÉ EXISTE. Producción sirve `out/en/404.html` con estado 404 para
+ * cualquier camino inexistente bajo `/en/`. Desde el 2026-09-13 la regla vive
+ * en `vercel.json` (`routes`: `{ "handle": "filesystem" }` y detrás
+ * `{ "src": "/en/(.*)", "status": 404, "dest": "/en/404" }`); del 2026-09-10 a
+ * esa fecha vivía en `netlify.toml`, que producción nunca llegó a leer porque
+ * el sitio ya se servía desde Vercel. `serve` no puede reproducirlo:
+ * `serve-handler` solo sirve el `${statusCode}.html` de la raíz,
  * las `rewrites` de `serve.json` responden 200 y tapan rutas reales, y el CLI
  * llama al handler sin el cuarto argumento (`methods`) que permite sobrescribir
  * `sendError`. Así, el instrumento de las críticas veía una 404 castellana que
- * producción ya no sirve. Decisión del dueño (2026-09-10): el servidor de
- * medición reproduce la regla de Netlify con la MISMA compresión que `serve`.
+ * producción no sirve. Decisión del dueño (2026-09-10): el servidor de
+ * medición reproduce la regla de producción con la MISMA compresión que `serve`.
  *
  * QUÉ ES IGUAL A `serve`, y por qué no cambia las cifras: `serve-handler` y
  * `compression` se cargan de la MISMA instalación de `serve` que usa el
@@ -23,21 +26,21 @@
  *
  * LO ÚNICO QUE CAMBIA: `sendError`, que `serve-handler` solo invoca por esa vía
  * para un 404 (camino inexistente o enlace simbólico no permitido). Llegar ahí
- * ES el shadowing de Netlify: la ruta no existe como fichero. Si además cae
- * bajo el `from` de una regla 404 de `netlify.toml`, la respuesta la produce
- * `serve-handler` otra vez, pero con la raíz en el directorio del destino, de
- * modo que su propia página de error es el `to` de la regla, con sus mismas
- * cabeceras y estado. En cualquier otro caso se vuelve a llamar al handler SIN
- * métodos: el comportamiento de `serve` intacto.
+ * es lo mismo que pasar la fase `filesystem` de Vercel sin encontrar fichero.
+ * Si además la ruta cae bajo el prefijo de una regla 404 de `vercel.json`, la
+ * respuesta la produce `serve-handler` otra vez, pero con la raíz en el
+ * directorio del destino, de modo que su propia página de error es el destino
+ * de la regla, con sus mismas cabeceras y estado. En cualquier otro caso se
+ * vuelve a llamar al handler SIN métodos: el comportamiento de `serve` intacto.
  *
- * Las reglas se LEEN de `netlify.toml` en cada arranque (fuente única). No hay
+ * Las reglas se LEEN de `vercel.json` en cada arranque (fuente única). No hay
  * `Start-Process` ni ventanas: lo lanza el vigilante con `windowsHide`.
  *
  * USO:
  *
  *   node scripts/serve-measure.mjs --dir=out --port=4323
  *   node scripts/serve-measure.mjs --dir=out --port=4323 \
- *       --serve-main=<ruta a serve/build/main.js> --netlify=netlify.toml
+ *       --serve-main=<ruta a serve/build/main.js> --vercel=vercel.json
  */
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
@@ -51,52 +54,58 @@ import { resolveServeMain } from "./serve-watchdog.mjs";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Dónde se leen las reglas si nadie dice otra cosa. */
-export const NETLIFY_POR_DEFECTO = path.join(ROOT, "netlify.toml");
+export const VERCEL_POR_DEFECTO = path.join(ROOT, "vercel.json");
+
+/** `src` de una regla por prefijo: `/en/(.*)` y nada más elaborado. */
+const SRC_POR_PREFIJO = /^(\/(?:[\w-]+\/)+)\(\.\*\)$/;
 
 /**
- * Las reglas `[[redirects]]` de `netlify.toml` con `status = 404`, como
- * `{ from, to, force }`. Salta comentarios: una regla comentada no sirve nada.
- * Solo reproduce la forma que usa el repo (`/prefijo/*` o un camino exacto) y
- * un destino que se llame `404.html`, porque la delegación en `serve-handler`
- * sirve el `${statusCode}.html` del directorio del destino; cualquier otra
- * forma falla aquí en vez de medirse en silencio con otra semántica.
+ * Las `routes` de `vercel.json` con `status: 404`, como `{ from, to }`, donde
+ * `from` es el prefijo (`/en/*`) y `to` el fichero del build que las sirve
+ * (`/en/404.html`). Solo reproduce la forma que usa el repo, y cualquier otra
+ * falla aquí en vez de medirse en silencio con otra semántica:
+ *
+ * - la regla va DETRÁS de `{ "handle": "filesystem" }`. Delante, Vercel la
+ *   aplicaría antes de mirar si el fichero existe y taparía `/en/privacy` con
+ *   la 404; y el servidor de medición solo sabe aplicarla cuando el fichero no
+ *   existe, así que mediría un sitio que producción no sirve;
+ * - `src` es un prefijo seguido de `(.*)`;
+ * - `dest` es un `404` (URL limpia, como la sirve Vercel: `/en/404` responde y
+ *   `/en/404.html` no) o un `404.html`, porque la delegación en
+ *   `serve-handler` sirve el `${statusCode}.html` del directorio del destino.
  */
 export function reglasDe404(texto) {
-    const bloques = [];
-    let actual = null;
-    for (const linea of texto.split("\n")) {
-        const limpia = linea.trim();
-        if (limpia === "" || limpia.startsWith("#")) continue;
-        if (limpia.startsWith("[")) {
-            actual = limpia === "[[redirects]]" ? {} : null;
-            if (actual) bloques.push(actual);
-            continue;
-        }
-        const encaje = /^([a-z_]+)\s*=\s*"?([^"]*?)"?\s*$/.exec(limpia);
-        if (actual && encaje) actual[encaje[1]] = encaje[2];
-    }
+    const config = JSON.parse(texto);
+    const rutas = Array.isArray(config.routes) ? config.routes : [];
+    const filesystem = rutas.findIndex((ruta) => ruta?.handle === "filesystem");
     const reglas = [];
-    for (const bloque of bloques) {
-        if (bloque.status !== "404") continue;
-        const { from, to } = bloque;
-        const formaValida =
-            typeof from === "string" &&
-            from.startsWith("/") &&
-            !/[:*]/.test(from.replace(/\/\*$/, ""));
-        if (!formaValida || typeof to !== "string" || !to.startsWith("/")) {
+    rutas.forEach((ruta, indice) => {
+        if (ruta?.status !== 404) return;
+        if (filesystem === -1 || indice < filesystem) {
             throw new Error(
-                `Regla 404 de netlify.toml que el servidor de medición no ` +
-                    `sabe reproducir: ${JSON.stringify(bloque)}.`,
+                `La regla 404 ${JSON.stringify(ruta)} de vercel.json no va detrás ` +
+                    `de { "handle": "filesystem" }: taparía rutas que existen.`,
             );
         }
-        if (path.posix.basename(to) !== "404.html") {
+        const encaje = SRC_POR_PREFIJO.exec(ruta.src ?? "");
+        const dest = ruta.dest;
+        if (!encaje || typeof dest !== "string" || !dest.startsWith("/")) {
             throw new Error(
-                `El destino de la regla 404 «${from}» tiene que llamarse ` +
-                    `404.html, y es «${to}».`,
+                `Regla 404 de vercel.json que el servidor de medición no ` +
+                    `sabe reproducir: ${JSON.stringify(ruta)}.`,
             );
         }
-        reglas.push({ from, to, force: bloque.force === "true" });
-    }
+        if (!["404", "404.html"].includes(path.posix.basename(dest))) {
+            throw new Error(
+                `El destino de la regla 404 «${ruta.src}» tiene que ser un ` +
+                    `404 o un 404.html, y es «${dest}».`,
+            );
+        }
+        reglas.push({
+            from: `${encaje[1]}*`,
+            to: dest.endsWith(".html") ? dest : `${dest}.html`,
+        });
+    });
     return reglas;
 }
 
@@ -109,7 +118,7 @@ export function caeBajo(ruta, from) {
 /**
  * La decisión de `sendError`, pura: el destino que sirve la regla o `null`
  * para dejar a `serve-handler` como está. Solo un 404 se reescribe, la
- * primera regla que encaja gana (el orden de Netlify) y un destino que no
+ * primera regla que encaja gana (el orden de `routes`) y un destino que no
  * existe en el build no se sirve.
  */
 export function destinoDelError({ ruta, statusCode, reglas, existe }) {
@@ -205,11 +214,11 @@ export function creaManejador({ handler, compression, config, reglas }) {
     };
 }
 
-/** Parseo mínimo: `--dir`, `--port`, y opcionales `--serve-main`, `--netlify`. */
+/** Parseo mínimo: `--dir`, `--port`, y opcionales `--serve-main`, `--vercel`. */
 export function parseArgs(argv) {
     const valores = new Map();
     for (const arg of argv) {
-        const encaje = /^--(dir|port|serve-main|netlify)=([\s\S]*)$/.exec(arg);
+        const encaje = /^--(dir|port|serve-main|vercel)=([\s\S]*)$/.exec(arg);
         if (!encaje) throw new Error(`Argumento no reconocido: «${arg}».`);
         valores.set(encaje[1], encaje[2]);
     }
@@ -221,7 +230,7 @@ export function parseArgs(argv) {
         dir: path.resolve(valores.get("dir")),
         port,
         serveMain: valores.get("serve-main") ?? null,
-        netlify: path.resolve(valores.get("netlify") ?? NETLIFY_POR_DEFECTO),
+        vercel: path.resolve(valores.get("vercel") ?? VERCEL_POR_DEFECTO),
     };
 }
 
@@ -236,7 +245,7 @@ function main() {
             handler,
             compression,
             config: configuracionComoServe({ dir: opciones.dir }),
-            reglas: reglasDe404(readFileSync(opciones.netlify, "utf8")),
+            reglas: reglasDe404(readFileSync(opciones.vercel, "utf8")),
         });
     } catch (error) {
         process.stderr.write(`${error.message}\n`);

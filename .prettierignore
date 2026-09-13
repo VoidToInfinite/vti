@@ -42,7 +42,7 @@ yarn.lock
 # que trabaja sobre este repo. Mismo caso que `.superpowers/` y `.impeccable/`
 # de arriba: sin rastrear por git, escrito por una herramienta con su propio
 # formato, y nadie le pasa Prettier. Al no estar rastreado NO llega ni a
-# GitHub Actions ni a Netlify, asi que su deriva solo tumbaba `pnpm run ci` en
+# GitHub Actions ni a Vercel, asi que su deriva solo tumbaba `pnpm run ci` en
 # la maquina local -- un rojo que no corresponde a ningun defecto del sitio
 # (observado el 2026-08-13: `check-format` en rojo por este unico fichero,
 # aparecido esa manana, con el resto del gate limpio).
@@ -50,7 +50,7 @@ yarn.lock
 
 # Ajustes locales de Claude Code. Mismo criterio que `.codex/` de arriba, con
 # un motivo mas para ignorarlo: esta gitignorado (no llega ni a GitHub Actions
-# ni a Netlify) y la propia herramienta lo REESCRIBE cada vez que se concede un
+# ni a Vercel) y la propia herramienta lo REESCRIBE cada vez que se concede un
 # permiso, en la maquina de quien lo concede -- asi que formatearlo no seria un
 # arreglo, seria una pelea que se pierde en la siguiente sesion. Aparecio como
 # rojo del gate el 2026-08-16, al fijar LF en todo el arbol (.gitattributes):

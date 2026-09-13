@@ -1,0 +1,29 @@
+{
+    "redirects": [
+        {
+            "source": "/terminos",
+            "destination": "/aviso-legal",
+            "statusCode": 301
+        },
+        { "source": "/accesibilidad", "destination": "/", "statusCode": 301 }
+    ],
+    "headers": [
+        {
+            "source": "/(.*).webp",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=2592000, stale-while-revalidate=604800"
+                }
+            ]
+        },
+        {
+            "source": "/opengraph-image",
+            "headers": [{ "key": "Content-Type", "value": "image/png" }]
+        }
+    ],
+    "routes": [
+        { "handle": "filesystem" },
+        { "src": "/en/(.*)", "status": 404, "dest": "/en/404" }
+    ]
+}
