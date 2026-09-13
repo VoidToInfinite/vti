@@ -4068,9 +4068,11 @@ function probeSeccionDelCentro({ x, y }) {
  * (`IDIOMA_HORNEADO_DE_LA_404 = "es"`): `output: "export"` solo emitia un
  * `404.html` castellano. Se retira por dos piezas que la dejan sin motivo:
  *   - commit `06cdda8`: `app/en/404/page.tsx` hornea `out/en/404.html` con
- *     `lang="en"` y `netlify.toml` lo sirve con estado 404 para todo camino
- *     inexistente bajo `/en/` (`from = "/en/*"`, `force = false`). Produccion ya
- *     no sirve la 404 castellana en `/en/*`.
+ *     `lang="en"` y el hosting lo sirve con estado 404 para todo camino
+ *     inexistente bajo `/en/`. La regla nacio en `netlify.toml`, que produccion
+ *     no leia (medido el 2026-09-13: el sitio se servia desde Vercel y `/en/*`
+ *     seguia recibiendo la 404 castellana); desde esa fecha vive en
+ *     `vercel.json` (`routes`, detras de la fase `filesystem`).
  *   - commit `403bd29`: `scripts/serve-measure.mjs`, el servidor de medicion,
  *     reproduce esa regla con la pila de `serve`, y el vigilante lo lanza por
  *     defecto. El instrumento ve lo que produccion sirve.

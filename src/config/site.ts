@@ -206,8 +206,8 @@ export function resolveRoute(
  *   PÁGINA no retira ni un solo requisito de accesibilidad del propio sitio,
  *   que sigue desarrollándose contra WCAG 2.2 AA.
  *
- * `netlify.toml` redirige las dos rutas retiradas; ver allí el porqué de cada
- * destino.
+ * `vercel.json` redirige las dos rutas retiradas con 301; el porqué de cada
+ * destino está en `scripts/build-pipeline.test.mjs`, que ata esas reglas.
  */
 export const LEGAL_ROUTE_KEYS = [
   "privacy",

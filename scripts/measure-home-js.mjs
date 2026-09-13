@@ -194,10 +194,12 @@
  * soportado. Lo que cierra el caso del todo es comparar el censo contra el
  * artefacto, y eso ya no depende de que la máquina tenga un `out/` a mano:
  * `.github/workflows/ci.yml` ejecuta `pnpm build` y `pnpm measure:js` como dos
- * pasos propios detrás del gate, y el `command` de `netlify.toml` encadena los
- * tres (`pnpm run ci && pnpm build && pnpm measure:js`). Un censo recortado y
- * resellado a mano sigue pasando un `pnpm run ci` local, pero cae en CI y en el
- * despliegue contra las dieciocho filas reales.
+ * pasos propios detrás del gate. Un censo recortado y resellado a mano sigue
+ * pasando un `pnpm run ci` local, pero cae en CI contra las filas reales; y
+ * desde el 2026-09-13 producción (Vercel) no se promueve hasta que ese check
+ * pasa (Deployment Checks del panel de Vercel, decisión del dueño; hasta esa
+ * fecha el `command` de `netlify.toml` encadenaba los tres, pero producción no
+ * lo leía).
  *
  * LO QUE SIGUE SIN VERLO, dicho para que nadie lea aquí más garantía de la que
  * hay: un `pnpm run ci` local SIN build. Ahí solo corren los tres candados que
@@ -280,10 +282,10 @@
  * De los nueve, los candados 6, 8 y 9 NO necesitan `out/` — corren en cualquier
  * `pnpm run ci`, con build o sin él, a través de
  * `scripts/measure-home-js.test.mjs`. Los otros seis necesitan el build, y
- * desde el 2026-09-05 lo tienen siempre en los dos pipelines: CI construye y
- * ejecuta `pnpm measure:js` detrás del gate, y el `command` de Netlify hace lo
- * mismo antes de publicar. El único sitio donde los seis siguen sin correr es
- * un `pnpm run ci` local sin build.
+ * desde el 2026-09-05 lo tienen siempre en CI, que construye y ejecuta
+ * `pnpm measure:js` detrás del gate; producción espera a ese check antes de
+ * promoverse (Deployment Checks de Vercel). El único sitio donde los seis
+ * siguen sin correr es un `pnpm run ci` local sin build.
  *
  * SALIDA: tabla por chunk de la home con su delta, censo por página, censo de
  * gemelos de la unión, censo de duplicación, los dos totales (descargado y HTML
@@ -305,10 +307,9 @@
  *
  * POR QUÉ ESTE SCRIPT SIGUE FUERA DE `pnpm run ci`, dicho explícitamente para
  * que nadie lo "arregle" sin leer: necesita un `out/` construido y el gate
- * corre sin build — el gate va ANTES, tanto en CI como en Netlify. Donde SÍ se
- * ejecuta es DESPUÉS del build, en los dos pipelines: en
- * `.github/workflows/ci.yml` como paso propio detrás de `pnpm build`, y en
- * `netlify.toml` como tercer eslabón del `command`. Meterlo dentro de
+ * corre sin build — el gate va ANTES. Donde SÍ se ejecuta es DESPUÉS del
+ * build, en `.github/workflows/ci.yml`, como paso propio detrás de
+ * `pnpm build`. Meterlo dentro de
  * `pnpm run ci` lo único que conseguiría es que el gate reventara en toda
  * máquina sin `out/`. Lo que sí corre en el gate es
  * `scripts/measure-home-js.test.mjs`, que ejercita esta lógica con chunks
@@ -559,7 +560,7 @@ export const BASELINE_CHUNKS = 21;
  *
  * ENMIENDA 2026-09-10 (P2 de la crítica externa #21): 8 -> 9. La página nueva
  * es `en/404.html`, la 404 inglesa horneada que emite `app/en/404/page.tsx` y
- * que `netlify.toml` sirve con estado 404 bajo `/en/*`. Resellado con
+ * que el hosting sirve con estado 404 bajo `/en/*` (hoy `vercel.json`). Resellado con
  * `--update-baseline` sobre un `pnpm build` fresco del árbol principal.
  */
 export const BASELINE_PAGES = 9;
@@ -701,7 +702,7 @@ export function hintsOf(text) {
  *    pedido con `Accept-Encoding: br`: 272.252 B en el cable y 272.252 B
  *    en `brotliBytes`.
  *
- * Netlify no documenta su nivel: si comprimiera más, esta cifra sobreestima
+ * El nivel de brotli del hosting no está verificado: si comprimiera más, esta cifra sobreestima
  * el peso real, que es el lado conservador. La clave `compresion` del censo
  * repite esta constante, entra en el sello, y `auditBaseline` exige que
  * coincida: un censo hecho a otra calidad no pasa por uno de esta.

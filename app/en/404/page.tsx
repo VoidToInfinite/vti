@@ -18,9 +18,11 @@ import { TITLE_SEPARATOR } from "@/seo/metadata";
  * EL ARREGLO, sin servidor: el build hornea ADEMÁS este documento inglés como
  * fichero estático (`out/en/404.html`) y el hosting lo sirve con estado 404
  * para cualquier camino inexistente bajo `/en/`. Esa segunda mitad vive en
- * `netlify.toml` (regla `from = "/en/*"`, `status = 404`), y solo aplica a
- * caminos que no existen como fichero, así que las rutas inglesas reales no se
- * tocan. La 404 castellana no cambia: sigue siendo `out/404.html`.
+ * `vercel.json` (`routes`: `src: "/en/(.*)"`, `status: 404`, `dest: "/en/404"`,
+ * detrás de `{ "handle": "filesystem" }`), y solo aplica a caminos que no
+ * existen como fichero, así que las rutas inglesas reales no se tocan. Del
+ * 2026-09-10 al 2026-09-13 estuvo en `netlify.toml`, que producción no leía. La
+ * 404 castellana no cambia: sigue siendo `out/404.html`.
  *
  * POR QUÉ UNA PÁGINA BAJO `app/en/` Y NO OTRA 404 DE CONVENCIÓN: la entrada
  * `/_not-found` resuelve sus ficheros en el segmento raíz de `app/`, fuera de
@@ -46,7 +48,7 @@ import { TITLE_SEPARATOR } from "@/seo/metadata";
  *   rastreador leyera justamente el `noindex`.
  * - UN 200 QUE CONFUNDA. `GET /en/404` sí existe como fichero y responde 200:
  *   es el precio de hornearla con `output: "export"`, que no emite estados. Lo
- *   que sirve de verdad es la regla de Netlify, que la entrega con 404 en las
+ *   que sirve de verdad es la regla de `vercel.json`, que la entrega con 404 en las
  *   URLs rotas; la dirección `/en/404` no la enlaza nadie y declara `noindex`.
  *
  * La copia de la metadata sale del locale INGLÉS directamente, no vía `t()`:

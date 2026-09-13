@@ -148,9 +148,9 @@ describe("LEGAL_VERSIONS", () => {
   });
 
   /*
-   * Dos revisiones sustantivas encadenadas, y las dos movieron la MAYOR por el
-   * mismo motivo: quien se hubiera quedado con la versión anterior no puede dar
-   * por buena su lectura.
+   * Tres revisiones sustantivas de la privacidad (dos del aviso legal), y todas
+   * movieron la MAYOR por el mismo motivo: quien se hubiera quedado con la
+   * versión anterior no puede dar por buena su lectura.
    *
    *   1.x -> 2.0.0 (2026-08-08): la privacidad pierde todo lo relativo al
    *   consentimiento y el aviso legal absorbe las cláusulas del retirado
@@ -159,6 +159,9 @@ describe("LEGAL_VERSIONS", () => {
    *   responsable, la cadena real de proveedores del correo y el plazo de
    *   conservación. Antes de esto, el lector no sabía quién respondía de sus
    *   datos.
+   *   privacy 3.1.0 -> 4.0.0 (2026-09-13): cambia el proveedor de alojamiento
+   *   (Netlify por Vercel) y con él la garantía de transferencia que se
+   *   declara. Solo la privacidad; el aviso legal sigue en 3.0.0.
    *
    * El candado es sobre la mayor, no sobre la cadena completa: la menor y el
    * parche pueden moverse con retoques posteriores sin tener que tocar aquí.

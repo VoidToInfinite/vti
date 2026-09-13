@@ -2899,7 +2899,7 @@ function run() {
 /**
  * PUNTO DE ENTRADA. `run()` se ejecuta SOLO cuando este fichero se invoca
  * como PROGRAMA -- `node scripts/detect-anti-patterns.mjs`, que es como lo
- * llaman `pnpm run ci`, `.github/workflows/ci.yml` y `netlify.toml` --, y no
+ * llaman `pnpm run ci` y `.github/workflows/ci.yml` --, y no
  * cuando se IMPORTA como modulo, que es lo que hace su propio test para
  * ejercitar las familias linea a linea sin escanear el repo entero ni pisar
  * el `process.exitCode` del proceso de Vitest.

@@ -72,7 +72,7 @@
                                 },
                                 {
                                     "term": "Destinatarios",
-                                    "description": "Netlify (alojamiento), y Cloudflare y Google si nos escribes por correo. No cedemos ni vendemos datos a terceros."
+                                    "description": "Vercel (alojamiento), y Cloudflare y Google si nos escribes por correo. No cedemos ni vendemos datos a terceros."
                                 },
                                 {
                                     "term": "Derechos",
@@ -227,12 +227,12 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "El sitio es una exportación estática (sin servidor propio de aplicación) alojada en Netlify, que actúa como encargado del tratamiento para el alojamiento técnico y trata los datos técnicos de las peticiones —por ejemplo, direcciones IP en sus registros de acceso— según su propia política de privacidad."
+                            "text": "El sitio es una exportación estática (sin servidor propio de aplicación) alojada en Vercel. Al servir cada petición, Vercel trata sus datos técnicos —por ejemplo, la dirección IP, el navegador y la página de procedencia, en sus registros de peticiones— según su propia política de privacidad."
                         },
                         {
                             "kind": "ul",
                             "items": [
-                                "Netlify, como encargado del tratamiento, para el alojamiento técnico del sitio.",
+                                "Vercel, para el alojamiento técnico del sitio y la entrega de sus páginas. Este sitio usa su plan gratuito, y Vercel declara su acuerdo de tratamiento de datos aplicable a los planes Pro y Enterprise: no se afirma aquí una relación de encargado del tratamiento por contrato.",
                                 "Cloudflare, que enruta el correo dirigido a la dirección de contacto. No lo almacena: lo reenvía a un buzón de destino.",
                                 "Google, proveedor de ese buzón de destino, donde el mensaje queda alojado. Es una cuenta personal de Gmail, no un servicio contratado como encargado del tratamiento: se declara así en vez de afirmar una relación contractual que no existe."
                             ]
@@ -249,12 +249,12 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "El sitio se aloja en la infraestructura de Netlify y el correo de contacto se enruta a través de Cloudflare. Las dos son empresas estadounidenses, así que puede haber transferencias de datos técnicos fuera del Espacio Económico Europeo."
+                            "text": "El sitio se aloja en la infraestructura de Vercel y el correo de contacto se enruta a través de Cloudflare. Las dos son empresas estadounidenses, así que puede haber transferencias de datos técnicos fuera del Espacio Económico Europeo."
                         },
                         {
                             "kind": "ul",
                             "items": [
-                                "Netlify, Inc.: cláusulas contractuales tipo de la Comisión Europea, recogidas en su acuerdo de tratamiento de datos, y adhesión certificada al Marco de Privacidad de Datos UE-EE. UU.",
+                                "Vercel Inc.: adhesión certificada y activa al Marco de Privacidad de Datos UE-EE. UU., según la lista oficial del Departamento de Comercio de EE. UU. Su acuerdo de tratamiento de datos, que recoge las cláusulas contractuales tipo de la Comisión Europea, se declara aplicable a los planes Pro y Enterprise y no al plan gratuito que usa este sitio, así que esa garantía contractual no se afirma aquí.",
                                 "Cloudflare, Inc.: cláusulas contractuales tipo (módulo dos, responsable a encargado) en la sección 6.2 de su acuerdo de tratamiento de datos, y adhesión al Marco de Privacidad de Datos confirmada en su sección 6.4."
                             ]
                         },

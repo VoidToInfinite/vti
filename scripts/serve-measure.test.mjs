@@ -17,7 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-    NETLIFY_POR_DEFECTO,
+    VERCEL_POR_DEFECTO,
     caeBajo,
     configuracionComoServe,
     creaManejador,
@@ -33,54 +33,93 @@ import {
 
 /*
  * QUÉ ATA ESTE FICHERO. El servidor de medición existe para que el instrumento
- * vea la 404 inglesa que Netlify sirve bajo `/en/` y, fuera de eso, sea `serve`
- * byte a byte. Aquí se atan las dos mitades que se pueden atar sin red: que
- * las reglas salen de `netlify.toml` y no de una copia, y la decisión de
+ * vea la 404 inglesa que producción sirve bajo `/en/` y, fuera de eso, sea
+ * `serve` byte a byte. Aquí se atan las dos mitades que se pueden atar sin red:
+ * que las reglas salen de `vercel.json` y no de una copia, y la decisión de
  * `sendError`. La equivalencia con `serve` sobre un build se mide aparte.
  */
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-describe("las reglas 404 salen de netlify.toml", () => {
-    it("el netlify.toml real declara la 404 inglesa, y es la única regla 404", () => {
-        const reglas = reglasDe404(readFileSync(NETLIFY_POR_DEFECTO, "utf8"));
-        expect(reglas).toEqual([
-            { from: "/en/*", to: "/en/404.html", force: false },
-        ]);
+/** Un `vercel.json` sintético con las `routes` dadas, como texto. */
+function vercelCon(routes, resto = {}) {
+    return JSON.stringify({ ...resto, routes });
+}
+
+describe("las reglas 404 salen de vercel.json", () => {
+    it("el vercel.json real declara la 404 inglesa, y es la única regla 404", () => {
+        const reglas = reglasDe404(readFileSync(VERCEL_POR_DEFECTO, "utf8"));
+        expect(reglas).toEqual([{ from: "/en/*", to: "/en/404.html" }]);
     });
 
-    it("lee netlify.toml de la raíz del repo", () => {
-        expect(NETLIFY_POR_DEFECTO).toBe(path.join(ROOT, "netlify.toml"));
+    it("lee vercel.json de la raíz del repo", () => {
+        expect(VERCEL_POR_DEFECTO).toBe(path.join(ROOT, "vercel.json"));
     });
 
-    it("ignora las 301, los comentarios y los bloques que no son redirects", () => {
-        const texto = [
-            "# [[redirects]]",
-            '#   from = "/x/*"',
-            '#   to = "/x/404.html"',
-            "#   status = 404",
-            "[[redirects]]",
-            '  from = "/terminos"',
-            '  to = "/aviso-legal"',
-            "  status = 301",
-            "[[headers]]",
-            '  for = "/*"',
-        ].join("\n");
+    it("ignora las redirecciones, las cabeceras y las routes que no son 404", () => {
+        const texto = vercelCon(
+            [
+                { src: "/x/(.*)", status: 301, headers: { Location: "/" } },
+                { handle: "filesystem" },
+                { src: "/y/(.*)", dest: "/y" },
+            ],
+            {
+                redirects: [
+                    { source: "/terminos", destination: "/aviso-legal" },
+                ],
+                headers: [{ source: "/(.*)", headers: [] }],
+            },
+        );
         expect(reglasDe404(texto)).toEqual([]);
     });
 
-    it("falla ante una regla 404 que no sabe reproducir, en vez de medir otra cosa", () => {
-        const texto = [
-            "[[redirects]]",
-            '  from = "/en/*"',
-            '  to = "/en/perdido.html"',
-            "  status = 404",
-        ].join("\n");
+    it("sin routes no hay reglas", () => {
+        expect(reglasDe404("{}")).toEqual([]);
+    });
+
+    it("acepta el destino como URL limpia o como fichero .html", () => {
+        const texto = vercelCon([
+            { handle: "filesystem" },
+            { src: "/en/(.*)", status: 404, dest: "/en/404.html" },
+        ]);
+        expect(reglasDe404(texto)).toEqual([
+            { from: "/en/*", to: "/en/404.html" },
+        ]);
+    });
+
+    it("falla ante una regla 404 DELANTE de filesystem: taparía rutas reales", () => {
+        const texto = vercelCon([
+            { src: "/en/(.*)", status: 404, dest: "/en/404" },
+            { handle: "filesystem" },
+        ]);
+        expect(() => reglasDe404(texto)).toThrow(/filesystem/);
+    });
+
+    it("falla ante una regla 404 sin ninguna fase filesystem", () => {
+        const texto = vercelCon([
+            { src: "/en/(.*)", status: 404, dest: "/en/404" },
+        ]);
+        expect(() => reglasDe404(texto)).toThrow(/filesystem/);
+    });
+
+    it("falla ante un destino que no es una 404, en vez de medir otra cosa", () => {
+        const texto = vercelCon([
+            { handle: "filesystem" },
+            { src: "/en/(.*)", status: 404, dest: "/en/perdido" },
+        ]);
         expect(() => reglasDe404(texto)).toThrow(/404\.html/);
+    });
+
+    it("falla ante un src que no es un prefijo seguido de (.*)", () => {
+        const texto = vercelCon([
+            { handle: "filesystem" },
+            { src: "/en/[a-z]+", status: 404, dest: "/en/404" },
+        ]);
+        expect(() => reglasDe404(texto)).toThrow(/no sabe reproducir/);
     });
 });
 
 describe("la decisión de sendError", () => {
-    const reglas = [{ from: "/en/*", to: "/en/404.html", force: false }];
+    const reglas = [{ from: "/en/*", to: "/en/404.html" }];
     const existe = (to) => to === "/en/404.html";
 
     it("una ruta inexistente bajo /en/ recibe /en/404.html", () => {
@@ -205,7 +244,8 @@ describe("el vigilante lanza el servidor de medición por defecto", () => {
 
 /*
  * EL MANEJADOR, con dobles de `serve-handler` y `compression`. Es la pieza que
- * reproduce el shadowing de Netlify y hasta el 2026-09-10 no la cubría ningún
+ * reproduce la regla 404 de producción (que solo actúa cuando el fichero no
+ * existe) y hasta el 2026-09-10 no la cubría ningún
  * test (aviso de la revisión de P3b-1): una regresión en la delegación
  * —índices de los argumentos de `sendError`, el `public` del destino, o la
  * llamada sin métodos del caso normal— pasaba el gate en verde.
@@ -218,8 +258,8 @@ describe("el vigilante lanza el servidor de medición por defecto", () => {
  * en una carpeta temporal, porque `creaManejador` comprueba en disco que el
  * destino de la regla existe.
  */
-describe("creaManejador delega en serve-handler como la regla 404 de Netlify", () => {
-    const reglas = [{ from: "/en/*", to: "/en/404.html", force: false }];
+describe("creaManejador delega en serve-handler como la regla 404 de producción", () => {
+    const reglas = [{ from: "/en/*", to: "/en/404.html" }];
     const carpetas = [];
 
     afterEach(() => {
