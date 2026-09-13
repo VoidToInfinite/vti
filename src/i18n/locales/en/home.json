@@ -124,9 +124,11 @@
         },
         "about": {
             "title": "What is VoidToInfinite?",
-            "what": "VoidToInfinite is a personal creative project by Daniel Mosquera, running since 2020. It is not a company and not a product for sale: it is a documented journey about learning, imagining and playing by building things.",
-            "sdk": "Its centrepiece is the System Design Kit: the idea that something meaningful can be created starting from a blank page. The project documents that same journey, building a design system step by step, from the void to whatever comes next. It is a work in progress.",
-            "proof": "This website is what exists so far, and you can check it without taking anyone's word for it: no analytics, no tracking, and not a single request to a third party."
+            "what": "VoidToInfinite is a personal creative project by Daniel Mosquera. It starts from a simple idea: anything can begin with a blank page.",
+            "approach": "It is about learning and experimenting with design and technology without chasing a finished result. The interesting part is seeing how far an idea can go when you work on it step by step.",
+            "sdk": "Its centrepiece is the System Design Kit, a design system being built from scratch. The components are only one part. The other is the process: deciding, testing, getting it wrong and fixing it until the pieces fit together and can be reused. VoidToInfinite documents that journey, from the void to whatever comes next.",
+            "status": "It is not a company or a finished product, and it will keep changing for as long as there is something left to learn.",
+            "proof": "This website is built on the same principle and respects the people who visit it: no analytics, no tracking, and not a single request to a third party."
         },
         "contact": {
             "titleLead": "Let’s build something",

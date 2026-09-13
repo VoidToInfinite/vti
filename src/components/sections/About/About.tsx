@@ -37,7 +37,7 @@ import { motion } from "@/theme/tokens/motion";
  *
  *   1. Es un bloque de HECHOS VERIFICABLES, no de narrativa. El contrato de
  *      F3.3 es que sea citable por un buscador o un asistente; una diapositiva
- *      que aparece con scroll no lo es, un `<h2>` seguido de tres `<p>` sí.
+ *      que aparece con scroll no lo es, un `<h2>` seguido de sus `<p>` sí.
  *   2. Tras Story, Journey y Features —tres secciones cargadas y la tercera
  *      rejilla consecutiva que las auditorías del 2026-08-08 señalaron—, un
  *      bloque tranquilo es un cambio de ritmo, no un hueco.
@@ -46,13 +46,18 @@ import { motion } from "@/theme/tokens/motion";
  *      misma piel, porque un hecho no cambia según el tema.
  *
  * VERACIDAD, que aquí no es un adorno. Cada afirmación del copy sale de una
- * respuesta del dueño registrada en `PRODUCT.md` §10 (puntos 12, 14, 15, 16,
- * 17 y 21) y ninguna se puede escribir «porque queda bien»:
+ * respuesta del dueño registrada en `PRODUCT.md` §10 (puntos 12, 14, 15, 16
+ * y 21) y ninguna se puede escribir «porque queda bien». El texto actual es
+ * el que el dueño entregó el 2026-09-13 (cinco párrafos), pasado por una
+ * revisión de estilo que conserva sus afirmaciones y concreta las vagas: su
+ * «respetuosa con quien la visita» se sostiene con los tres hechos de
+ * privacidad que ya estaban atados por test. Ese texto ya no nombra el año
+ * de inicio (punto 17), y el candado de cifras lo admite sin exigirlo:
  *
  *   - NO se afirma que exista una plataforma: el punto 12 dice que no existe.
  *   - NO se enlaza `dev.voidtoinfinite.com` como prueba: se verificó el
  *     2026-08-13 y es un placeholder sin contenido. Se menciona el SDK como
- *     recorrido EN CONSTRUCCIÓN, que es lo que es.
+ *     recorrido EN CONSTRUCCIÓN («se está construyendo»), que es lo que es.
  *   - NO hay cifras de comunidad, descargas ni usuarios: el punto 21 dice que
  *     no existen y la regla es que no se inventan. La ausencia de prueba
  *     social fabricada es de lo poco que las tres auditorías elogian sin
@@ -154,6 +159,18 @@ const ScParagraph = styled.p`
   line-height: ${({ theme }) => theme.data.type.scale.body.lineHeight};
 `;
 
+/* Orden de lectura de los párrafos del bloque, uno por clave de
+   `Home.about` (todas salvo `title`). `About.test.tsx` compara los `<p>`
+   pintados, en orden, contra las claves del JSON en los dos idiomas: una
+   clave nueva sin pintar, o una pintada sin copy, se pone en rojo. */
+const ABOUT_PARAGRAPH_KEYS = [
+  "what",
+  "approach",
+  "sdk",
+  "status",
+  "proof",
+] as const;
+
 export function About(): ReactElement {
   const { t } = useTranslation("home");
   const { ref, revealed } = useReveal<HTMLDivElement>();
@@ -168,9 +185,9 @@ export function About(): ReactElement {
         data-revealed={revealed}
       >
         <ScTitle id="about-title">{t("Home.about.title")}</ScTitle>
-        <ScParagraph>{t("Home.about.what")}</ScParagraph>
-        <ScParagraph>{t("Home.about.sdk")}</ScParagraph>
-        <ScParagraph>{t("Home.about.proof")}</ScParagraph>
+        {ABOUT_PARAGRAPH_KEYS.map((key) => (
+          <ScParagraph key={key}>{t(`Home.about.${key}`)}</ScParagraph>
+        ))}
       </ScInner>
     </ScAbout>
   );

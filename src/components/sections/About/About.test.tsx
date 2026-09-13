@@ -30,6 +30,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Los párrafos del bloque, en el orden del JSON: todas las claves de
+ *  `Home.about` salvo `title`. Derivados del JSON y no de una lista escrita
+ *  aquí, para que un párrafo nuevo entre solo en los candados de veracidad. */
+function paragraphsOf(copy: Record<string, string>): string[] {
+  return Object.entries(copy)
+    .filter(([clave]) => clave !== "title")
+    .map(([, texto]) => texto);
+}
+
 describe("About", () => {
   it("es una region con nombre accesible, anclada en #about", () => {
     const { container } = renderWithProviders(<About />);
@@ -86,14 +95,30 @@ describe("About", () => {
     ).toBeInTheDocument();
   });
 
-  it("pinta los tres párrafos del bloque, comparados contra el JSON", () => {
-    const { container } = renderWithProviders(<About />);
-    const texto = container.textContent ?? "";
+  /* Igualdad exacta y en orden, no `toContain`: así una clave del JSON que el
+     componente no pinta, un párrafo pintado dos veces o dos párrafos
+     cambiados de sitio se ponen en rojo. Se comprueba en los dos idiomas
+     porque el orden de claves de cada JSON es independiente. */
+  it.each([
+    ["es", esHome.Home.about],
+    ["en", enHome.Home.about],
+  ] as const)(
+    "pinta en %s cada párrafo del JSON, en su orden y sin sobrantes",
+    async (idioma, copy) => {
+      await i18n.changeLanguage(idioma);
+      try {
+        const { container } = renderWithProviders(<About />);
 
-    expect(texto).toContain(esHome.Home.about.what);
-    expect(texto).toContain(esHome.Home.about.sdk);
-    expect(texto).toContain(esHome.Home.about.proof);
-  });
+        const pintados = Array.from(container.querySelectorAll("p"), (p) =>
+          p.textContent?.trim(),
+        );
+        expect(pintados).toEqual(paragraphsOf(copy));
+      } finally {
+        // Un fallo no puede dejar el resto del fichero en inglés.
+        await i18n.changeLanguage("es");
+      }
+    },
+  );
 
   /*
    * CANDADOS DE VERACIDAD. El resto de este fichero no comprueba que el
@@ -119,18 +144,19 @@ describe("About", () => {
        2026-08-08 elogian sin reservas, así que se protege con un candado en
        vez de con buena voluntad.
 
-       El año declarado (2020) es el ÚNICO número admitido: es un hecho del
-       dueño, no una métrica. Cualquier otra cifra en este bloque sería una
-       afirmación cuantitativa que nadie puede sostener. */
+       El año declarado (2020, punto 17) es el ÚNICO número admitido: es un
+       hecho del dueño, no una métrica. Desde el texto del 2026-09-13 el
+       bloque ya no lo nombra, así que se admite sin exigirse. Cualquier otra
+       cifra sería una afirmación cuantitativa que nadie puede sostener. */
     it("no contiene ninguna cifra salvo el año declarado", () => {
       for (const [idioma, copy] of [
         ["es", esHome.Home.about],
         ["en", enHome.Home.about],
       ] as const) {
-        const texto = [copy.what, copy.sdk, copy.proof].join(" ");
-        const numeros = texto.match(/\d+/g) ?? [];
+        const texto = paragraphsOf(copy).join(" ");
+        const cifras = (texto.match(/\d+/g) ?? []).filter((n) => n !== "2020");
 
-        expect(numeros, `${idioma}: cifras encontradas`).toEqual(["2020"]);
+        expect(cifras, `${idioma}: cifras encontradas`).toEqual([]);
       }
     });
 
@@ -148,7 +174,7 @@ describe("About", () => {
         ["es", esHome.Home.about],
         ["en", enHome.Home.about],
       ] as const) {
-        const texto = [copy.what, copy.sdk, copy.proof].join(" ").toLowerCase();
+        const texto = paragraphsOf(copy).join(" ").toLowerCase();
         for (const frase of prohibidas[idioma]) {
           expect(texto, `${idioma}: "${frase}"`).not.toContain(frase);
         }
@@ -157,7 +183,10 @@ describe("About", () => {
   });
 
   it("el bloque existe completo en los dos idiomas", async () => {
-    const claves = ["title", "what", "sdk", "proof"] as const;
+    const claves = Object.keys(esHome.Home.about) as Array<
+      keyof typeof esHome.Home.about
+    >;
+    expect(Object.keys(enHome.Home.about)).toEqual(claves);
 
     for (const clave of claves) {
       expect(esHome.Home.about[clave].trim()).not.toBe("");
