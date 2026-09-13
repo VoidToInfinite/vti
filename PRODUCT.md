@@ -4,7 +4,7 @@
 
 ## 1. Qué es
 
-Una landing estática de una sola página, construida con Next.js 16 y exportada a Netlify, que presenta la marca VoidToInfinite. No es un producto con funcionalidad propia: el Aviso legal (`Legal.legalNotice.sections[actividad]`) la define explícitamente como
+Una landing estática de una sola página, construida con Next.js 16 como exportación estática y desplegada en Vercel, que presenta la marca VoidToInfinite. No es un producto con funcionalidad propia: el Aviso legal (`Legal.legalNotice.sections[actividad]`) la define explícitamente como
 
 > «una web informativa: no vende productos ni servicios, no permite realizar compras ni reservas, no ofrece registro ni cuentas de usuario, no aloja contenido publicado por visitantes y no presta ningún servicio contratable en línea».
 
@@ -197,7 +197,7 @@ Tres respuestas traen consecuencia y no solo dato, y están anotadas en su punto
 5. ~~Datos registrales.~~ **No aplican**: no hay sociedad inscribible en ningún registro público. Es una imposibilidad material, no una omisión.
 6. ~~Correo legal y dirección para el ejercicio de derechos RGPD.~~ **`hello@voidtoinfinite.com`**, derivado de `EMAIL_ADDRESS` para que no pueda divergir del que el sitio pinta y copia.
 7. ~~Proveedor de correo electrónico donde se reciben los mensajes de contacto.~~ **Cadena de dos, no uno**: Cloudflare Email Routing **enruta y no almacena** (verificado en su documentación), y el buzón de destino es una **cuenta personal de Gmail**, que es la que conserva los mensajes.
-8. ~~Garantía concreta de transferencia internacional.~~ **Netlify, Inc.**: cláusulas contractuales tipo en su DPA (act. 2026-06-09) + certificación EU-U.S. Data Privacy Framework. **Cloudflare, Inc.**: CCT módulo dos en la §6.2 de su DPA (v6.4, vigente 2026-04-03) + adhesión al DPF confirmada en su §6.4. **Google**: la cuenta es de consumo, así que **no está cubierta por un DPA de encargado** — la política de privacidad lo declara así en vez de afirmar una relación contractual que no existe.
+8. ~~Garantía concreta de transferencia internacional.~~ ~~**Netlify, Inc.**: cláusulas contractuales tipo en su DPA (act. 2026-06-09) + certificación EU-U.S. Data Privacy Framework.~~ **Sustituido el 2026-09-13:** producción se sirve desde Vercel. **Vercel Inc.**: participante activa del EU-U.S. Data Privacy Framework (lista oficial, próxima recertificación 2027-04-29); su DPA (efectivo 2026-03-31, CCT 2021/914) se declara aplicable a los planes Pro y Enterprise, y el proyecto está en el plan gratuito, así que la política no afirma esa garantía contractual. **Cloudflare, Inc.**: CCT módulo dos en la §6.2 de su DPA (v6.4, vigente 2026-04-03) + adhesión al DPF confirmada en su §6.4. **Google**: la cuenta es de consumo, así que **no está cubierta por un DPA de encargado** — la política de privacidad lo declara así en vez de afirmar una relación contractual que no existe.
 9. ~~Plazo de conservación de las consultas recibidas por correo.~~ **Hasta resolver la consulta y como máximo 3 meses desde entonces.**
 10. ~~Confirmación de que `hello@voidtoinfinite.com` está operativo.~~ **Confirmado por el dueño.** Queda como ítem de humo en `PRE-LAUNCH-QA.md` §1 una prueba real de envío y recepción antes de publicar: es barato y es la clase de cosa que se rompe en silencio.
 

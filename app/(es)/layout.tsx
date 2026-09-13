@@ -10,7 +10,7 @@ import { ROOT_METADATA, ROOT_VIEWPORT } from "../rootMetadata";
  * `(es)` es un grupo de ruta — los paréntesis no aparecen en ninguna URL — así
  * que las tres páginas de dentro conservan exactamente las rutas que ya tenían
  * antes de existir el inglés. Ningún enlace, ninguna canónica y ninguna
- * redirección de `netlify.toml` cambia por esta mudanza.
+ * redirección del hosting (hoy `vercel.json`) cambia por esta mudanza.
  *
  * ES UN ROOT LAYOUT DESDE EL 2026-09-06, no un layout anidado: `app/layout.tsx`
  * se retiró para que cada rama pudiera hornear su propio `<html lang>` (WCAG

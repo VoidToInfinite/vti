@@ -71,9 +71,9 @@ describe("selección del censo por entorno de build", () => {
  * Este fichero es lo que mete el candado del presupuesto de JS DENTRO del
  * gate. `measure-home-js.mjs` sabe medir y sabe fallar por su cuenta, pero
  * `pnpm run ci` no lo llama y no puede llamarlo: el script necesita un `out/`
- * construido y el gate corre sin build (en Netlify el `command` es
- * `pnpm run ci && pnpm build && pnpm measure:js`, con el gate ANTES y la
- * medición del bundle detrás del build). Lo que sí puede correr
+ * construido y el gate corre sin build (en CI los pasos son `pnpm run ci`,
+ * `pnpm build` y `pnpm measure:js`, con el gate ANTES y la medición del
+ * bundle detrás del build). Lo que sí puede correr
  * siempre es esto: la lógica del instrumento ejercitada con chunks
  * sintéticos, más la AUDITORÍA COMPLETA del censo versionado. Y cuando la
  * máquina tiene un `out/` a mano —la del desarrollador, no la de CI— el

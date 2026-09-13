@@ -320,8 +320,8 @@ export interface HeroPreload {
  * `"/index.html"`, nada más. Con `trailingSlash: false` (`next.config.ts`) el
  * export escribe la home en `out/index.html` y las legales como
  * `out/privacidad.html` — es decir, las rutas servidas son `/`, `/privacidad`
- * y `/aviso-legal`, sin barra final. Netlify canonicaliza `/index.html` → `/`,
- * pero `npx serve out` (`pnpm start`) y cualquier host de ficheros sin esa
+ * y `/aviso-legal`, sin barra final. Vercel responde 404 a `/index.html`
+ * (medido el 2026-09-13), pero `npx serve out` (`pnpm start`) y cualquier host de ficheros sin esa
  * canonicalización sirven la home también por su nombre de fichero: aceptar
  * las dos formas cuesta ~20 B y evita que la home pierda su precarga en un
  * entorno de verificación. NO se normaliza con expresión regular a propósito:

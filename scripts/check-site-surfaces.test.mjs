@@ -2118,7 +2118,7 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
          * La 404 inglesa declaro `es` hasta el 2026-09-10, porque
          * `output: "export"` solo emitia un `404.html` castellano. Desde el
          * commit `06cdda8` se hornea `out/en/404.html` con `lang="en"` y
-         * Netlify lo sirve bajo `/en/*`; desde `403bd29` el servidor de
+         * el hosting lo sirve bajo `/en/*` (regla en `vercel.json`); desde `403bd29` el servidor de
          * medicion reproduce esa regla. Se le exige `en`.
          *
          * Las tres INGLESAS que no son la 404 ERAN el P1 de la critica #19: se
@@ -2161,7 +2161,7 @@ describe("el idioma que cada superficie tiene que anunciar", () => {
         expect(
             langEsperado(cuatrocientosEn),
             "la 404 inglesa sin JavaScript tiene que anunciarse en ingles: " +
-                "out/en/404.html se hornea con lang=en y Netlify la sirve bajo /en/*",
+                "out/en/404.html se hornea con lang=en y vercel.json la sirve bajo /en/*",
         ).toBe("en");
         expect(
             SCRIPT,
