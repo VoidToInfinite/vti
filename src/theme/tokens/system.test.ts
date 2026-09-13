@@ -141,8 +141,9 @@ describe("system tokens", () => {
         // columna de copia del hero, que hasta esa fecha se escribía a mano
         // en cinco declaraciones. Contrato ACTUALIZADO, no relajado (regla
         // 40): entra aquí y en el recuento de claves de más abajo en el mismo
-        // cambio.
-        heroCopyMax: "70ch",
+        // cambio. Valor ACTUALIZADO a 111ch por el dueño el 2026-09-13
+        // (antes 70ch): ver el candado "heroCopyMax es 111ch...", mas abajo.
+        heroCopyMax: "111ch",
         // 56ch: ni 65ch (la promesa escrita en la unidad equivocada) ni 52ch
         // (la promesa dividida solo por la CAPACIDAD de la caja, que ignora
         // que una linea con bandera derecha REALIZA un 8-10 % menos de lo que
@@ -307,8 +308,9 @@ describe("system tokens", () => {
 
     /*
      * Candado del token nuevo (crítica externa #10, 2026-08-18). Dos mitades,
-     * como el de `prose`: el VALOR exacto -- que es el que el hero ya pintaba,
-     * porque tokenizar una medida repetida no cambia un píxel -- y la RELACIÓN
+     * como el de `prose`: el VALOR exacto -- en su entrega, el que el hero ya
+     * pintaba (70ch), porque tokenizar una medida repetida no cambia un píxel;
+     * desde el 2026-09-13, el 111ch que fijó el dueño -- y la RELACIÓN
      * que lo separa de la familia de `prose`: es el tope de una COLUMNA, más
      * ancho que la medida de línea del cuerpo largo. Si algún día alguien lo
      * "corrigiera" al ratio de caracteres reales de `prose` (52ch), la segunda
@@ -319,9 +321,15 @@ describe("system tokens", () => {
      * el token en vez de reescribir el literal: el CSS renderizado es idéntico
      * en los dos casos (`task/lessons.md`, 2026-08-12, Task 19). Esa mitad la
      * cierra el candado de FUENTE de `Hero.qa.test.tsx`.
+     *
+     * 2026-09-13: el dueño cambia el valor de 70ch a 111ch (`grid.ts`). La
+     * mitad del VALOR se actualiza a la cifra nueva; la de la RELACIÓN no
+     * cambia (111ch sigue siendo más ancho que los 56ch de `prose`). Este
+     * cambio no trae medición de píxeles registrada, a diferencia del 70ch
+     * original.
      */
-    it("heroCopyMax es 70ch y es un tope MAS ANCHO que la medida de linea de prose", () => {
-      expect(grid.heroCopyMax).toBe("70ch");
+    it("heroCopyMax es 111ch y es un tope MAS ANCHO que la medida de linea de prose", () => {
+      expect(grid.heroCopyMax).toBe("111ch");
       const ch = (v: string): number => Number(v.replace("ch", ""));
       expect(ch(grid.heroCopyMax)).toBeGreaterThan(ch(grid.prose));
     });

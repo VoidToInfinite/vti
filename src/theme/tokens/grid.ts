@@ -134,13 +134,14 @@ export const grid = {
    * la píldora del navbar, y lo que acota es un `<h1>` de
    * `clamp(34px, 8vw, 258px)` con dos piezas cortas debajo. Nombrarlo como
    * pariente de `prose` invitaría a "recalibrarlo" por ese ratio, que aquí no
-   * describe nada: aplicado daría 70 × 1,259 ≈ 88 caracteres, muy por encima
-   * del rango, pero el tope casi nunca llega a morder — en escritorio el
-   * término que gana suele ser el `70%` del `min()` (la mano izquierda del
-   * arte, spec S3.6), y las dos líneas que sí son texto de cuerpo se midieron
-   * en navegador real a 1280x720 oscuro en 458,73px (tagline) y 585,94px
-   * (subtítulo), muy por debajo del tope (docblock de `ScTagline`,
-   * `Hero.tsx`). Mismo criterio que `navMax` frente a `containerMax`:
+   * describe nada: aplicado daría 70 × 1,259 ≈ 88 caracteres (111 × 1,259 ≈
+   * 140 con el valor vigente), muy por encima del rango. Con 70ch el tope
+   * casi nunca llegaba a morder — en escritorio el término que ganaba solía ser
+   * el `70%` del `min()` (la mano izquierda del arte, spec S3.6), y las dos
+   * líneas que sí son texto de cuerpo se midieron en navegador real a 1280x720
+   * oscuro en 458,73px (tagline) y 585,94px (subtítulo), muy por debajo del
+   * tope (docblock de `ScTagline`, `Hero.tsx`). Con 111ch sí muerde: ver la
+   * enmienda del 2026-09-13, más abajo. Mismo criterio que `navMax` frente a `containerMax`:
    * magnitudes con propósitos distintos, que deben poder divergir sin
    * arrastrarse la una a la otra.
    *
@@ -153,8 +154,41 @@ export const grid = {
    * (en vez de reescribir el literal) vive en `Hero.qa.test.tsx`, porque un
    * candado de valor renderizado no puede distinguir un token de un literal
    * que resuelve a lo mismo (`task/lessons.md`, 2026-08-12).
+   *
+   * ENMIENDA 2026-09-13: EL DUEÑO SUBE EL VALOR DE 70ch A 111ch, Y SE MIDIÓ EN
+   * NAVEGADOR la consecuencia. Chrome sin interfaz sobre el build servido, DPR
+   * 1, en `/` y `/en`, comparando 111ch contra 70ch inyectado por CSS en la
+   * misma carga (A/B), con un verificador independiente por cada incumplimiento.
+   *
+   * - Resuelto: 111ch = 994,56 px a 16 px (70ch eran 627,2 px); el subtítulo, a
+   *   22 px, 1.367,52 px frente a 862,4.
+   * - CONTRASTE, sin cambios en los dos temas: en las 20 combinaciones
+   *   (1024x768 a 1920x1080, claro y oscuro, es/en), tagline y subtítulo tienen
+   *   0 % de borde de glifo bajo 4,5:1 con 70ch y con 111ch (p05 ≥ 9,21 en
+   *   claro y ≥ 15,14 en oscuro).
+   * - LA MANO IZQUIERDA DEL ARTE CLARO (criterio de `docs/qa-3d-pendiente.md`,
+   *   «la línea más larga termina antes del arranque de la mano»): con 111ch
+   *   falla en las 12 combinaciones medidas (1280x800, 1366x768, 1440x900,
+   *   1680x1050, 1920x1200 y 1920x1080, es/en). Con 70ch ya fallaba en 1280 y
+   *   1366 (ahí manda el `70%` y 111ch no lo cambia en español) y, solo por el
+   *   halo, en 1440 en español, pero cumplía en 1440 en inglés, 1680 y 1920. Desde 1440, 111ch deja el título en UNA
+   *   línea que termina entre x 675 y 892 y pasa sobre la mano: de 81 a 138 px
+   *   sobre su halo y de 45 a 60 px sobre su cuerpo opaco (alfa ≥ 128) según la
+   *   caja de línea. Leído fila a fila de tinta, a 1440x900 en español solo toca
+   *   el halo. En inglés, el subtítulo pasa además a una línea (x 682) a
+   *   1280 y 1366.
+   *
+   * DECISIÓN DEL DUEÑO (2026-09-13, después de la medición): 111ch se queda;
+   * volver a 70ch no es opción porque «se rompe el texto de HeroCopy». Lo
+   * medido es coherente con eso: con 70ch el título se partía en dos líneas
+   * a 1440, 1680 y 1920 (x máxima 466,2 / 539,8 / 613,5 px) y, en inglés, el
+   * subtítulo en dos de 1280 a 1680. El conflicto con el criterio de la mano
+   * sigue abierto, pero ya no se resuelve bajando este token: si el criterio
+   * se mantiene, la palanca es otra (arte o posición de la copia), por
+   * decidir. Evidencias en el scratchpad de la sesión `3a039699`
+   * (`h111-resultado.json`, `h111-resumen.txt`).
    */
-  heroCopyMax: "70ch",
+  heroCopyMax: "111ch",
   /**
    * Medida de línea del cuerpo largo: el ancho que entrega un recuento de
    * caracteres REALES por línea dentro del rango de legibilidad **60-75** que
@@ -324,8 +358,9 @@ export const grid = {
    * QUEDA UNA, y por eso la excepción no desaparece del todo: `ScTagline`
    * (`Hero.tsx`) sigue declarando el equilibrado, medido `text-wrap: balance`
    * en el mismo pase. No afecta a la derivación de este token porque esa
-   * pieza no lo consume — su tope es `heroCopyMax` (70ch, medido 627,2px a
-   * 16px) — pero se deja escrito para que nadie la dé por migrada al leer
+   * pieza no lo consume — su tope es `heroCopyMax` (111ch desde el
+   * 2026-09-13, resuelto 994,56 px a 16 px; antes 70ch, 627,2 px) — pero se
+   * deja escrito para que nadie la dé por migrada al leer
    * esta corrección.
    *
    * CERRADO el mismo día en el otro extremo de la contradicción: hasta esa

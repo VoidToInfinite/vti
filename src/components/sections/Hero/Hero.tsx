@@ -383,8 +383,9 @@ const heroCopyRise = keyframes`
  * Sobre «max-width: ${({ theme }) => theme.data.grid.heroCopyMax};»:
  *   Tope de la columna de copia, hoy un token del sistema (critica externa
  *   #10, 2026-08-18): el mismo valor que se escribia a mano aqui y en otros
- *   cuatro sitios. El porque del numero, y por que no es pariente de
- *   grid.prose, viven en el docblock de heroCopyMax en tokens/grid.ts.
+ *   cuatro sitios (70ch; el dueno lo subio a 111ch el 2026-09-13). El porque
+ *   del numero, y por que no es pariente de grid.prose, viven en el docblock
+ *   de heroCopyMax en tokens/grid.ts.
  *
  * Sobre «text-shadow: ${({ $light }) =>»:
  *   Segunda linea de defensa del contraste, ADEMAS del velo de la escena
@@ -451,6 +452,17 @@ const heroCopyRise = keyframes`
  *   que la linea mas larga de la copia termine antes de ese punto. min()
  *   con el tope de columna cubre el caso comun sin magnificar el ancho en
  *   viewports muy anchos.
+ *
+ *   RE-MEDIDO CON 111ch (2026-09-13, decision del dueno sobre el token): el
+ *   tope resuelve a 994,56 px, asi que el 70% solo gana por debajo de unos
+ *   1.421 px de hero. Desde 1440 px la columna admite ~995-1.008 px, el
+ *   titulo pasa a una sola linea y el criterio falla en las 12 combinaciones
+ *   medidas (con 70ch ya fallaba en 1280 y 1366, y en 1440 en espanol solo
+ *   por el halo). Cifras y metodo en el
+ *   docblock de heroCopyMax (tokens/grid.ts). El dueno descarto volver a
+ *   70ch ese mismo dia: con 70ch se rompe el texto de la copia (medido: el
+ *   titulo se parte en dos lineas desde 1440). El conflicto con la mano
+ *   sigue abierto, sin el token como palanca.
  *
  *   El primer termino del min() es el mismo token que la forma centrada
  *   (critica externa #10, 2026-08-18); hasta esa fecha este comentario
