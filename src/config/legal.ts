@@ -137,8 +137,22 @@ export const LEGAL_VERSIONS: Record<"privacy" | "legalNotice", LegalVersion> = {
      correo y el plazo de conservación. Quien leyera la versión 2.0.0 no
      puede dar por buena su lectura: no sabía quién respondía de sus datos.
      Eso es exactamente lo que un salto de mayor comunica, mismo criterio que
-     razonó el salto 1.0.0 -> 2.0.0 en su día. */
-  privacy: { version: "3.0.0", updated: "2026-08-13" },
+     razonó el salto 1.0.0 -> 2.0.0 en su día.
+
+     privacy 3.1.0 (2026-09-10, decisión del dueño en la auditoría del sitemap
+     del 2026-09-13): el texto de la política cambió después del 13 de agosto
+     sin que esta fecha se moviera, y el `<h1>`, el JSON-LD y el sitemap siguieron
+     anunciando el 13. Los cambios, todos en la lista de lo que el sitio guarda
+     en el equipo del visitante: el 2026-09-02 deja de guardarse el idioma
+     (`8eba2f1`); el 2026-09-06 entra la posición de lectura en
+     `sessionStorage`, con su fila y su duración de sesión (`58cb80f`,
+     `46d8703`, `6a4b322`); el 2026-09-10 esa fila amplía su finalidad a Atrás
+     y Adelante (`3ace92f`). MENOR y no mayor: la identidad del responsable y
+     las bases jurídicas no cambian, y lo añadido es una entrada técnica que
+     se borra al cerrar la pestaña. El aviso legal no tocó su texto desde el
+     13 de agosto (su sección de protección de datos remite a la privacidad
+     para lo que se guarda en el equipo), así que sigue en 3.0.0. */
+  privacy: { version: "3.1.0", updated: "2026-09-10" },
   legalNotice: { version: "3.0.0", updated: "2026-08-13" },
 };
 

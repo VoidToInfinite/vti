@@ -3,7 +3,6 @@ import {
   ROUTES,
   LEGAL_ROUTE_KEYS,
   LOCALES,
-  ROUTES_BY_LOCALE,
   absoluteUrl,
   routePath,
 } from "@/config/site";
@@ -47,43 +46,20 @@ describe("sitemap()", () => {
   });
 
   /*
-   * Sin `alternates`, las seis URLs estarían en el sitemap pero nada diría que
-   * son la MISMA página en dos idiomas -- un rastreador las trataría como seis
-   * documentos sin relación, que es la mitad del hallazgo ("el inglés no se
-   * marca"). Contrato CERRADO a propósito (regla 40): las tres claves, ni una
-   * más ni una menos.
+   * SIN `alternates` desde el 2026-09-13 (auditoría del sitemap para Search
+   * Console, decisión del dueño). Con ellos Next emite `<xhtml:link>` entre
+   * `<loc>` y `<lastmod>`, y el sitemap servido no validaba contra el esquema
+   * oficial de sitemaps.org: 24 errores medidos, 0 sin ellos. El porqué
+   * completo está en el docblock de `sitemap()`. La declaración de idioma no se
+   * pierde: el grupo `es`/`en`/`x-default` viaja en el `<head>` de cada página
+   * y lo ata `src/seo/metadata.test.ts`.
    */
-  it("cada entrada declara sus alternativas de idioma, la propia incluida", () => {
+  it("ninguna entrada declara alternates: el hreflang vive en el <head>, no en el sitemap", () => {
     for (const entry of sitemap()) {
-      const languages = entry.alternates?.languages;
       expect(
-        languages,
-        `${entry.url} no declara alternates.languages`,
-      ).toBeDefined();
-      expect(Object.keys(languages ?? {}).sort()).toEqual([
-        "en",
-        "es",
-        "x-default",
-      ]);
-      expect(
-        Object.values(languages ?? {}),
-        `${entry.url} no aparece en su propio grupo de alternativas`,
-      ).toContain(entry.url);
-    }
-  });
-
-  it("las alternativas del sitemap coinciden exactamente con las rutas reales", () => {
-    for (const key of ["home", ...LEGAL_ROUTE_KEYS] as const) {
-      for (const locale of LOCALES) {
-        const entry = sitemap().find(
-          (candidate) => candidate.url === absoluteUrl(routePath(key, locale)),
-        );
-        expect(entry?.alternates?.languages).toEqual({
-          "es": absoluteUrl(ROUTES_BY_LOCALE.es[key]),
-          "en": absoluteUrl(ROUTES_BY_LOCALE.en[key]),
-          "x-default": absoluteUrl(ROUTES_BY_LOCALE.es[key]),
-        });
-      }
+        entry.alternates,
+        `${entry.url} vuelve a declarar alternates en el sitemap`,
+      ).toBeUndefined();
     }
   });
 
@@ -118,18 +94,45 @@ describe("sitemap()", () => {
   /*
    * El `lastModified` del sitemap y el `updated` de los documentos legales
    * describen el mismo hecho —cuándo cambió por última vez el contenido de
-   * esas páginas— y hasta la revisión del 2026-08-08 podían divergir en
-   * silencio: el sitemap seguía anunciando el 2026-08-05 con los dos
-   * documentos ya reescritos. Un rastreador usa esa fecha para decidir si
-   * vuelve a leer la página; si miente hacia atrás, no vuelve.
+   * esas páginas—. Hasta el 2026-09-13 el sitemap tenía su propia fecha y este
+   * candado solo exigía que no fuera ANTERIOR a la de los documentos, así que
+   * una fecha única bastaba para pasarlo: la privacidad cambió de texto en
+   * septiembre y el sitemap siguió declarando el 13 de agosto con el test en
+   * verde. Ahora es igualdad exacta, por página y en los dos idiomas: la
+   * contraparte inglesa de un documento es el mismo documento.
    */
-  it("el lastModified del sitemap no es anterior al 'updated' de ningún documento legal", () => {
-    const declarado = sitemap()[0]?.lastModified as string;
+  it("cada página legal declara exactamente el 'updated' de su documento, en los dos idiomas", () => {
+    const entries = sitemap();
     for (const key of LEGAL_ROUTE_KEYS) {
-      expect(
-        declarado >= LEGAL_VERSIONS[key].updated,
-        `el sitemap declara ${declarado}, anterior al ${LEGAL_VERSIONS[key].updated} de '${key}'`,
-      ).toBe(true);
+      for (const locale of LOCALES) {
+        const url = absoluteUrl(routePath(key, locale));
+        const entry = entries.find((candidate) => candidate.url === url);
+        expect(entry?.lastModified, url).toBe(LEGAL_VERSIONS[key].updated);
+      }
     }
+  });
+
+  /*
+   * La constante única de antes declaraba el 2026-08-13 para las rutas
+   * inglesas, que nacieron el 2026-08-18 (`1f89ec6`): una fecha de cambio
+   * anterior a que la página existiera. La portada no tiene `LEGAL_VERSIONS`
+   * que la ate, así que lo que se puede exigir sin inventar es que las dos
+   * portadas declaren la misma fecha, que sea una fecha de calendario real y
+   * que no sea anterior al nacimiento de la rama inglesa.
+   */
+  it("las dos portadas declaran la misma fecha real, no anterior al nacimiento de /en", () => {
+    const entries = sitemap();
+    const [es, en] = LOCALES.map(
+      (locale) =>
+        entries.find(
+          (candidate) =>
+            candidate.url === absoluteUrl(routePath("home", locale)),
+        )?.lastModified as string,
+    );
+
+    expect(es).toBe(en);
+    expect(es).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(new Date(`${es}T00:00:00.000Z`).toISOString().slice(0, 10)).toBe(es);
+    expect(es >= "2026-08-18", `la portada declara ${es}`).toBe(true);
   });
 });
