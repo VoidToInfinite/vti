@@ -151,8 +151,23 @@ export const LEGAL_VERSIONS: Record<"privacy" | "legalNotice", LegalVersion> = {
      las bases jurídicas no cambian, y lo añadido es una entrada técnica que
      se borra al cerrar la pestaña. El aviso legal no tocó su texto desde el
      13 de agosto (su sección de protección de datos remite a la privacidad
-     para lo que se guarda en el equipo), así que sigue en 3.0.0. */
-  privacy: { version: "3.1.0", updated: "2026-09-10" },
+     para lo que se guarda en el equipo), así que sigue en 3.0.0.
+
+     privacy 4.0.0 (2026-09-13, mismo día y decisión del dueño): cambia el
+     proveedor de alojamiento. La 3.1.0 nombraba a Netlify, Inc. como encargado
+     del tratamiento con cláusulas tipo y Marco de Privacidad de Datos, pero
+     ese día se midió que producción se servía desde Vercel (`Server: Vercel`,
+     despliegue `Production` de `vercel[bot]` en la API de GitHub). MAYOR, por
+     el mismo criterio que la 2.0.0 y la 3.0.0: quien leyera la 3.1.0 no puede
+     dar por buena su lectura, porque creía saber quién recibe los datos
+     técnicos de sus visitas y con qué garantía. El texto nuevo afirma solo lo
+     verificado ese día en fuente oficial: Vercel Inc. figura como
+     participante activa del Marco en dataprivacyframework.gov, y su acuerdo
+     de tratamiento (vercel.com/legal/dpa, efectivo el 31 de marzo de 2026) se
+     declara aplicable a los planes Pro y Enterprise; el proyecto usa el plan
+     gratuito (dato del dueño), así que no se afirma una relación de encargado
+     por contrato. */
+  privacy: { version: "4.0.0", updated: "2026-09-13" },
   legalNotice: { version: "3.0.0", updated: "2026-08-13" },
 };
 

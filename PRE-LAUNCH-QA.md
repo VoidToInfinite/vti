@@ -32,7 +32,7 @@ Contexto que se conserva porque explica por qué estas casillas existían: sin e
 
 - [x] `LEGAL_ENTITY` completa en `src/config/legal.ts`. NIF, domicilio y datos registrales quedan como `null` = «no procede», que es una **declaración** y no un hueco (ver el límite declarado en `PRODUCT.md` §10: la lectura de que el art. 10 LSSI-CE no aplica sin actividad económica es razonada, no confirmada por un profesional).
 - [x] Los 6 marcadores `POR_COMPLETAR` resueltos en `es` y `en`, con paridad atada por `locales.test.ts`.
-- [x] Garantía de transferencia internacional: CCT + Data Privacy Framework verificados contra los DPA publicados de Netlify y Cloudflare. La cuenta de Gmail de destino es de consumo y **no** está bajo DPA de encargado — declarado como tal en la política.
+- [x] Garantía de transferencia internacional: Cloudflare con CCT + Data Privacy Framework verificados contra su DPA publicado. **Alojamiento revisado el 2026-09-13:** producción está en Vercel, no en Netlify como se verificó aquí; Vercel Inc. figura activa en la lista oficial del Data Privacy Framework, pero su DPA (con las CCT) se declara aplicable a los planes Pro y Enterprise y el proyecto está en el plan gratuito, así que la política no afirma esa garantía contractual (privacidad 4.0.0). La cuenta de Gmail de destino es de consumo y **no** está bajo DPA de encargado — declarado como tal en la política.
 - [x] Plazo de conservación: hasta resolver la consulta, máximo 3 meses.
 - [x] Confirmación de que `hello@voidtoinfinite.com` está operativo — confirmado por el dueño.
 - [x] Proveedor de correo declarado: la cadena real (Cloudflare enruta sin almacenar, Gmail conserva) figura en la política de privacidad.

@@ -72,7 +72,7 @@
                                 },
                                 {
                                     "term": "Recipients",
-                                    "description": "Netlify (hosting), plus Cloudflare and Google if you write to us by email. We do not disclose or sell data to third parties."
+                                    "description": "Vercel (hosting), plus Cloudflare and Google if you write to us by email. We do not disclose or sell data to third parties."
                                 },
                                 {
                                     "term": "Your rights",
@@ -227,12 +227,12 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "The site is a static export (with no application server of our own) hosted on Netlify, which acts as processor for technical hosting and processes the technical data of requests (IP addresses in its access logs, for example) under its own privacy policy."
+                            "text": "The site is a static export (with no application server of our own) hosted on Vercel. When serving each request, Vercel processes its technical data (for example the IP address, the browser and the referring page, in its request logs) under its own privacy policy."
                         },
                         {
                             "kind": "ul",
                             "items": [
-                                "Netlify, as processor, for the technical hosting of the site.",
+                                "Vercel, for the technical hosting of the site and the delivery of its pages. This site uses its free plan, and Vercel states that its data processing addendum applies to the Pro and Enterprise plans: no contractual processor relationship is claimed here.",
                                 "Cloudflare, which routes email sent to the contact address. It does not store it: it forwards it to a destination mailbox.",
                                 "Google, the provider of that destination mailbox, where the message is stored. It is a personal Gmail account, not a service engaged as a data processor: this is stated plainly rather than claiming a contractual relationship that does not exist."
                             ]
@@ -249,12 +249,12 @@
                     "blocks": [
                         {
                             "kind": "p",
-                            "text": "The site is hosted on Netlify's infrastructure and contact email is routed through Cloudflare. Both are US companies, so transfers of technical data outside the European Economic Area may occur."
+                            "text": "The site is hosted on Vercel's infrastructure and contact email is routed through Cloudflare. Both are US companies, so transfers of technical data outside the European Economic Area may occur."
                         },
                         {
                             "kind": "ul",
                             "items": [
-                                "Netlify, Inc.: European Commission standard contractual clauses, set out in its data processing agreement, plus certified adherence to the EU-U.S. Data Privacy Framework.",
+                                "Vercel Inc.: certified, active participation in the EU-U.S. Data Privacy Framework, according to the official list of the U.S. Department of Commerce. Its data processing addendum, which contains the European Commission standard contractual clauses, is stated to apply to the Pro and Enterprise plans and not to the free plan this site uses, so that contractual safeguard is not claimed here.",
                                 "Cloudflare, Inc.: standard contractual clauses (module two, controller to processor) in section 6.2 of its data processing addendum, plus adherence to the Data Privacy Framework confirmed in its section 6.4."
                             ]
                         },
