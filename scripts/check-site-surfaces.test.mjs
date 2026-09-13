@@ -1,0 +1,6254 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { afterAll, afterEach, beforeEach, describe, it, expect } from "vitest";
+import {
+    ALEJAMIENTO_DEL_LECTOR_PX,
+    ALTO_DE_LA_BANDA_DE_CABECERA,
+    ANCHOS_DEL_DECK,
+    ANCHOS_DE_LA_TINTA,
+    BANDA_DE_REFLOW,
+    BROKEN_SEGMENT,
+    CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
+    ASOMO_DE_LA_PUNTERIA,
+    ATERRIZAJES_DE_LA_BANDA_CIEGA,
+    CHECKS,
+    CONEXION_ESTIMADA_DEL_ARTE,
+    DECKS_DEL_TEMA_OSCURO,
+    DERIVA_MAXIMA_DE_RECARGA_PX,
+    DEUDA_ZOOM,
+    DPRS_DEL_ARTE,
+    EN_PREFIX,
+    FRACCION_MAXIMA_DE_LECTURA,
+    FRACCION_MINIMA_DE_LECTURA,
+    GEOMETRIAS_DE_LA_BANDA_CIEGA,
+    GEOMETRIA_DE_LOS_ATERRIZAJES,
+    GESTOS_DEL_CONMUTADOR,
+    HOLGURA_DE_LA_BANDA_CIEGA_PX,
+    HOME_DOC,
+    JUZGADAS_MINIMAS_DE_LA_PUNTERIA,
+    LADO_MINIMO_DE_PIEZA_PX,
+    LECTURAS_IGUALES_PARA_ASENTAR,
+    LEGAL_DOCS,
+    MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+    MAX_BYTES_DE_ARTE_NO_PINTADO,
+    MAX_DOMINANTE_DEL_VIEWPORT,
+    MIN_CARACTERES_POR_LINEA,
+    MIN_CUBOS_DE_COLOR,
+    NAV_BAND_PX,
+    OBJETIVOS_MINIMOS_DE_REVELADO,
+    OBJETIVO_DE_RECARGA_PX,
+    OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
+    PASO_DEL_BARRIDO_DE_CABECERA,
+    PASO_DE_PISTA_PX,
+    PATRON_DE_ARTE,
+    PERCENTIL_DE_CONTRASTE,
+    PASO_DE_BUSQUEDA_PX,
+    PROFUNDIDAD_MINIMA_PX,
+    PULSACIONES_DE_VOLVER_ARRIBA,
+    RAICES_DEL_DECK,
+    RAICES_DE_LA_TINTA,
+    RATIO_MINIMO_DE_CRECIMIENTO,
+    RECARGAS_SIMULTANEAS,
+    REDUCES_DE_LA_CABECERA,
+    REDUCES_DE_LA_TINTA,
+    SECCIONES_SIN_PUNTO_DE_LECTURA,
+    SECCION_HOSTIL,
+    SEPARACION_MINIMA_PX,
+    ROOT_FONT_BASE_PX,
+    SELECTOR_FOCALIZABLE,
+    SURFACES,
+    TOLERANCIA_DEL_ESCENARIO_PX,
+    TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+    TOLERANCIA_DE_TINTA_PX,
+    TOLERANCIA_DE_VUELTA_ARRIBA_PX,
+    TOPE_DEL_RETRASO_DEL_UMBRAL,
+    UMBRAL_DECLARADO_DE_REVELADO,
+    VALORES_HOSTILES,
+    UMBRAL_DE_CONTRASTE_GRANDE,
+    UMBRAL_DE_CONTRASTE_NORMAL,
+    TOLERANCIA_DE_ALTO_TRAS_ATRAS,
+    VENTANA_DE_RESTITUCION_MS,
+    VIEWPORTS_DE_ATRAS,
+    VIEWPORTS_DE_LA_CABECERA,
+    VIEWPORTS_DE_VOLVER_ARRIBA,
+    VIEWPORT_DE_LA_HOJA,
+    WIDTH_SWEEP,
+    ZOOM_FONT_PX,
+    comparaCrecimiento,
+    alejaAlLector,
+    eligeElPuntoDeLectura,
+    especificadoresDePlaywright,
+    evaluaAtras,
+    evaluaBandaCiega,
+    evaluaConmutacionDeTema,
+    evaluaEscenariosFijados,
+    evaluaContrasteDeCabecera,
+    evaluaEstadoModal,
+    evaluaModoDeRestitucion,
+    MODO_DE_RESTITUCION_EN_LA_PORTADA,
+    RUTAS_DE_PORTADA,
+    evaluaRecarga,
+    evaluaRecargaSimultanea,
+    evaluaPuntoDeLectura,
+    evaluaTintaPintada,
+    evaluaVueltaArriba,
+    COMBINACIONES_DE_TABULACION,
+    INTERVALO_DE_TABULACION_MS,
+    evaluaTabulacionSinRezago,
+    COMBINACIONES_DE_ATERRIZAJE,
+    SECCIONES_DE_ATERRIZAJE,
+    evaluaAterrizajeDeAncla,
+    evaluaTestigoDeScroll,
+    TOPE_DE_SCROLL_SUAVE_MS,
+    evaluaAtrasYAdelante,
+    RUTAS_DE_ATRAS_Y_ADELANTE,
+    RUTAS_CON_SEGUNDO_ATRAS,
+    CLAVES_DE_ENTRADA_ESTABLES,
+    PROFUNDIDAD_DE_LECTURA_PX,
+    fallosDeCrecimientoEnLaBanda,
+    fallosDeDeudaNoObservada,
+    fragmentoDe,
+    gestosDeAtras,
+    langEsperado,
+    luminanciaRelativa,
+    probeArteNoPintado,
+    probeCrecimientoDeTexto,
+    probeDeckRecortado,
+    probeDisparadorDeLaHoja,
+    probeEstadoModal,
+    probeLegibilidadDeTexto,
+    probePerdidaHorizontal,
+    probeTintaPintadaFuera,
+    razonDeContraste,
+    umbralDeContraste,
+    veredictoDeConexionDeclarada,
+    veredictoDeDerivaDeCondiciones,
+    evaluaAdelanteALaPortada,
+    INSTANTES_TRAS_ADELANTE_MS,
+    PROFUNDIDAD_EN_LA_LEGAL_PX,
+    VIEWPORTS_DE_ADELANTE,
+    VIEWPORTS_DE_ATRAS_CON_FRAGMENTO,
+    INSTANTES_TRAS_ATRAS_MS,
+    PASOS_DE_RUEDA_DESDE_EL_ANCLA,
+    evaluaAtrasConFragmento,
+} from "./check-site-surfaces.mjs";
+/* Alias del repo, no ruta relativa con extension: este fichero es `.mjs` y el
+   parser de Rollup no admite un `.ts` explicito en el especificador. */
+import { EN_ROUTES, ROUTES, resolveRoute } from "@/config/site";
+
+/*
+ * ESTE FICHERO ES LO QUE METE EL CANDADO DE NAVEGADOR DENTRO DEL GATE, y es
+ * tambien lo que impide que ese candado se vacie en silencio.
+ *
+ * `check-site-surfaces.mjs` sabe medir ocho superficies y sabe fallar por su
+ * cuenta, pero `pnpm run ci` no lo llama: necesita el sitio SERVIDO, y el gate
+ * corre antes de `pnpm build` -- el mismo motivo por el que
+ * `scripts/measure-home-js.mjs` tampoco entra. Lo que SI corre en el gate es
+ * esto, con el mismo patron que `check-dark-art-weight.test.mjs` con su script.
+ *
+ * QUE PROTEGE, exactamente. Un candado de navegador al que alguien le borra la
+ * mitad de las rutas, o una familia de comprobaciones, SIGUE SALIENDO VERDE: se
+ * limita a medir menos. Es la forma de vacuidad que este repo ya pago dos veces
+ * y que las dos veces se descubrio tarde. Aqui se ata la COBERTURA:
+ *
+ *   1. las rutas del script son las rutas REALES del sitio, comparadas contra
+ *      `src/config/site.ts` (la fuente unica) y no contra strings gemelos;
+ *   2. el camino que provoca la 404 no es ninguna ruta conocida, verificado con
+ *      el propio `resolveRoute()` del repo;
+ *   3. el barrido de anchos cubre de verdad los dos extremos del encargo y el
+ *      escalon `md` donde la cabecera cambia de forma;
+ *   4. cada familia declarada en `CHECKS` tiene una comprobacion REAL en el
+ *      cuerpo del script, marcada con `[check: <id>]`, y cada marca del cuerpo
+ *      esta declarada en `CHECKS`. El vinculo es bidireccional a proposito:
+ *      declarar una familia que nadie mide y medir una que nadie declara son
+ *      los dos la misma mentira.
+ *
+ * Validado con bug inyectado a proposito (ver el informe del frente Q-2):
+ * borrando el marcador `[check: forced-colors]` del cuerpo del script, el cuarto
+ * caso cae en rojo con "la familia declarada forced-colors no tiene ninguna
+ * comprobacion marcada en el cuerpo del script"; restaurado, verde.
+ *
+ * DOS HUECOS DE ESA PRIMERA VERSION, medidos y cerrados por el frente de
+ * correccion de la misma ola:
+ *
+ *   a. El vinculo bidireccional ataba la COHERENCIA, no la EXTENSION. Quitando
+ *      A LA VEZ la familia `"forced-colors"` de `CHECKS` (linea 159 del script) y
+ *      su marcador del cuerpo (linea 714) -- la supresion SIMETRICA, que es la
+ *      que hace quien recorta de verdad -- los cinco casos seguian en verde:
+ *      «Test Files  1 passed (1) / Tests  5 passed (5)». El script pasaba a medir
+ *      trece familias diciendo catorce y nadie se enteraba. Lo cierra
+ *      `FAMILIAS_ESPERADAS`, tecleada abajo.
+ *   b. El primer caso derivaba su expectativa de la MISMA lista que verificaba
+ *      (`LEGAL_DOCS.length * 2 + 2`), asi que era autorreferencial: quitando la
+ *      entrada `legalNotice` de `LEGAL_DOCS` (linea 107 del script) salia «✓
+ *      cubre los dos documentos legales en los dos idiomas mas una 404 por
+ *      idioma» en verde, y solo caia su hermano, que tecleaba las dos claves. Y
+ *      tecleadas, un TERCER documento legal en `src/config/site.ts` no quedaria
+ *      obligado a entrar en el barrido. Ahora la lista de documentos se DERIVA
+ *      de `ROUTES`, la fuente unica del sitio, con las rutas que no son un
+ *      documento legal excluidas por nombre.
+ *
+ * Los dos cierres, validados repitiendo LA MISMA supresion que antes salia en
+ * verde:
+ *
+ *   a. quitadas la linea 159 (`"forced-colors",`) y la 714 (`// [check:
+ *      forced-colors]`) del script --
+ *
+ *        AssertionError: el candado declara 13 familias y prometio 14: si de
+ *        verdad mide otra cosa, actualiza FAMILIAS_ESPERADAS a la vez que el
+ *        script; si no, restaura lo que falta: expected [ …(13) ] to deeply
+ *        equal [ …(14) ]
+ *        - Expected
+ *        + Received
+ *        -   "forced-colors",
+ *
+ *   b. quitada la entrada `legalNotice` de `LEGAL_DOCS` (linea 107) --
+ *
+ *        AssertionError: los documentos que recorre el script no son los que
+ *        declara src/config/site.ts: uno de los dos lados se movio solo:
+ *        expected [ 'privacy' ] to deeply equal [ 'legalNotice', 'privacy' ]
+ *
+ *      El caso que antes salia «✓» ahora es el primero en caer. Restauradas las
+ *      tres lineas, los nueve casos en verde.
+ *
+ * LO QUE ANADE LA CRITICA #19 (2026-09-04), y por que hacia falta: el barrido no
+ * incluia la PORTADA -- las seis superficies eran las dos legales por dos
+ * idiomas mas dos 404 -- y ningun caso de este fichero lo notaba, porque todos
+ * derivaban su expectativa de las mismas seis filas que el script declaraba.
+ * Ahora son ocho, la extension se compara contra `SUPERFICIES_ESPERADAS`
+ * (tecleada) y ademas se exige que TODA clave de `ROUTES` este recorrida en sus
+ * dos idiomas. Las dos direcciones, validadas con supresion real:
+ *
+ *   c. borrada la entrada de la portada inglesa de `SURFACES` (el script) --
+ *
+ *        AssertionError: el barrido ya no son las ocho superficies acordadas: si
+ *        el sitio gano o perdio una de verdad, actualiza SUPERFICIES_ESPERADAS a
+ *        la vez que el script; si no, restaura la que falta: expected [ …(7) ]
+ *        to deeply equal [ …(8) ]
+ *
+ *        AssertionError: src/config/site.ts declara la ruta home y el candado no
+ *        la recorre en ingles: expected [ '/', '/privacidad', …(5) ] to include
+ *        '/en'
+ *
+ *   d. anadida una sancion `main|home` a `DEUDA_ZOOM` -- que es exactamente la
+ *      salida comoda para apagar el rojo de la home en vez de arreglarla --
+ *
+ *        AssertionError: alguien anadio una sancion de zoom: cada entrada apaga
+ *        una zona entera del documento en todas las superficies de su tipo (...):
+ *        expected [ 'main|home' ] to deeply equal []
+ *
+ * Restauradas las dos, los doce casos en verde.
+ *
+ * LO QUE ANADE LA OLA R (2026-09-05). Hasta aqui este fichero solo ataba la
+ * COBERTURA del candado: que las listas no encojan. Eso deja sin candar el
+ * CUERPO de las sondas -- una sonda que mide el lado equivocado, o con el umbral
+ * equivocado, pasa los doce casos de arriba sin despeinarse -- y deja un hueco
+ * mas en la propia cobertura. Los tres cierres, con su rojo LITERAL observado:
+ *
+ *   e. EL RECORTE SIMETRICO DE DOS FICHEROS. El hueco (a) se cerro a nivel de
+ *      dos bloques (`CHECKS` y su marcador), pero `FAMILIAS_ESPERADAS` vive en
+ *      ESTE fichero: quitando a la vez la familia de `CHECKS`, su linea de
+ *      `FAMILIAS_ESPERADAS` y su marcador del cuerpo --tres bloques, dos
+ *      ficheros-- los dos candados de familias volvian a coincidir sobre una
+ *      lista mas corta. Repetida esa supresion con `"forced-colors"`, el unico
+ *      caso que cae es el nuevo:
+ *
+ *        AssertionError: el script declara 15 familias y el contrato tiene un
+ *        suelo de 16: este numero solo sube, y sube en el mismo commit que anade
+ *        la familia nueva. Si has quitado una, restaurala; el candado no mide
+ *        menos de lo que un dia midio: expected 15 to be greater than or equal
+ *        to 16
+ *
+ *      Los otros dos casos de familias siguieron en «✓», que es exactamente la
+ *      demostracion de que no veian esta supresion. Restauradas las tres
+ *      lineas, 22 en verde. LIMITE DECLARADO, porque no decirlo seria vender el
+ *      candado por mas de lo que es: bajar `FAMILIAS_MINIMAS` a mano NO pone
+ *      nada en rojo -- es un suelo, y bajarlo es una decision visible en el
+ *      diff, que es justo la friccion que faltaba; lo que ya no se puede es
+ *      recortar el contrato borrando lineas que se leen como limpieza.
+ *
+ *   f. EL LADO IZQUIERDO DE LA SONDA DE PERDIDA. Devolviendo `sobra` a
+ *      `r.right - cw` (la formula anterior, `grep -c "r.left"` daba 0) --
+ *
+ *        AssertionError: un elemento con left -30 dentro de un viewport de 320
+ *        px pierde 30 px por la izquierda: con la formula de un solo lado
+ *        (r.right - cw) sale -20 y no se reporta nada: expected [] to have a
+ *        length of 1 but got +0
+ *
+ *   g. EL UMBRAL DE LEGIBILIDAD. Bajando `MIN_CARACTERES_POR_LINEA` de 4 a 1 --
+ *      que es la forma de vaciar la familia sin quitarla -- caen SIETE casos
+ *      («Tests 7 failed | 27 passed (34)», repetida la inyeccion el 2026-09-05
+ *      por el frente J). La ola escribio «cuatro» el dia que la midio y esa
+ *      cuenta se quedo vieja el mismo dia: el segundo factor de la familia
+ *      llego por la tarde con tres casos mas que tambien dependen del umbral
+ *      (la caja de 100 px de 320, la que se absuelve por estirada y la que se
+ *      reporta sin ancho de documento). Las dos primeras lineas rojas, que son
+ *      las que la ola cito y siguen saliendo igual:
+ *
+ *        AssertionError: el umbral se calibro en 4 contra las dos poblaciones
+ *        medidas (defectos de 0,9 a 2,7 caracteres por linea; suelo fisico de la
+ *        tipografia grande a 320 px de 5 a 7). Bajarlo vacia la familia sin
+ *        quitarla: expected 1 to be greater than or equal to 4
+ *
+ *        AssertionError: 6 caracteres en 3 lineas son 2 por linea, por debajo
+ *        del umbral de 1: la caja tiene que reportarse: expected [] to have a
+ *        length of 1 but got +0
+ *
+ *      Y las dos piezas de la sonda que no son el umbral, tambien vistas en
+ *      rojo. Quitando la confirmacion contra las cajas de linea reales
+ *      (`const lineas = lineasPorCaja;`) --
+ *
+ *        AssertionError: el texto ocupa 2 lineas reales de las 9 que mide la
+ *        caja: 21 caracteres en 2 lineas son 10,5 por linea y no hay defecto:
+ *        expected [ { zona: 'suelto', sel: 'p', …(5) } ] to deeply equal []
+ *
+ *      y apagando la guarda de vacuidad de las cajas de tres lineas --
+ *
+ *        AssertionError: el script ya no convierte en rojo la guarda de vacuidad
+ *        "la sonda de legibilidad no encontro ni una sola caja de tres o mas
+ *        lineas": sin ella un cero en el contador pasaria por pagina limpia:
+ *        expected '/*\n * SIN SHEBANG, al contrario que …' to contain 'la sonda
+ *        de legibilidad no encontro n…'
+ *
+ *   h. LOS DOS FILTROS QUE EVITAN FALSOS POSITIVOS, tambien vistos en rojo,
+ *      porque un filtro roto es tan grave como una medida rota: uno deja de
+ *      absolver lo que debe y el candado empieza a mentir por el otro lado.
+ *      Estrechando el filtro de ancestro a `if (ox === "scroll")` --dejando
+ *      fuera `auto`, que es el valor que usa `ScTableWrap`-- cae el tercer caso
+ *      de la sonda de perdida:
+ *
+ *        AssertionError: expected [ { zona: 'suelto', sel: 'td', …(3) } ] to
+ *        deeply equal []
+ *
+ *      Y neutralizando la guarda de escritura horizontal (`const escritura =
+ *      "horizontal-tb";`, sin leer el estilo computado) cae el de texto
+ *      vertical:
+ *
+ *        AssertionError: una caja vertical no se examina: expected 1 to be +0 //
+ *        Object.is equality
+ *
+ * Restaurado todo, 22 casos en verde.
+ *
+ * LO QUE ANADE EL SEGUNDO FACTOR DE LA FAMILIA DE LEGIBILIDAD (2026-09-05, ola
+ * S). El candado que la ola R entrego medía UN factor --caracteres por linea--
+ * y la primera corrida contra el build de `5bfe092`, con los rellenos ya
+ * arreglados, demostro que ese factor solo NO separa las dos poblaciones: el
+ * rotulo del CTA («Escríbeme», 9 caracteres en 3 lineas dentro de una caja de
+ * 108 px de 320) es defecto y el acento de la nota de cierre del deck de Story
+ * («un nuevo comienzo», 17 caracteres en 5 lineas dentro de una caja de 177,61
+ * px de 320) no lo es, y los dos daban ~3,4 caracteres por linea. Lo que los
+ * separa es el ANCHO DE LA CAJA RESPECTO AL VIEWPORT: 34 % contra 55 %. La
+ * tabla completa de las dos poblaciones esta en el docblock de
+ * `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA`.
+ *
+ * Las TRES inyecciones que validan el factor nuevo, con su rojo LITERAL:
+ *
+ *   i. QUITADO EL SEGUNDO FACTOR de la sonda (borrado el bloque
+ *      `if (anchoRelativo !== null && anchoRelativo >= maxAnchoRelativo)`, que
+ *      es exactamente la version anterior) -- «Tests 2 failed | 24 passed»:
+ *
+ *        AssertionError: una caja de 200 px en un documento de 320 ocupa el 62,5
+ *        % del viewport: con esa anchura disponible, tres lineas de dos
+ *        caracteres son fisica de la tipografia, no un defecto de rellenos:
+ *        expected [ { zona: 'suelto', sel: 'p', …(6) } ] to deeply equal []
+ *
+ *        AssertionError: 17 caracteres en 5 lineas son 3,4 por linea, por debajo
+ *        del primer factor, pero la caja ocupa el 55,5 % del viewport: es el
+ *        suelo fisico de una tipografia que WCAG 1.4.4 exige que crezca, no un
+ *        defecto de rellenos: expected [ { zona: 'suelto', sel: 'p', …(6) } ] to
+ *        deeply equal []
+ *
+ *   j. SUBIDO EL UMBRAL a 0,9 -- la forma de llenar el informe de falsos
+ *      positivos sin tocar la sonda -- caen los DOS mismos casos, con las dos
+ *      mismas lineas. El caso que teclea el suelo NO cae, y esa es justo la
+ *      demostracion de que un suelo no ata la direccion contraria: lo que ata
+ *      subirlo es la medida real reproducida.
+ *
+ *   k. BAJADO EL UMBRAL a 0,2 -- la forma de vaciar la familia por el otro
+ *      lado -- «Tests 4 failed | 22 passed», el primero de ellos el suelo
+ *      tecleado:
+ *
+ *        AssertionError: el umbral relativo se calibro en 0,5 contra las dos
+ *        poblaciones medidas (defectos del 7 % al 45 % del viewport; tipografia
+ *        grande legitima del 55 % al 65 %). Bajarlo deja de ver el defecto de
+ *        rellenos: con 0,2 el rotulo del CTA a 320 px, que ocupa el 34 %,
+ *        saldria en verde: expected 0.2 to be greater than or equal to 0.5
+ *
+ *        AssertionError: una caja de 100 px en un documento de 320 ocupa el 31 %
+ *        del viewport y parte 6 caracteres en 3 lineas: es el defecto de
+ *        rellenos que esta familia existe para cazar: expected [] to have a
+ *        length of 1 but got +0
+ *
+ *   l. INVERTIDA LA CAIDA CONSERVADORA sin ancho de documento (`if
+ *      (anchoRelativo === null || anchoRelativo >= maxAnchoRelativo)`, o sea
+ *      absolver cuando el factor no se puede evaluar, que es la forma de vaciar
+ *      la familia entera el dia que la sonda pierda el `clientWidth`) -- «Tests
+ *      1 failed | 25 passed»:
+ *
+ *        AssertionError: sin ancho de documento el segundo factor no absuelve a
+ *        nadie: expected [] to have a length of 1 but got +0
+ *
+ * Restauradas las cuatro, 26 casos en verde.
+ *
+ * LO QUE ANADE EL FRENTE J (2026-09-05): la ATADURA QUE FALTABA EN EL BARRIDO DE
+ * ANCHOS y la FAMILIA DIECISIETE. Los dos huecos los encontro el verificador de
+ * candados de la ola R midiendo, no leyendo.
+ *
+ *   m. EL BARRIDO DE ANCHOS NO TENIA ATADURA DE EXTENSION. Los tres asertos que
+ *      ya habia --minimo 320, maximo 1920, contiene 768-- los cumple un barrido
+ *      de tres anchos, asi que el verificador dejo `WIDTH_SWEEP` en `[320, 768,
+ *      1920]`, de doce a tres, y los 26 casos siguieron en verde: el candado de
+ *      navegador pasaba a mirar la cuarta parte de las anchuras sin una sola
+ *      linea roja. Se cierra con el mismo patron que las superficies y las
+ *      familias --`ANCHOS_ESPERADOS` tecleada (`toEqual`) mas
+ *      `MINIMO_ANCHOS_BARRIDOS` numerico--, y repetida la MISMA supresion caen
+ *      dos casos («Tests 2 failed | 32 passed (34)»):
+ *
+ *        AssertionError: el barrido ya no son los 12 anchos acordados: si el
+ *        sitio gano o perdio un escalon de verdad, actualiza ANCHOS_ESPERADOS a
+ *        la vez que el script; si no, restaura los que faltan. Un barrido
+ *        recortado mide menos y sale igual de verde: expected [ 320, 768, 1920 ]
+ *        to deeply equal [ 320, 360, 390, 414, 480, 600, …(6) ]
+ *
+ *        AssertionError: la banda mide a 390px, que no es un ancho del barrido:
+ *        los dos lados del candado tienen que medir las mismas anchuras reales:
+ *        expected [ 320, 768, 1920 ] to include 390
+ *
+ *   n. LA FAMILIA DIECISIETE, `texto-crece-con-la-preferencia`, con sus dos
+ *      funciones puras ejercitadas en jsdom. Las tres inyecciones, cada una
+ *      aplicada SOLA, ejecutada, vista en rojo y restaurada:
+ *
+ *      Bajando `RATIO_MINIMO_DE_CRECIMIENTO` de 1.5 a 1 --la forma de vaciar la
+ *      familia sin quitarla-- caen CINCO casos («Tests 5 failed | 29 passed
+ *      (34)»); el primero es el suelo tecleado y el segundo la sonda:
+ *
+ *        AssertionError: el crecimiento minimo se calibro en 1.5 contra las dos
+ *        poblaciones medidas (F94 de x0.98 a x1.00; tipografia fluida legitima
+ *        de x1.75 a x2.00). Bajarlo vacia la familia sin quitarla: con 1 el h1
+ *        del hero, que se queda en 34 px, saldria en verde: expected 1 to be
+ *        greater than or equal to 1.5
+ *
+ *        AssertionError: una caja que pasa de 24 a 24 px no crece (x1.00) y
+ *        tiene que reportarse; la que pasa de 16 a 32 (x2.00) no: expected [] to
+ *        deeply equal [ 'no se mueve' ]
+ *
+ *      Quitando la guarda del control de `comparaCrecimiento` (`controlDobla:
+ *      true`, que es el candado sin su guarda) cae uno:
+ *
+ *        AssertionError: el cuerpo se quedo en 16 px: la emulacion no llego y el
+ *        x1 de la caja no dice nada del sitio: expected true to be false //
+ *        Object.is equality
+ *
+ *      Y renombrando el mensaje con el que el SCRIPT convierte esa guarda en
+ *      rojo --que es la otra mitad, porque una guarda que no llega al informe no
+ *      para nada-- cae el mismo caso por su otra asercion:
+ *
+ *        AssertionError: el script ya no convierte en rojo la guarda "la caja de
+ *        control (el cuerpo) no dobla con la preferencia de tamano de texto":
+ *        sin ella una corrida sin emulacion pasaria por defecto del sitio, o un
+ *        emparejamiento roto por pagina limpia
+ *
+ * Restauradas las cuatro, 34 casos en verde.
+ */
+
+const RUTA_SCRIPT = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "check-site-surfaces.mjs",
+);
+const SCRIPT = readFileSync(RUTA_SCRIPT, "utf8");
+
+/**
+ * Las rutas del sitio que NO son un documento legal, excluidas por nombre. Todo
+ * lo demas que `ROUTES` declare es un documento que este candado tiene que
+ * recorrer: si manana nace `/cookies`, el test cae hasta que alguien decida
+ * explicitamente si entra en el barrido o se anade a esta lista con su motivo.
+ * Esa decision forzada es el punto; una lista de claves tecleada no la fuerza.
+ *
+ * `home` sigue aqui, pero desde la critica externa #19 (2026-09-04) eso ya NO
+ * significa "fuera del barrido": la portada entra como superficie propia, con su
+ * kind, porque no es un documento legal y no comparte con ellos ni el indice
+ * interno ni la forma. Lo que esta lista dice es de que grupo NO forma parte,
+ * no si se recorre -- y el caso de abajo exige que se recorra.
+ */
+const RUTAS_SIN_DOCUMENTO_LEGAL = new Set(["home"]);
+
+/** Los documentos legales que el sitio declara HOY, derivados de la fuente unica. */
+const IDS_LEGALES = Object.keys(ROUTES).filter(
+    (clave) => !RUTAS_SIN_DOCUMENTO_LEGAL.has(clave),
+);
+
+/**
+ * LA EXTENSION DEL BARRIDO, TECLEADA, y por que no se deriva de `SURFACES`.
+ *
+ * Es la leccion que esta ola ha pagado CUATRO veces: un candado que recorre una
+ * lista sale en verde cuando la lista encoge. Derivar la expectativa de la
+ * misma lista que se verifica (`LEGAL_DOCS.length * 2 + 2`, que es lo que hacia
+ * la version anterior de este fichero) es el test autorreferencial que deja
+ * pasar cualquier recorte. Estas ocho filas se tocan cuando el sitio gane o
+ * pierda una superficie de verdad, y entonces se tocan a la vez que el script.
+ *
+ * Ata las DOS direcciones: borrar una fila cae por el `toEqual`, y anadir una
+ * tambien -- lo segundo importa tanto como lo primero, porque una superficie
+ * nueva que entra sin que nadie la mire es una superficie sin medir con el
+ * candado diciendo que la mide.
+ */
+const SUPERFICIES_ESPERADAS = [
+    { path: "/", locale: "es", kind: "home" },
+    { path: "/en", locale: "en", kind: "home" },
+    { path: "/privacidad", locale: "es", kind: "legal" },
+    { path: "/en/privacy", locale: "en", kind: "legal" },
+    { path: "/aviso-legal", locale: "es", kind: "legal" },
+    { path: "/en/legal-notice", locale: "en", kind: "legal" },
+    { path: `/${BROKEN_SEGMENT}`, locale: "es", kind: "notFound" },
+    { path: `/en/${BROKEN_SEGMENT}`, locale: "en", kind: "notFound" },
+];
+
+/*
+ * El CONTRATO del candado, tecleado aqui y no derivado de `CHECKS`: derivarlo de
+ * la lista que se verifica es el test autorreferencial que deja pasar cualquier
+ * recorte. Estas veintitres familias solo se tocan cuando el script mida algo
+ * distinto de verdad, y entonces se tocan a la vez que el script.
+ *
+ * `texto-al-200-por-ciento` entra el 2026-09-04 con el P1 de zoom de las
+ * legales: la familia `responsive-sin-desbordamiento` que ya estaba NO lo veia,
+ * y no por descuido sino por una razon concreta que conviene no olvidar --
+ * mide `documentElement.scrollWidth`, y con `html, body { overflow-x: clip }`
+ * declarado en `GlobalStyles` ese numero nunca supera el ancho del viewport
+ * aunque haya contenido fuera. La sonda nueva mira las cajas, no el scroll.
+ *
+ * `legibilidad-al-200-por-ciento` entra el 2026-09-05 por el mismo motivo un
+ * escalon mas adentro: la familia anterior mide que no se PIERDA contenido, y
+ * el arreglo que llevo esa cuenta a cero px fuera dejo la portada con los
+ * valores de las tarjetas de Contact a 23,2 px de ancho --de 0,9 a 1,4
+ * caracteres por linea-- y el rotulo del CTA saliendo letra por linea. Con el
+ * candado en verde. No se perdia texto; no se podia leer.
+ *
+ * `texto-crece-con-la-preferencia` entra el mismo dia, y cierra el escalon que
+ * queda por debajo de las dos: las dos miden CONSECUENCIAS de que el texto
+ * crezca, y un texto que NO crece no produce ninguna de las dos --ni se sale ni
+ * se parte en trocitos--, asi que las dos lo dan por bueno. El `h1` del hero, su
+ * tagline y el statement de Story llevaban meses en 34, 15 y 24 px con la
+ * preferencia al 200 % (patron de fallo F94 de WCAG 1.4.4: `clamp()` de
+ * `font-size` con suelo y techo en pixeles) y ningun candado del repo lo veia.
+ *
+ * LAS CUATRO ULTIMAS ENTRAN EL 2026-09-06, una por cada P1 que la critica #19
+ * confirmo con sonda propia, y todas por la MISMA razon de fondo: no median una
+ * cosa que faltara, median una COMBINACION que faltaba. Las diecisiete
+ * anteriores fijaban `reduce`, DPR 1, "no recargar nunca" y "leer solo el DOM
+ * vivo", y en esos cuatro ejes fijos vivian los cinco hallazgos.
+ *
+ * `deck-cabe-en-el-escenario-al-200-por-ciento` mide SIN `reduce`, que es lo
+ * contrario de lo que hacen sus dos hermanas de zoom y con motivo: con `reduce`
+ * el escenario del deck oscuro es estatico y el defecto no existe.
+ *
+ * `lang-del-documento-por-ruta` compara el idioma HORNEADO, no solo el del DOM
+ * vivo. El horneado era un "limite conocido" escrito en el docblock de cabecera
+ * del script, y un limite conocido en un comentario no cierra un incumplimiento
+ * de nivel A (leccion del 2026-09-06, regla 3).
+ *
+ * `recarga-conserva-la-seccion` anade el unico eje que no es una preferencia
+ * sino un GESTO: recargar. Ninguna familia anterior lo hacia.
+ *
+ * `arte-no-pintado-por-tema-y-dpr` anade la densidad de pantalla: a DPR 1 y a
+ * DPR 2 el `srcset` resuelve variantes distintas, asi que un candado a DPR 1
+ * fijo no ve lo que descarga la mitad de los visitantes.
+ *
+ * LAS DOS ULTIMAS ENTRAN EL 2026-09-07 con la critica #20, y no representan un
+ * rincon del sitio sin visitar sino dos CLASES de comprobacion que ninguna
+ * familia hacia. Los tres P1 de esa ronda los encontro una persona a mano sobre
+ * el mismo build que las veintiuna anteriores daban por bueno.
+ *
+ * `estado-modal-no-sobrevive-al-cambio-de-anchura` es la clase "estado que
+ * sobrevive a un cambio de contexto". La familia de la hoja movil que ya habia
+ * la abre, tabula dentro y la cierra con Escape, todo al MISMO ancho: nunca
+ * cruza el escalon con la hoja abierta, que es el gesto que de verdad se hace
+ * (girar el telefono, ensanchar la ventana) y el que deja el fondo `inert` y la
+ * pagina con cero controles operables.
+ *
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` es la clase "contraste
+ * contra lo que se pinta de verdad". `check-text-contrast.mjs` compara TOKENS
+ * con TOKENS y no puede ver que hay bajo la cabecera de cristal cuando el arte
+ * de una seccion pasa por debajo; eso es una medida de pixeles y solo la tiene
+ * un navegador. Su matriz recorre `prefers-reduced-motion` en los DOS sentidos
+ * porque el arbitraje del mismo hallazgo midio 8,85 con la preferencia fijada y
+ * 3,41 sin ella, sobre el mismo build y la misma pieza (leccion del
+ * 2026-09-07).
+ *
+ * `condiciones-de-navegador-estables-en-la-corrida` entra el 2026-09-08 y es de
+ * otra especie que las veintinueve anteriores: no mira el sitio, mira el
+ * instrumento. Entra porque la familia del arte dio dos veredictos distintos
+ * sobre el mismo build --verde doce veces seguidas con el navegador recien
+ * abierto, roja con 188.870 B en una corrida completa-- y la variable que lo
+ * decidia, la conexion estimada del proceso navegador, no aparecia en ninguna
+ * linea del informe. Un candado que cambia de opinion sin que nadie pueda ver
+ * por que ensena a ignorarlo, que es peor que no tenerlo.
+ */
+const FAMILIAS_ESPERADAS = [
+    "recorrido-teclado",
+    "foco-visible",
+    "sin-trampas-de-foco",
+    "jerarquia-encabezados",
+    "ids-unicos",
+    "aria-sin-referencias-colgantes",
+    "landmarks-con-nombre",
+    "aterrizaje-del-indice",
+    "disclosure-escape-y-foco",
+    "hoja-movil-escape-y-foco",
+    "reduced-motion",
+    "forced-colors",
+    "responsive-sin-desbordamiento",
+    "texto-al-200-por-ciento",
+    "legibilidad-al-200-por-ciento",
+    "texto-crece-con-la-preferencia",
+    "sin-javascript",
+    "deck-cabe-en-el-escenario-al-200-por-ciento",
+    "lang-del-documento-por-ruta",
+    "recarga-conserva-la-seccion",
+    "arte-no-pintado-por-tema-y-dpr",
+    "estado-modal-no-sobrevive-al-cambio-de-anchura",
+    "contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo",
+    "volver-arriba-vuelve-arriba",
+    "conmutar-el-tema-no-congela-la-pagina",
+    "atras-restituye-el-documento-de-la-url",
+    "punto-de-lectura-de-la-url-es-de-un-solo-uso",
+    "tinta-pintada-dentro-del-viewport",
+    "revelado-sin-banda-ciega",
+    "condiciones-de-navegador-estables-en-la-corrida",
+    "tabulacion-sin-rezago",
+    "aterrizaje-de-ancla-constante",
+    "atras-y-adelante-restituyen-la-lectura",
+    "adelante-a-la-portada-vuelve-a-su-lectura",
+    "atras-con-fragmento-vuelve-a-la-lectura",
+];
+
+/**
+ * EL SUELO NUMERICO DEL CONTRATO, y por que hacia falta un tercer candado sobre
+ * la misma lista.
+ *
+ * Los dos que ya habia atan la COHERENCIA (cada familia declarada tiene su
+ * marcador en el cuerpo y al reves) y la IGUALDAD contra `FAMILIAS_ESPERADAS`.
+ * Ninguno de los dos sobrevive al recorte SIMETRICO, que es el que hace quien
+ * recorta de verdad: se quita la familia de `CHECKS`, su marcador
+ * `// [check: ...]` del cuerpo y su linea de `FAMILIAS_ESPERADAS` --tres
+ * bloques, dos ficheros-- y los dos candados vuelven a coincidir sobre una
+ * lista mas corta. El script pasa a medir quince cosas diciendo quince, sin una
+ * sola linea roja. Es exactamente el hueco (a) que este fichero ya cerro una vez
+ * a nivel de dos bloques; con `FAMILIAS_ESPERADAS` en el mismo fichero que el
+ * test, el recorte solo tenia que ser un poco mas ancho.
+ *
+ * Este numero esta TECLEADO y solo puede SUBIR. Es la unica pieza del contrato
+ * que no se puede recortar sin escribir a mano un numero mas pequeno, que es
+ * una decision visible en el diff en vez de tres borrados que se leen como
+ * limpieza. Se sube el dia que el candado gane una familia de verdad, en el
+ * mismo commit que la gana.
+ *
+ * Sube a 17 el 2026-09-05 con `texto-crece-con-la-preferencia`, en el mismo
+ * commit que la anade, que es exactamente la regla de arriba cumpliendose.
+ *
+ * Sube a 21 el 2026-09-06 con las CUATRO familias de la critica #19 --
+ * `deck-cabe-en-el-escenario-al-200-por-ciento`, `lang-del-documento-por-ruta`,
+ * `recarga-conserva-la-seccion` y `arte-no-pintado-por-tema-y-dpr` --, una por
+ * P1 confirmado, y en el mismo commit que las anade.
+ *
+ * VALIDADO CON BUG INYECTADO (2026-09-06), y con el recorte SIMETRICO completo
+ * que es el unico que este suelo ve: se borro `lang-del-documento-por-ruta` de
+ * `CHECKS`, su marcador `// [check: ...]` del cuerpo del script Y su linea de
+ * `FAMILIAS_ESPERADAS` --tres bloques, dos ficheros--, que es el recorte que
+ * los otros dos candados de esta lista dan por bueno. Cayo UN solo caso, este:
+ *
+ *   AssertionError: el script declara 20 familias y el contrato tiene un suelo
+ *   de 21: este numero solo sube, y sube en el mismo commit que anade la
+ *   familia nueva. Si has quitado una, restaurala; el candado no mide menos de
+ *   lo que un dia midio: expected 20 to be greater than or equal to 21
+ *
+ * «Tests 1 failed | 46 passed (47)», con los dos candados de coherencia e
+ * igualdad en VERDE sobre la lista mas corta -- que es exactamente el hueco que
+ * este suelo existe para tapar. Restaurados los tres bloques, 47/47 en verde.
+ *
+ * Sube a 23 el 2026-09-07 con las DOS familias de la critica #20 --
+ * `estado-modal-no-sobrevive-al-cambio-de-anchura` y
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` --, en el mismo commit
+ * que las anade.
+ *
+ * VUELTO A VALIDAR CON BUG INYECTADO (2026-09-07), con el recorte SIMETRICO
+ * completo sobre la familia nueva: se borro
+ * `contraste-de-la-cabecera-sobre-lo-que-pasa-por-debajo` de `CHECKS`, su
+ * marcador `// [check: ...]` del cuerpo del script Y su linea de
+ * `FAMILIAS_ESPERADAS` -- tres bloques, dos ficheros. Cayo UN solo caso, este:
+ *
+ *   AssertionError: el script declara 22 familias y el contrato tiene un suelo
+ *   de 23: este numero solo sube, y sube en el mismo commit que anade la
+ *   familia nueva. Si has quitado una, restaurala; el candado no mide menos de
+ *   lo que un dia midio: expected 22 to be greater than or equal to 23
+ *
+ * «Tests 1 failed | 63 passed (64)», con los dos candados de coherencia e
+ * igualdad otra vez en VERDE sobre la lista mas corta. Restaurados los tres
+ * bloques, 64/64.
+ *
+ * Sube a 28 el 2026-09-08 con `tinta-pintada-dentro-del-viewport` --la familia
+ * del frente U5 de la ola U, la que mide la LINEA REAL del texto y no la caja--,
+ * en el mismo commit que la anade.
+ *
+ * Sube a 30 el mismo dia: 29 con `revelado-sin-banda-ciega` (frente U6) y 30 con
+ * `condiciones-de-navegador-estables-en-la-corrida` (frente U7), que es la
+ * primera familia de esta lista que no mira el SITIO sino el propio candado: si
+ * la corrida mueve por debajo una condicion de navegador que comparten todas las
+ * familias --la conexion estimada, que fija el umbral del cargador perezoso--,
+ * los veredictos medidos antes y despues no son comparables y hay que decirlo en
+ * vez de publicarlos juntos.
+ *
+ * Sube a 32 el 2026-09-10 con `tabulacion-sin-rezago` (P1 del objetivo >=98) y
+ * `aterrizaje-de-ancla-constante` (P2), en el mismo cambio que las anade.
+ *
+ * Sube a 34 el 2026-09-11 con `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B,
+ * C1 de la pre-critica P6), en el mismo cambio que la anade.
+ *
+ * Sube a 35 el 2026-09-11 con `atras-con-fragmento-vuelve-a-la-lectura` (P7-2B,
+ * C2 de la pre-critica P6), en el mismo cambio que la anade.
+ */
+const FAMILIAS_MINIMAS = 35;
+
+/**
+ * EL BARRIDO DE ANCHOS, TECLEADO, y por que hacia falta un cuarto candado sobre
+ * una lista que ya tenia caso propio.
+ *
+ * El caso que ya existia afirma tres cosas del barrido --el minimo, el maximo y
+ * que contiene 768-- y ninguna de las tres se rompe al RECORTARLO: el
+ * verificador de candados de la ola R dejo `WIDTH_SWEEP` en `[320, 768, 1920]`,
+ * de doce anchos a tres, y los 26 casos de este fichero siguieron en verde. El
+ * candado de navegador pasaba a mirar la cuarta parte de las anchuras --sin los
+ * escalones intermedios donde la cabecera y las tarjetas cambian de forma-- y lo
+ * decia igual de tranquilo.
+ *
+ * Es la MISMA leccion que `SUPERFICIES_ESPERADAS` y `FAMILIAS_MINIMAS`, aplicada
+ * a la tercera lista del contrato: una lista que se recorre sale verde cuando
+ * encoge. Estos doce anchos se tocan cuando el sitio gane o pierda un escalon de
+ * verdad, y entonces se tocan a la vez que el script.
+ *
+ * Ata las DOS direcciones, igual que la de superficies: quitar un ancho cae por
+ * el `toEqual` y anadirlo tambien, porque un ancho nuevo que entra sin que nadie
+ * lo mire es coste de corrida sin criterio detras.
+ */
+const ANCHOS_ESPERADOS = [
+    320, 360, 390, 414, 480, 600, 768, 834, 1024, 1280, 1440, 1920,
+];
+
+/**
+ * EL SUELO NUMERICO DEL BARRIDO, con el mismo papel que `FAMILIAS_MINIMAS`: el
+ * `toEqual` de arriba y este numero se recortan a la vez solo escribiendo a mano
+ * un numero mas pequeno, que es una decision visible en el diff en vez de una
+ * lista mas corta que se lee como limpieza.
+ */
+const MINIMO_ANCHOS_BARRIDOS = 12;
+
+/**
+ * LA BANDA DE REFLOW de la familia `texto-crece-con-la-preferencia`, tecleada
+ * con el mismo criterio que las tres listas de arriba. Son 320 y 390 px: el
+ * extremo estrecho del encargo y el ancho de dispositivo mas comun de esa zona,
+ * los dos por debajo del escalon `md`. El porque de que la banda sea estrecha
+ * --y no el barrido entero-- esta en el docblock de `BANDA_DE_REFLOW`, con la
+ * medida de la tipografia fluida que lo obliga.
+ */
+const BANDA_ESPERADA = [320, 390];
+
+describe("cobertura del candado de las superficies del sitio", () => {
+    it("recorre TODOS los documentos legales que el sitio declara, en los dos idiomas, mas la portada y una 404 por idioma", () => {
+        /* Sonda positiva: si `ROUTES` se quedara sin documentos legales, todo lo
+           de abajo pasaria por vacuidad. */
+        expect(IDS_LEGALES.length).toBeGreaterThan(0);
+        expect(
+            [...LEGAL_DOCS.map((d) => d.id)].sort(),
+            `los documentos que recorre el script no son los que declara ` +
+                `src/config/site.ts: uno de los dos lados se movio solo`,
+        ).toEqual([...IDS_LEGALES].sort());
+
+        /* LA EXTENSION, atada contra la lista TECLEADA de arriba y no contra una
+           aritmetica sobre la propia lista que se verifica. Este es el caso que
+           habria cazado el hueco de la critica #19: el barrido no incluia la
+           portada y ningun test lo notaba, porque todos derivaban su expectativa
+           de las mismas seis filas que el script declaraba. */
+        expect(
+            SURFACES.map((s) => ({
+                path: s.path,
+                locale: s.locale,
+                kind: s.kind,
+            })),
+            `el barrido ya no son las ocho superficies acordadas: si el sitio ` +
+                `gano o perdio una de verdad, actualiza SUPERFICIES_ESPERADAS a la ` +
+                `vez que el script; si no, restaura la que falta`,
+        ).toEqual(SUPERFICIES_ESPERADAS);
+
+        const portadas = SURFACES.filter((s) => s.kind === "home");
+        const legales = SURFACES.filter((s) => s.kind === "legal");
+        const cuatrocientos = SURFACES.filter((s) => s.kind === "notFound");
+        expect(portadas).toHaveLength(2);
+        expect(legales).toHaveLength(IDS_LEGALES.length * 2);
+        expect(cuatrocientos).toHaveLength(2);
+
+        for (const locale of ["es", "en"]) {
+            expect(
+                portadas.filter((s) => s.locale === locale),
+                `falta la portada de la rama ${locale}`,
+            ).toHaveLength(1);
+            expect(
+                legales.filter((s) => s.locale === locale),
+                `falta la rama ${locale} de algun documento legal`,
+            ).toHaveLength(IDS_LEGALES.length);
+            expect(
+                cuatrocientos.filter((s) => s.locale === locale),
+                `falta la 404 de la rama ${locale}`,
+            ).toHaveLength(1);
+        }
+    });
+
+    it("las rutas del script son las del sitio, leidas de src/config/site.ts, y NINGUNA ruta declarada se queda sin recorrer", () => {
+        // Sonda positiva: sin documentos, los `toContain` de abajo no correrian.
+        expect(LEGAL_DOCS.length).toBeGreaterThan(0);
+
+        const caminos = SURFACES.map((s) => s.path);
+        for (const clave of IDS_LEGALES) {
+            expect(
+                caminos,
+                `el script no recorre la ruta castellana de ${clave}`,
+            ).toContain(ROUTES[clave]);
+            expect(
+                caminos,
+                `el script no recorre la ruta inglesa de ${clave}`,
+            ).toContain(EN_ROUTES[clave]);
+        }
+        expect(EN_PREFIX).toBe(EN_ROUTES.home);
+
+        /*
+         * LA PORTADA, contra la fuente unica y no contra dos strings gemelos. Y
+         * el barrido completo: TODA clave de `ROUTES` -- legal o no -- tiene que
+         * estar recorrida en sus dos idiomas. Es la segunda direccion del
+         * candado de extension: la lista tecleada de arriba impide que el
+         * barrido encoja, y esto impide que el SITIO crezca por debajo de el
+         * sin que nadie lo note.
+         */
+        expect(HOME_DOC.es).toBe(ROUTES.home);
+        expect(HOME_DOC.en).toBe(EN_ROUTES.home);
+        for (const clave of Object.keys(ROUTES)) {
+            expect(
+                caminos,
+                `src/config/site.ts declara la ruta ${clave} y el candado no la recorre en castellano`,
+            ).toContain(ROUTES[clave]);
+            expect(
+                caminos,
+                `src/config/site.ts declara la ruta ${clave} y el candado no la recorre en ingles`,
+            ).toContain(EN_ROUTES[clave]);
+        }
+    });
+
+    it("el camino que provoca la 404 no es ninguna ruta conocida del sitio", () => {
+        /* Si `BROKEN_SEGMENT` se convirtiera algun dia en una ruta real, las dos
+           superficies de 404 medirian una pagina normal y el candado seguiria en
+           verde midiendo lo que no toca. Se comprueba con el propio resolvedor
+           del repo, no con una lista aparte. */
+        expect(resolveRoute(`/${BROKEN_SEGMENT}`)).toBeNull();
+        expect(resolveRoute(`${EN_PREFIX}/${BROKEN_SEGMENT}`)).toBeNull();
+    });
+
+    it("el barrido de anchos cubre los dos extremos del encargo y el escalon md", () => {
+        expect(Math.min(...WIDTH_SWEEP)).toBe(320);
+        expect(Math.max(...WIDTH_SWEEP)).toBe(1920);
+        expect(
+            WIDTH_SWEEP,
+            "sin 768 el barrido no cruza el escalon en el que la cabecera cambia de la hoja movil a la fila " +
+                "(768 px a la raiz por defecto: desde el frente F, 2026-09-05, el escalon se declara como 48em)",
+        ).toContain(768);
+        // Estrictamente creciente: un ancho repetido o desordenado mide menos de
+        // lo que la lista aparenta.
+        for (let i = 1; i < WIDTH_SWEEP.length; i++) {
+            expect(WIDTH_SWEEP[i]).toBeGreaterThan(WIDTH_SWEEP[i - 1]);
+        }
+    });
+
+    it("el barrido de anchos no puede ENCOGER: los doce anchos son los acordados y son doce", () => {
+        /*
+         * Las tres afirmaciones de arriba --minimo, maximo y el 768-- las cumple
+         * un barrido de tres anchos, y esa es exactamente la supresion que el
+         * verificador de la ola R hizo: `[320, 768, 1920]`, con los 26 casos del
+         * fichero en verde. El candado de navegador medía la cuarta parte de las
+         * anchuras y ninguna linea se ponia roja.
+         *
+         * Las dos direcciones se afirman por separado a proposito, igual que en
+         * el contrato de familias: el `toEqual` caza el recorte de ESTE fichero
+         * contra el script, y el suelo tecleado caza el recorte de los DOS a la
+         * vez, que es lo que hace quien limpia de verdad.
+         */
+        expect(
+            WIDTH_SWEEP,
+            `el barrido ya no son los ${MINIMO_ANCHOS_BARRIDOS} anchos acordados: ` +
+                `si el sitio gano o perdio un escalon de verdad, actualiza ` +
+                `ANCHOS_ESPERADOS a la vez que el script; si no, restaura los que ` +
+                `faltan. Un barrido recortado mide menos y sale igual de verde`,
+        ).toEqual(ANCHOS_ESPERADOS);
+        expect(
+            WIDTH_SWEEP.length,
+            `el barrido bajo de ${MINIMO_ANCHOS_BARRIDOS} anchos: este numero solo ` +
+                `sube, y recortar la lista tecleada de este fichero a la vez que la ` +
+                `del script es justo la supresion que el caso de arriba no ve`,
+        ).toBeGreaterThanOrEqual(MINIMO_ANCHOS_BARRIDOS);
+    });
+
+    it("la banda de reflow de la familia de crecimiento es estrecha, tecleada, y sale del propio barrido", () => {
+        /*
+         * La familia `texto-crece-con-la-preferencia` no recorre el barrido
+         * entero --el porque, con la medida de la tipografia fluida que lo
+         * obliga, esta en el docblock de `BANDA_DE_REFLOW`--, pero su banda no
+         * puede ser una TERCERA lista que encoja sola ni deslizarse hacia
+         * anchuras donde el termino en `vw` domina y la medida deja de
+         * significar lo mismo.
+         */
+        expect(
+            BANDA_DE_REFLOW,
+            "la banda de reflow ya no son los dos anchos acordados: si son otros, " +
+                "se decide aqui y con la medicion delante",
+        ).toEqual(BANDA_ESPERADA);
+        expect(
+            BANDA_DE_REFLOW.length,
+            "una banda de un solo ancho no puede absolver a la tipografia fluida " +
+                "que crece en un ancho y no en el otro: hacen falta los dos",
+        ).toBeGreaterThanOrEqual(2);
+        for (const width of BANDA_DE_REFLOW) {
+            expect(
+                WIDTH_SWEEP,
+                `la banda mide a ${width}px, que no es un ancho del barrido: los dos ` +
+                    `lados del candado tienen que medir las mismas anchuras reales`,
+            ).toContain(width);
+            expect(
+                width,
+                `a ${width}px ya se ha cruzado el escalon md (768 px con la raiz de ` +
+                    `fabrica): fuera de la banda estrecha el termino en vw de la ` +
+                    `tipografia fluida domina al suelo en rem y un x1.44 legitimo se ` +
+                    `confundiria con un F94`,
+            ).toBeLessThan(768);
+        }
+        expect(
+            Math.min(...BANDA_DE_REFLOW),
+            "la banda tiene que empezar en el ancho mas estrecho del encargo",
+        ).toBe(Math.min(...WIDTH_SWEEP));
+    });
+
+    /*
+     * LA DEUDA DE ZOOM, atada en los tres sentidos que puede fallar.
+     *
+     * `DEUDA_ZOOM` es la unica lista del candado cuyo CRECIMIENTO es tan
+     * peligroso como su encogimiento: cada entrada apaga una zona entera del
+     * documento. Un frente apurado que se encuentre el script en rojo tiene a un
+     * teclazo la salida de sancionar su propio defecto, y el rojo desaparece sin
+     * que nadie lo lea.
+     */
+    it("NINGUNA zona del sitio esta sancionada: la lista de deuda de zoom sigue vacia", () => {
+        /*
+         * LA LISTA VACIA ES LA ENTREGA DE LA CRITICA #19. La version anterior
+         * sancionaba cinco zonas -- header|legal, footer|legal, header|notFound,
+         * main|notFound, footer|notFound -- y el verificador de la ronda
+         * siguiente reprodujo las cinco con sonda propia: no eran deuda, eran
+         * incumplimientos vivos de WCAG 1.4.4 en produccion. Estan arregladas en
+         * la causa (Navbar/BrandName, Footer, NotFoundContent) y medidas a 0 px
+         * fuera; el docblock de DEUDA_ZOOM lleva el antes y el despues de cada
+         * una.
+         *
+         * Con la lista vacia, CUALQUIER perdida de texto o de control al 200 %
+         * de tamano de fuente pone el script en rojo, en cualquiera de las ocho
+         * superficies. Y la via mas comoda para silenciar ese rojo -- escribir
+         * aqui la zona que acaba de romperse -- cae contra este caso, que
+         * obliga a tomar esa decision a la vista y con la medicion delante.
+         */
+        expect(
+            DEUDA_ZOOM.map((d) => d.clave),
+            `alguien anadio una sancion de zoom: cada entrada apaga una zona entera ` +
+                `del documento en todas las superficies de su tipo. Si de verdad hay ` +
+                `algo que no se puede cerrar, se decide aqui, con su medicion, y no ` +
+                `de paso mientras se apaga un rojo`,
+        ).toEqual([]);
+
+        /* La mecanica sigue viva aunque la lista este vacia: el dia que alguien
+           anada una entrada, tendra que declarar tope, medida y motivo. */
+        for (const d of DEUDA_ZOOM) {
+            expect(
+                d.topePx,
+                `la sancion ${d.clave} no declara tope`,
+            ).toBeGreaterThan(d.medidoPx);
+            expect(
+                d.topePx - d.medidoPx,
+                `la sancion ${d.clave} deja ${d.topePx - d.medidoPx} px de holgura: ` +
+                    `con tanto margen dejaria pasar un empeoramiento real`,
+            ).toBeLessThanOrEqual(6);
+            expect(
+                d.motivo.length,
+                `la sancion ${d.clave} no explica por que`,
+            ).toBeGreaterThan(20);
+        }
+    });
+
+    it("una sancion de zoom que ya no se reproduce se denuncia, en vez de quedarse mintiendo", () => {
+        /*
+         * Sonda de la tercera regla, la que impide que la lista sobreviva a su
+         * propio arreglo. Se comprueba sobre la funcion pura, sin navegador.
+         *
+         * Con `DEUDA_ZOOM` vacia esta comprobacion no puede hacerse sobre la
+         * lista real sin quedarse vacua, asi que se hace sobre una lista
+         * SINTETICA que se le pasa a la misma funcion: lo que se prueba es la
+         * mecanica, que es lo que tiene que seguir funcionando el dia que
+         * alguien vuelva a sancionar algo.
+         */
+        expect(
+            fallosDeDeudaNoObservada(new Set()),
+            "sin sanciones declaradas no puede sobrar ninguna",
+        ).toEqual([]);
+
+        const sobrantes = fallosDeDeudaNoObservada(new Set(), [
+            {
+                clave: "footer|legal",
+                topePx: 38,
+                medidoPx: 35.22,
+                motivo: "entrada sintetica de este test, no una sancion real del repo",
+            },
+        ]);
+        expect(sobrantes).toHaveLength(1);
+        expect(sobrantes[0]).toContain("footer|legal");
+        expect(sobrantes[0]).toContain("ya no se reproduce");
+
+        /* Y observada, no sobra: la otra mitad de la mecanica. */
+        expect(
+            fallosDeDeudaNoObservada(new Set(["footer|legal"]), [
+                {
+                    clave: "footer|legal",
+                    topePx: 38,
+                    medidoPx: 35.22,
+                    motivo: "entrada sintetica de este test, no una sancion real del repo",
+                },
+            ]),
+        ).toEqual([]);
+    });
+
+    it("el zoom que mide la familia de texto es el 200 % que exige WCAG 1.4.4, no un 150 % complaciente", () => {
+        /*
+         * La familia `texto-al-200-por-ciento` puede seguir en la lista, con su
+         * marcador en el cuerpo y su sonda intacta, y aun asi dejar de medir el
+         * defecto: basta bajar `ZOOM_FONT_PX` de 32 a 24. El barrido saldria
+         * verde -- a 150 % el token del correo si cabe -- sobre una pagina que
+         * WCAG sigue considerando fallo. Lo que se ata aqui es la MAGNITUD, que
+         * es la mitad del contrato que la lista de familias no cubre.
+         *
+         * Los dos numeros se afirman por separado a proposito: sin fijar la base
+         * de 16 px, subir las dos constantes a la vez (base 24, zoom 48)
+         * conservaria la razon de 2 y volveria a medir otra cosa.
+         */
+        expect(
+            ROOT_FONT_BASE_PX,
+            "la raiz por defecto de los navegadores es 16 px: es el denominador del porcentaje",
+        ).toBe(16);
+        expect(
+            ZOOM_FONT_PX,
+            "el 200 % de WCAG 1.4.4 sobre una raiz de 16 px son 32 px, no otra cosa",
+        ).toBe(32);
+        expect(ZOOM_FONT_PX / ROOT_FONT_BASE_PX).toBe(2);
+    });
+
+    it("el contrato de familias solo puede CRECER: ni el script ni este test bajan del suelo tecleado", () => {
+        /*
+         * El caso que cierra el recorte simetrico de DOS ficheros. Los dos
+         * candados de abajo se comparan entre si, asi que sobreviven a que las
+         * dos listas encojan a la vez; este se compara contra un numero escrito
+         * a mano, que no encoge solo.
+         *
+         * Las dos direcciones se afirman por separado a proposito: `CHECKS`
+         * vive en el script y `FAMILIAS_ESPERADAS` aqui, y recortar una sola
+         * ya cae por el `toEqual` de abajo -- pero recortar las dos, que es lo
+         * que pasa cuando alguien "limpia" de verdad, solo lo ve esto.
+         */
+        expect(
+            CHECKS.length,
+            `el script declara ${CHECKS.length} familias y el contrato tiene un ` +
+                `suelo de ${FAMILIAS_MINIMAS}: este numero solo sube, y sube en el ` +
+                `mismo commit que anade la familia nueva. Si has quitado una, ` +
+                `restaurala; el candado no mide menos de lo que un dia midio`,
+        ).toBeGreaterThanOrEqual(FAMILIAS_MINIMAS);
+        expect(
+            FAMILIAS_ESPERADAS.length,
+            `la lista tecleada de este fichero bajo de ${FAMILIAS_MINIMAS} familias: ` +
+                `recortarla a la vez que CHECKS es justo la supresion que los otros ` +
+                `dos casos no ven`,
+        ).toBeGreaterThanOrEqual(FAMILIAS_MINIMAS);
+    });
+
+    it("la linea final del informe DERIVA sus dos cifras y no las teclea", () => {
+        /*
+         * EL ULTIMO SITIO POR DONDE EL CANDADO PUEDE MENTIR, y el mas barato: la
+         * linea que la ronda siguiente copia y pega en su informe. «CUMPLE - 8
+         * superficies, 21 familias» es la frase que se lee como resumen, y si
+         * esos dos numeros estuvieran TECLEADOS podrian sobrevivir intactos a
+         * que el barrido pierda superficies o la lista pierda familias -- con
+         * todos los candados de arriba en verde, porque ninguno mira la salida.
+         *
+         * Se afirma la INTERPOLACION, no el resultado: la corrida real necesita
+         * el sitio servido y no cabe en el gate, pero que la frase se construya
+         * con `SURFACES.length` y `CHECKS.length` si se puede leer del fuente.
+         * Es la misma tecnica con la que este fichero ata las guardas de
+         * vacuidad del script.
+         *
+         * VALIDADO CON BUG INYECTADO (2026-09-06): tecleando `21 familias` en el
+         * sitio de la interpolacion --que es como se congela el resumen-- cae
+         * este caso, y solo este:
+         *
+         *   AssertionError: la linea de veredicto ya no deriva
+         *   "${CHECKS.length} familias": un numero tecleado ahi sigue diciendo
+         *   21 familias sobre un candado que mide menos, y ninguno de los otros
+         *   casos de este fichero mira lo que el script IMPRIME: expected
+         *   '/*\n * SIN SHEBANG, al contrario que ...' to contain
+         *   '${CHECKS.length} familias'
+         *
+         * «Tests 1 failed | 47 passed (48)». Restaurada la interpolacion, 48/48.
+         */
+        for (const interpolacion of [
+            "${SURFACES.length} superficies",
+            "${CHECKS.length} familias",
+            "${DEUDA_ZOOM.length} zonas de zoom sancionadas",
+        ]) {
+            expect(
+                SCRIPT,
+                `la linea de veredicto ya no deriva "${interpolacion}": un numero ` +
+                    `tecleado ahi sigue diciendo 21 familias sobre un candado que ` +
+                    `mide menos, y ninguno de los otros casos de este fichero mira ` +
+                    `lo que el script IMPRIME`,
+            ).toContain(interpolacion);
+        }
+        expect(
+            SCRIPT,
+            "la linea de incumplimiento tambien deriva su cuenta de superficies",
+        ).toContain("incumplimiento(s) en ${SURFACES.length} superficies");
+    });
+
+    it("el umbral de legibilidad es el calibrado, y no puede bajar hasta volverse vacuo", () => {
+        /*
+         * La familia `legibilidad-al-200-por-ciento` puede seguir declarada, con
+         * su marcador y su sonda intactos, y dejar de ver el defecto: basta
+         * bajar el umbral. Con `< 1` caracter por linea ninguna de las cajas
+         * medidas el 2026-09-05 se reportaria -- la peor daba exactamente 1
+         * ("Escríbeme", 9 caracteres en 9 lineas) -- y la familia saldria en
+         * verde sobre la portada entera.
+         *
+         * El suelo es 4 y no una igualdad porque SUBIRLO endurece el candado:
+         * la unica direccion peligrosa es hacia abajo.
+         */
+        expect(
+            MIN_CARACTERES_POR_LINEA,
+            `el umbral se calibro en 4 contra las dos poblaciones medidas (defectos ` +
+                `de 0,9 a 2,7 caracteres por linea; suelo fisico de la tipografia ` +
+                `grande a 320 px de 5 a 7). Bajarlo vacia la familia sin quitarla`,
+        ).toBeGreaterThanOrEqual(4);
+    });
+
+    it("el umbral de ancho relativo es el calibrado, y no puede bajar hasta vaciar la familia por el otro lado", () => {
+        /*
+         * EL SEGUNDO FACTOR, tecleado. La familia declara ilegible una caja
+         * cuando se cumplen LAS DOS condiciones: caracteres por linea por
+         * debajo de `MIN_CARACTERES_POR_LINEA` Y ancho de caja por debajo de
+         * `MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA x clientWidth`. La segunda tiene
+         * su propia forma de volverse vacua, y es BAJAR el numero: con 0,2, el
+         * rotulo del CTA a 320 px --caja de 108 px, el 34 % del viewport, tres
+         * caracteres por linea-- dejaria de reportarse y el defecto real
+         * saldria en verde. Con 0,05 no quedaria ni una caja en la familia.
+         *
+         * La direccion contraria, subirlo, no vacia nada pero llena el informe
+         * de falsos positivos, y esa la caza el caso que reproduce el acento de
+         * la nota del deck (55,5 % del viewport): con 0,9 vuelve a contarse.
+         *
+         * El hueco entre las dos poblaciones medidas el 2026-09-05 va del 45 %
+         * (kicker, h2 del deck, cita de Journey: defectos) al 55 % (acento de la
+         * nota: fisica); 0,5 cae en medio.
+         */
+        expect(
+            MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+            `el umbral relativo se calibro en 0,5 contra las dos poblaciones ` +
+                `medidas (defectos del 7 % al 45 % del viewport; tipografia grande ` +
+                `legitima del 55 % al 65 %). Bajarlo deja de ver el defecto de ` +
+                `rellenos: con 0,2 el rotulo del CTA a 320 px, que ocupa el 34 %, ` +
+                `saldria en verde`,
+        ).toBeGreaterThanOrEqual(0.5);
+        expect(
+            MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+            `un umbral de 1 o mas anula el segundo factor: toda caja es mas ` +
+                `estrecha que el viewport entero y la familia vuelve a tener un ` +
+                `solo factor`,
+        ).toBeLessThan(1);
+    });
+
+    it("el crecimiento minimo que exige la familia diecisiete es el calibrado, y no puede bajar hasta volverse vacuo", () => {
+        /*
+         * El mismo patron que los dos umbrales de legibilidad, sobre la constante
+         * nueva. La familia puede seguir declarada, con su marcador y su sonda
+         * intactos, y dejar de ver el defecto: basta bajar el minimo. Con 1
+         * ninguna de las cajas medidas el 2026-09-05 se reportaria --el `h1` del
+         * hero da exactamente x1.00-- y la portada saldria en verde.
+         *
+         * El suelo es 1.5 y no 2 porque la tipografia fluida legitima del repo
+         * crece x1.75 a 320 px (`clamp(1.75rem, 10vw, 11rem)` de la etiqueta de
+         * paso de Journey, medida): exigir el doble convertiria un patron
+         * correcto en defecto. Subirlo endurece el candado hasta ese punto; la
+         * unica direccion vacia es hacia abajo.
+         */
+        expect(
+            RATIO_MINIMO_DE_CRECIMIENTO,
+            `el crecimiento minimo se calibro en 1.5 contra las dos poblaciones ` +
+                `medidas (F94 de x0.98 a x1.00; tipografia fluida legitima de x1.75 ` +
+                `a x2.00). Bajarlo vacia la familia sin quitarla: con 1 el h1 del ` +
+                `hero, que se queda en 34 px, saldria en verde`,
+        ).toBeGreaterThanOrEqual(1.5);
+        expect(
+            RATIO_MINIMO_DE_CRECIMIENTO,
+            `un minimo por encima de 1.75 declararia defecto la tipografia fluida ` +
+                `correcta (clamp con suelo en rem y termino en vw), que es el patron ` +
+                `que WCAG 1.4.4 pide y no el que prohibe`,
+        ).toBeLessThanOrEqual(1.75);
+    });
+
+    it("la lista de familias sigue siendo la que el candado prometio medir", () => {
+        /* La supresion SIMETRICA -- quitar la familia de `CHECKS` y su marcador
+           del cuerpo a la vez -- no la ve el caso de abajo, porque despues de
+           quitarla los dos lados siguen coincidiendo. La ve esto. */
+        expect(
+            [...CHECKS].sort(),
+            `el candado declara ${CHECKS.length} familias y prometio ` +
+                `${FAMILIAS_ESPERADAS.length}: si de verdad mide otra cosa, actualiza ` +
+                `FAMILIAS_ESPERADAS a la vez que el script; si no, restaura lo que falta`,
+        ).toEqual([...FAMILIAS_ESPERADAS].sort());
+        expect(
+            new Set(CHECKS).size,
+            `hay familias repetidas en CHECKS: alguien cuadro la cuenta duplicando ` +
+                `una en vez de conservar la que falta`,
+        ).toBe(CHECKS.length);
+    });
+
+    it("cada familia declarada tiene comprobacion real en el script, y cada comprobacion esta declarada", () => {
+        /* La clase de caracteres admite DIGITOS desde el 2026-09-04: la familia
+           `texto-al-200-por-ciento` lleva el porcentaje en el nombre y con
+           `[a-z-]+` el marcador de su cuerpo era invisible para este matcher --
+           el test cayo con "la familia declarada texto-al-200-por-ciento no tiene
+           ninguna comprobacion marcada", que es el vinculo bidireccional
+           funcionando, no un fallo suyo. Ampliar la clase no afloja nada: las dos
+           comparaciones de abajo siguen siendo las mismas en los dos sentidos. */
+        const marcados = [
+            ...SCRIPT.matchAll(/\/\/ \[check: ([a-z0-9-]+)\]/g),
+        ].map((m) => m[1]);
+
+        // Sonda positiva: sin marcas, las dos comparaciones de abajo pasarian
+        // por vacuidad, que es justo el fallo que este fichero existe para
+        // impedir.
+        expect(marcados.length).toBeGreaterThan(0);
+        expect(CHECKS.length).toBeGreaterThan(0);
+
+        for (const familia of CHECKS) {
+            expect(
+                marcados,
+                `la familia declarada ${familia} no tiene ninguna comprobacion marcada en el cuerpo del script`,
+            ).toContain(familia);
+        }
+        for (const marca of marcados) {
+            expect(
+                CHECKS,
+                `el script comprueba ${marca}, que no esta declarada en CHECKS`,
+            ).toContain(marca);
+        }
+    });
+});
+
+/*
+ * LAS DOS SONDAS DE ZOOM, EJERCITADAS DE VERDAD EN JSDOM.
+ *
+ * Todo lo de arriba ata la COBERTURA del candado --que las listas no encojan--,
+ * y eso deja fuera la mitad que de verdad mide: el CUERPO de las sondas. Una
+ * sonda con la familia declarada, su marcador en el cuerpo y la lista intacta
+ * puede estar midiendo el lado equivocado o el umbral equivocado, y los ocho
+ * casos de arriba seguirian en verde. El gate no tiene navegador, pero estas dos
+ * sondas son funciones puras sobre el DOM: se les puede montar el caso en jsdom
+ * con `getBoundingClientRect` sobrescrito por elemento y el ancho del viewport
+ * declarado a mano, que es exactamente el patron que la regla 44 de `RULES.md`
+ * permite (no se mide layout: se le DA el layout a la sonda y se comprueba que
+ * saca la conclusion correcta).
+ *
+ * LO QUE JSDOM NO DA, dicho para que nadie lo confunda con un descuido:
+ * `innerText` no existe (la sonda cae a `textContent`, que en estos casos es el
+ * mismo texto) y `Range.getClientRects` tampoco, asi que la confirmacion contra
+ * las cajas de linea reales se prueba con el prototipo instrumentado -- que es
+ * lo unico que se puede hacer sin motor de layout, y sirve porque lo que se
+ * verifica es la DECISION de la sonda ante unas cajas de linea dadas, no las
+ * cajas.
+ */
+function medida(el, { left, right, top = 0, height }) {
+    const rect = {
+        left,
+        right,
+        top,
+        bottom: top + height,
+        width: right - left,
+        height,
+        x: left,
+        y: top,
+    };
+    el.getBoundingClientRect = () => ({ ...rect, toJSON: () => rect });
+}
+
+function anchoDeViewport(px) {
+    Object.defineProperty(document.documentElement, "clientWidth", {
+        configurable: true,
+        get: () => px,
+    });
+}
+
+/** Prototipo de `Range` en jsdom, que no trae `getClientRects`. */
+const PROTO_RANGO = Object.getPrototypeOf(document.createRange());
+
+afterEach(() => {
+    document.body.innerHTML = "";
+    delete document.documentElement.clientWidth;
+    delete PROTO_RANGO.getClientRects;
+    /* El cache de escenarios que `probeDeckRecortado` guarda en `window` se
+       invalida solo con `isConnected` -- vaciar el `body` desconecta los nodos
+       --, pero borrarlo aqui deja cada caso arrancando de cero de verdad. */
+    delete window.__vtiEscenariosDelDeck;
+});
+
+describe("la sonda de perdida horizontal mide los DOS lados del viewport", () => {
+    it("reporta lo que se sale por la IZQUIERDA, con su lado y su magnitud", () => {
+        /*
+         * El hueco que cierra este caso: la sonda calculaba `r.right - cw` y
+         * nada mas, asi que un elemento centrado que se sale por la izquierda
+         * --lo que hace cualquier caja con `margin-inline: auto` mas ancha que
+         * su contenedor-- era invisible para el candado. El repo tenia el
+         * contraejemplo delante: el `h1` de la 404 al 200 % de texto desbordaba
+         * por los dos lados a la vez (left -41,28 / right 361,28) y solo se
+         * cerro porque la derecha delataba al mismo elemento.
+         */
+        anchoDeViewport(320);
+        const el = document.createElement("h1");
+        el.textContent = "Titulo centrado que se sale por la izquierda";
+        document.body.appendChild(el);
+        medida(el, { left: -30, right: 300, height: 40 });
+
+        const { perdidos, candidatos } = probePerdidaHorizontal();
+        expect(candidatos, "la sonda no llego a mirar el elemento").toBe(1);
+        expect(
+            perdidos,
+            `un elemento con left -30 dentro de un viewport de 320 px pierde 30 px ` +
+                `por la izquierda: con la formula de un solo lado (r.right - cw) ` +
+                `sale -20 y no se reporta nada`,
+        ).toHaveLength(1);
+        expect(perdidos[0].sobra).toBe(30);
+        expect(perdidos[0].lado).toBe("izquierda");
+    });
+
+    it("sigue reportando lo que se sale por la derecha, con el lado dicho", () => {
+        anchoDeViewport(320);
+        const el = document.createElement("p");
+        el.textContent = "Se sale por la derecha";
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: 362.5, height: 40 });
+
+        const { perdidos } = probePerdidaHorizontal();
+        expect(perdidos).toHaveLength(1);
+        expect(perdidos[0].sobra).toBe(42.5);
+        expect(perdidos[0].lado).toBe("derecha");
+    });
+
+    it("no cuenta como perdido lo que un ancestro alcanza con scroll horizontal, tampoco por la izquierda", () => {
+        /* La tabla de almacenamiento vive dentro de un `overflow-x: auto` con su
+           `role="region"` y su `tabindex`: ahi el contenido se alcanza con el
+           dedo, con la rueda y con el teclado, y contarlo como perdido seria
+           sancionar un patron correcto. El filtro tiene que valer para los dos
+           lados o el lado nuevo llegaria con falsos positivos de nacimiento. */
+        anchoDeViewport(320);
+        const envoltorio = document.createElement("div");
+        envoltorio.style.overflowX = "auto";
+        const el = document.createElement("td");
+        el.textContent = "Celda dentro de una tabla desplazable";
+        envoltorio.appendChild(el);
+        document.body.appendChild(envoltorio);
+        medida(envoltorio, { left: 0, right: 320, height: 40 });
+        medida(el, { left: -30, right: 300, height: 40 });
+
+        const { perdidos, candidatos } = probePerdidaHorizontal();
+        expect(candidatos, "la sonda tiene que haber mirado la celda").toBe(1);
+        expect(perdidos).toEqual([]);
+    });
+});
+
+describe("la sonda de legibilidad al 200 % de texto", () => {
+    /**
+     * EL VIEWPORT SE DECLARA, y desde el 2026-09-05 no es opcional: el segundo
+     * factor de la familia compara el ancho de la caja contra
+     * `documentElement.clientWidth`, y jsdom devuelve 0 si nadie lo declara. Con
+     * 640 px, la caja por defecto de 200 px ocupa el 31 % -- estrecha, como las
+     * de los casos que ya existian antes de que el segundo factor entrara.
+     */
+    beforeEach(() => {
+        anchoDeViewport(640);
+    });
+
+    /** Los dos umbrales del candado, en la forma que la sonda los recibe. */
+    const UMBRALES = {
+        minCaracteresPorLinea: MIN_CARACTERES_POR_LINEA,
+        maxAnchoRelativo: MAX_ANCHO_RELATIVO_DE_CAJA_ESTRECHA,
+    };
+
+    /** Caja de texto con `line-height` y `font-size` resueltos a mano. */
+    function cajaDeTexto(texto, { alto, ancho = 200, lineHeight = "20px" }) {
+        const el = document.createElement("p");
+        el.textContent = texto;
+        el.style.lineHeight = lineHeight;
+        el.style.fontSize = "16px";
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: ancho, height: alto });
+        return el;
+    }
+
+    it("declara ilegible una caja estrecha de tres lineas con seis caracteres, y legible la de tres con treinta", () => {
+        /*
+         * Las dos poblaciones del PRIMER factor, en su forma minima. 6/3 = 2 cae
+         * dentro de la banda de los defectos medidos (0,9 a 2,7) y 30/3 = 10
+         * esta muy por encima del suelo fisico de la tipografia grande (5 a 7).
+         * Las dos cajas miden 200 px de 640, el 31 % del viewport, asi que el
+         * segundo factor las deja pasar a las dos y lo que decide es la ratio.
+         */
+        cajaDeTexto("abcdef", { alto: 60 });
+        const estrecha = probeLegibilidadDeTexto(UMBRALES);
+        expect(estrecha.conTresLineas).toBe(1);
+        expect(
+            estrecha.ilegibles,
+            `6 caracteres en 3 lineas son 2 por linea, por debajo del umbral de ` +
+                `${MIN_CARACTERES_POR_LINEA}: la caja tiene que reportarse`,
+        ).toHaveLength(1);
+        expect(estrecha.ilegibles[0].lineas).toBe(3);
+        expect(estrecha.ilegibles[0].caracteres).toBe(6);
+        expect(estrecha.ilegibles[0].ratio).toBe(2);
+        expect(
+            estrecha.ilegibles[0].porcentajeDelViewport,
+            "el informe cita el porcentaje del viewport de cada caja: es el segundo factor del veredicto",
+        ).toBe(31.3);
+
+        document.body.innerHTML = "";
+        cajaDeTexto("abcdefghij".repeat(3), { alto: 60 });
+        const holgada = probeLegibilidadDeTexto(UMBRALES);
+        expect(holgada.conTresLineas).toBe(1);
+        expect(
+            holgada.ilegibles,
+            "30 caracteres en 3 lineas son 10 por linea: texto normal, no defecto",
+        ).toEqual([]);
+    });
+
+    it("la MISMA caja troceada se reporta a 100 px de ancho en un documento de 320 y NO a 200 px", () => {
+        /*
+         * EL SEGUNDO FACTOR, aislado: lo unico que cambia entre las dos mitades
+         * de este caso es el ancho de la caja. Seis caracteres en tres lineas
+         * son dos por linea en las dos, o sea que el primer factor las senala a
+         * las dos; 100 px de 320 son el 31 % y 200 px de 320 el 62,5 %.
+         *
+         * Quitar el segundo factor de la sonda deja la segunda mitad en rojo.
+         */
+        anchoDeViewport(320);
+        cajaDeTexto("abcdef", { alto: 60, ancho: 100 });
+        const angosta = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            angosta.ilegibles,
+            `una caja de 100 px en un documento de 320 ocupa el 31 % del viewport ` +
+                `y parte 6 caracteres en 3 lineas: es el defecto de rellenos que ` +
+                `esta familia existe para cazar`,
+        ).toHaveLength(1);
+        expect(angosta.ilegibles[0].porcentajeDelViewport).toBe(31.3);
+        expect(angosta.anchas).toBe(0);
+
+        document.body.innerHTML = "";
+        cajaDeTexto("abcdef", { alto: 60, ancho: 200 });
+        const ancha = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            ancha.conTresLineas,
+            "la caja ancha SI llega a evaluarse: es el segundo factor el que la absuelve, no el corte de altura",
+        ).toBe(1);
+        expect(
+            ancha.ilegibles,
+            `una caja de 200 px en un documento de 320 ocupa el 62,5 % del ` +
+                `viewport: con esa anchura disponible, tres lineas de dos ` +
+                `caracteres son fisica de la tipografia, no un defecto de rellenos`,
+        ).toEqual([]);
+        expect(
+            ancha.anchas,
+            "la caja absuelta por ancha se cuenta, para que un numero raro se vea en el informe",
+        ).toBe(1);
+    });
+
+    it("el acento de la nota del deck oscuro no es defecto: 3,4 caracteres por linea en el 55 % del viewport", () => {
+        /*
+         * LA MEDIDA REAL que obligo al segundo factor, reproducida (build
+         * servido de `5bfe092`, tema oscuro, `/`, 320 px de viewport, raiz 32
+         * px): `main/span` de 177,61 px con «un nuevo comienzo» -- 17 caracteres
+         * en 5 lineas, 3,4 por linea. Por debajo del primer factor y NO es
+         * defecto: la nota de cierre pide `clamp(2.5rem, 11vw, 8rem)`, o sea 80
+         * px con la raiz a 32, y «comienzo» mide ~336 px a ese cuerpo -- no cabe
+         * en NINGUNA columna posible a 320 px. Acotar ese cuerpo con `vw` seria
+         * el patron de fallo F94 de WCAG 1.4.4, que exige justo lo contrario:
+         * que el texto llegue al 200 %.
+         *
+         * Este es el caso que cae si alguien SUBE el umbral relativo: con 0,9,
+         * el 55,5 % vuelve a contarse y el candado pide acotar la tipografia.
+         */
+        anchoDeViewport(320);
+        cajaDeTexto("un nuevo comienzo", { alto: 100, ancho: 177.61 });
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            r.conTresLineas,
+            "la caja llega a evaluarse: 100 px de alto entre 20 de linea son 5 lineas",
+        ).toBe(1);
+        expect(
+            r.ilegibles,
+            `17 caracteres en 5 lineas son 3,4 por linea, por debajo del primer ` +
+                `factor, pero la caja ocupa el 55,5 % del viewport: es el suelo ` +
+                `fisico de una tipografia que WCAG 1.4.4 exige que crezca, no un ` +
+                `defecto de rellenos`,
+        ).toEqual([]);
+        expect(r.anchas).toBe(1);
+    });
+
+    it("no mide texto vertical, donde 'caracteres por linea' no significa lo mismo", () => {
+        const el = cajaDeTexto("abcdef", { alto: 60 });
+        el.style.writingMode = "vertical-rl";
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(r.examinadas, "una caja vertical no se examina").toBe(0);
+        expect(r.conTresLineas).toBe(0);
+        expect(r.ilegibles).toEqual([]);
+    });
+
+    it("una caja estirada al alto de su fila no cuenta como texto ilegible", () => {
+        /*
+         * El falso positivo que la medicion del 2026-09-05 encontro y que la
+         * confirmacion con las cajas de linea reales deshace: en `/privacidad`
+         * con la raiz a 32 px las cuatro celdas de una fila daban las cuatro
+         * `alto = 391,88 px` (9 lineas por el proxy) mientras su texto ocupaba
+         * 2, 3, 4 y 2 lineas. Es la fila la que es alta, no el texto el que es
+         * estrecho.
+         *
+         * Es un absolvedor DISTINTO del segundo factor y se cuenta aparte: aqui
+         * la caja es estrecha de verdad (200 px de 640, el 31 %) y lo que sobra
+         * es el alto.
+         */
+        cajaDeTexto("Tema (claro / oscuro)", { alto: 180 });
+        const sinConfirmar = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            sinConfirmar.ilegibles,
+            "con el proxy solo, 21 caracteres en 9 lineas son 2,33 por linea",
+        ).toHaveLength(1);
+        expect(sinConfirmar.ilegibles[0].lineas).toBe(9);
+        expect(sinConfirmar.anchas).toBe(0);
+
+        /* Las cajas de linea que el texto renderiza de verdad: dos. */
+        PROTO_RANGO.getClientRects = () => [
+            { top: 0, width: 180, height: 20 },
+            { top: 20, width: 60, height: 20 },
+        ];
+        const confirmada = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            confirmada.ilegibles,
+            `el texto ocupa 2 lineas reales de las 9 que mide la caja: 21 ` +
+                `caracteres en 2 lineas son 10,5 por linea y no hay defecto`,
+        ).toEqual([]);
+        expect(
+            confirmada.estiradas,
+            "la caja descartada tiene que contarse, para que un numero raro se vea en el informe",
+        ).toBe(1);
+    });
+
+    it("la confirmacion no salva una caja que de verdad es estrecha", () => {
+        /* La otra direccion, que es la que importa: en las trece cajas que la
+           portada declara ilegibles a 320 px los dos instrumentos dan el MISMO
+           numero (11/11, 19/19, 23/23...), porque ahi la caja ceñia el texto.
+           Una confirmacion que rebajara tambien esas seria una puerta trasera. */
+        cajaDeTexto("Escríbeme", { alto: 180, ancho: 58.83 });
+        PROTO_RANGO.getClientRects = () =>
+            Array.from({ length: 9 }, (_, i) => ({
+                top: i * 20,
+                width: 58.83,
+                height: 20,
+            }));
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(r.ilegibles).toHaveLength(1);
+        expect(r.ilegibles[0].lineas).toBe(9);
+        expect(r.ilegibles[0].caracteres).toBe(9);
+        expect(r.estiradas).toBe(0);
+    });
+
+    it("sin ancho de documento la caja se reporta igual: el segundo factor no se puede evaluar", () => {
+        /*
+         * La direccion conservadora, declarada. `clientWidth` a cero es un
+         * instrumento roto, no una pagina limpia: absolver por no poder medir
+         * vaciaria la familia entera en silencio en cuanto la sonda perdiera el
+         * ancho del documento. En navegador `clientWidth` nunca es cero.
+         */
+        delete document.documentElement.clientWidth;
+        cajaDeTexto("abcdef", { alto: 60 });
+        const r = probeLegibilidadDeTexto(UMBRALES);
+        expect(r.anchoDelDocumento).toBe(0);
+        expect(
+            r.ilegibles,
+            "sin ancho de documento el segundo factor no absuelve a nadie",
+        ).toHaveLength(1);
+        expect(r.ilegibles[0].porcentajeDelViewport).toBeNull();
+        expect(r.anchas).toBe(0);
+    });
+
+    it("las guardas de vacuidad cuentan lo que tienen que contar, y el script las convierte en rojo", () => {
+        /*
+         * Las dos formas de que esta familia salga verde sin haber medido nada:
+         * que el filtro no encuentre una sola caja con texto, o que ninguna
+         * llegue a tres lineas. La sonda las distingue con dos contadores
+         * separados, y el script pone cada cero en rojo por su lado -- que es
+         * el mismo patron que ya tenia su familia hermana con `candidatos`.
+         */
+        const vacio = probeLegibilidadDeTexto(UMBRALES);
+        expect(vacio.examinadas).toBe(0);
+        expect(vacio.conTresLineas).toBe(0);
+
+        cajaDeTexto("abcdef", { alto: 40 });
+        const dosLineas = probeLegibilidadDeTexto(UMBRALES);
+        expect(
+            dosLineas.examinadas,
+            "una caja de dos lineas SI se examina: es el segundo contador el que la deja fuera",
+        ).toBe(1);
+        expect(dosLineas.conTresLineas).toBe(0);
+
+        for (const guarda of [
+            "la sonda de legibilidad no examino ni una sola caja con texto",
+            "la sonda de legibilidad no encontro ni una sola caja de tres o mas lineas",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda de vacuidad "${guarda}": ` +
+                    `sin ella un cero en el contador pasaria por pagina limpia`,
+            ).toContain(guarda);
+        }
+    });
+});
+
+/*
+ * LA SONDA DE CRECIMIENTO Y SU VEREDICTO, EJERCITADOS EN JSDOM.
+ *
+ * La familia `texto-crece-con-la-preferencia` mide una DIFERENCIA entre dos
+ * montajes de navegador, y eso no cabe en el gate. Lo que si cabe --y es donde
+ * de verdad se decide-- son las dos funciones puras que dan el veredicto:
+ * `comparaCrecimiento`, que empareja las cajas de las dos medidas y aplica el
+ * minimo, y `fallosDeCrecimientoEnLaBanda`, que decide que una caja solo esta
+ * rota si no crece en NINGUNA anchura de la banda. La sonda se ejercita con
+ * rects y estilos simulados, igual que sus dos hermanas, y las medidas se le
+ * pasan a las funciones puras tal cual salen de ella.
+ */
+describe("la sonda de crecimiento del texto con la preferencia de tamano", () => {
+    beforeEach(() => {
+        anchoDeViewport(640);
+        document.body.style.fontSize = "16px";
+    });
+
+    /** Caja con `font-size` resuelto a mano y rect declarado. */
+    function cajaConFuente(texto, { fontSize, ancho = 200, alto = 40 }) {
+        const el = document.createElement("p");
+        el.textContent = texto;
+        el.style.fontSize = fontSize;
+        document.body.appendChild(el);
+        medida(el, { left: 0, right: ancho, height: alto });
+        return el;
+    }
+
+    /** Una medida sintetica con la forma que devuelve la sonda. */
+    function medidaSintetica(controlFontPx, cajas) {
+        return {
+            rootFontPx: controlFontPx,
+            controlFontPx,
+            cajas: cajas.map((c) => ({
+                clave: `body>p:nth-child(1)||${c.texto}`,
+                zona: "main",
+                tag: "p",
+                sel: "body>p:nth-child(1)",
+                texto: c.texto,
+                fontPx: c.fontPx,
+            })),
+        };
+    }
+
+    it("una caja que dobla pasa y una que se queda igual falla, con los dos tamanos en el resultado", () => {
+        /*
+         * Las dos poblaciones de la familia, en su forma minima. x2.00 es lo que
+         * hace todo lo que se pide en `rem`; x1.00 es el patron de fallo F94
+         * medido en el hero (34 -> 34 px con la raiz de 16 a 32).
+         */
+        cajaConFuente("crece con la raiz", { fontSize: "16px" });
+        cajaConFuente("no se mueve", { fontSize: "24px" });
+        const base = probeCrecimientoDeTexto();
+        expect(base.cajas).toHaveLength(2);
+        expect(base.controlFontPx).toBe(16);
+
+        document.body.style.fontSize = "32px";
+        document.body.children[0].style.fontSize = "32px";
+        document.body.children[1].style.fontSize = "24px";
+        const zoom = probeCrecimientoDeTexto();
+
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(
+            r.comparadas,
+            "las dos cajas existen en las dos medidas: las dos se comparan",
+        ).toHaveLength(2);
+        expect(
+            r.controlDobla,
+            "el cuerpo pasa de 16 a 32 px: la emulacion llego",
+        ).toBe(true);
+        expect(
+            r.flojas.map((f) => f.texto),
+            `una caja que pasa de 24 a 24 px no crece (x1.00) y tiene que ` +
+                `reportarse; la que pasa de 16 a 32 (x2.00) no`,
+        ).toEqual(["no se mueve"]);
+        expect(r.flojas[0].basePx).toBe(24);
+        expect(r.flojas[0].zoomPx).toBe(24);
+        expect(r.flojas[0].ratio).toBe(1);
+        expect(
+            r.flojas[0].sel,
+            "el mensaje necesita el selector para que el defecto se pueda encontrar",
+        ).toContain("body>");
+    });
+
+    it("si la caja de control no dobla, el fallo es del instrumento y no del sitio", () => {
+        /*
+         * LA GUARDA QUE DISTINGUE LAS DOS COSAS. Sin ella, una corrida en la que
+         * `Page.setFontSizes` no llega a la pagina --version de Chrome sin el
+         * comando, sesion de CDP caida, un `html { font-size: 16px }` que fije la
+         * raiz-- mide dos veces lo mismo, TODAS las cajas dan x1.00 y el informe
+         * acusa al sitio de un defecto del aparato. El cuerpo tiene
+         * `font-size: 1rem`, asi que dobla siempre que la preferencia llegue.
+         */
+        cajaConFuente("da igual lo que ponga", { fontSize: "16px" });
+        const base = probeCrecimientoDeTexto();
+        const zoom = probeCrecimientoDeTexto();
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(
+            r.controlDobla,
+            `el cuerpo se quedo en ${r.controlZoomPx} px: la emulacion no llego y ` +
+                `el x${r.flojas[0]?.ratio} de la caja no dice nada del sitio`,
+        ).toBe(false);
+        expect(r.controlRatio).toBe(1);
+        expect(
+            r.flojas,
+            "sin emulacion TODAS las cajas parecen rotas: por eso el control se mira aparte",
+        ).toHaveLength(1);
+
+        /* Y el script convierte esa guarda en rojo, que es lo que la vuelve un
+           candado en vez de un dato del informe. */
+        for (const guarda of [
+            "la caja de control (el cuerpo) no dobla con la preferencia de tamano de texto",
+            "la sonda de crecimiento no pudo comparar ni una sola caja",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda "${guarda}": sin ella ` +
+                    `una corrida sin emulacion pasaria por defecto del sitio, o un ` +
+                    `emparejamiento roto por pagina limpia`,
+            ).toContain(guarda);
+        }
+    });
+
+    it("empareja por ruta estructural y texto, no por posicion, y no mira las cajas de 1x1 px", () => {
+        /*
+         * POR QUE NO POR INDICE, con el caso que lo rompe: la caja «alfa» deja de
+         * medirse en la segunda pasada --queda en 1x1 px, que es la caja de
+         * `VisuallyHidden`-- asi que las dos listas tienen distinta longitud.
+         * Emparejando por posicion, «beta» (20 px) se compararia con «alfa» (10
+         * px) y saldria x2.00: el defecto real desapareceria del informe.
+         * Emparejando por clave, «beta» se compara consigo misma y da x1.00.
+         */
+        const alfa = cajaConFuente("alfa", { fontSize: "10px" });
+        cajaConFuente("beta", { fontSize: "20px" });
+        const base = probeCrecimientoDeTexto();
+        expect(base.cajas.map((c) => c.texto)).toEqual(["alfa", "beta"]);
+
+        document.body.style.fontSize = "32px";
+        medida(alfa, { left: 0, right: 1, height: 1 });
+        const zoom = probeCrecimientoDeTexto();
+        expect(
+            zoom.cajas.map((c) => c.texto),
+            "una caja de 1x1 px es la de VisuallyHidden: existe para los lectores de pantalla y no se mide",
+        ).toEqual(["beta"]);
+
+        const r = comparaCrecimiento({
+            base,
+            zoom,
+            ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+        });
+        expect(r.comparadas).toHaveLength(1);
+        expect(
+            r.flojas.map((f) => `${f.texto} ${f.basePx}->${f.zoomPx}`),
+            `emparejadas por posicion, beta (20 px) se compararia con alfa (10 px) ` +
+                `y el x2.00 resultante taparia el defecto`,
+        ).toEqual(["beta 20->20"]);
+    });
+
+    it("una caja que crece en un ancho de la banda y no en el otro queda absuelta; la que no crece en ninguno se reporta", () => {
+        /*
+         * LA MEDIDA REAL que obligo a la absolucion por ancho (2026-09-05, build
+         * servido de `dcafec4`, tema oscuro, `/`): la etiqueta de paso del deck
+         * de Journey se pide como `clamp(1.75rem, 10vw, 11rem)` y crece 32 -> 56
+         * px a 320 (x1.75) pero solo 39 -> 56 a 390 (x1.44), porque a 390 el
+         * termino en `vw` ya dominaba al suelo con la raiz de fabrica. El texto
+         * crece --que es lo que WCAG 1.4.4 exige-- y reportarla seria pedir que
+         * se acote una tipografia fluida correcta, o sea el F94 al reves.
+         *
+         * El `h1` del hero, en cambio, se queda en 34 px en los DOS anchos.
+         */
+        const comparacionEn = (width, journeyBase, journeyZoom) => ({
+            width,
+            comparacion: comparaCrecimiento({
+                base: medidaSintetica(16, [
+                    { texto: "Descubre", fontPx: journeyBase },
+                    { texto: "Void", fontPx: 34 },
+                ]),
+                zoom: medidaSintetica(32, [
+                    { texto: "Descubre", fontPx: journeyZoom },
+                    { texto: "Void", fontPx: 34 },
+                ]),
+                ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+            }),
+        });
+
+        const banda = [comparacionEn(320, 32, 56), comparacionEn(390, 39, 56)];
+        expect(
+            banda[0].comparacion.flojas.map((f) => f.texto),
+            "a 320 px la etiqueta de Journey crece x1.75: solo el hero cae",
+        ).toEqual(["Void"]);
+        expect(
+            banda[1].comparacion.flojas.map((f) => f.texto).sort(),
+            "a 390 px la etiqueta cae tambien, con x1.44",
+        ).toEqual(["Descubre", "Void"]);
+
+        const r = fallosDeCrecimientoEnLaBanda(banda);
+        expect(r.comparadas).toBe(2);
+        expect(
+            r.sinCrecimiento.map((c) => c.medidas[0].texto),
+            `la etiqueta de Journey crece en un ancho de la banda: el texto PUEDE ` +
+                `crecer y no es F94. El h1 del hero no crece en ninguno`,
+        ).toEqual(["Void"]);
+        expect(
+            r.absueltas,
+            "la caja absuelta se cuenta, para que un numero raro se vea en el informe",
+        ).toBe(1);
+        expect(
+            r.sinCrecimiento[0].medidas.map((m) => m.width),
+            "el mensaje cita la caja en los dos anchos en los que fallo",
+        ).toEqual([320, 390]);
+    });
+
+    it("sin ninguna caja emparejada el veredicto no dice que todo este bien", () => {
+        /* La guarda de vacuidad, sobre la funcion pura: con las dos listas
+           vacias no hay flojas, y eso NO puede leerse como "el sitio crece". El
+           script mira `comparadas` y lo pone en rojo. */
+        const r = fallosDeCrecimientoEnLaBanda([
+            {
+                width: 320,
+                comparacion: comparaCrecimiento({
+                    base: medidaSintetica(16, []),
+                    zoom: medidaSintetica(32, []),
+                    ratioMinimo: RATIO_MINIMO_DE_CRECIMIENTO,
+                }),
+            },
+        ]);
+        expect(r.comparadas).toBe(0);
+        expect(r.sinCrecimiento).toEqual([]);
+    });
+});
+
+/*
+ * LAS CUATRO FAMILIAS DE LA CRITICA #19 (2026-09-06), EJERCITADAS EN JSDOM.
+ *
+ * Mismo patron que sus hermanas: las sondas de pagina se ejercitan con el
+ * layout DADO --rects sobrescritos por elemento, estilos resueltos a mano-- y
+ * los veredictos, que son funciones puras, con los datos tal cual salen de las
+ * sondas. Lo que se verifica es la DECISION, no el layout, que es lo unico que
+ * cabe en un gate sin navegador (regla 44 de `RULES.md`).
+ *
+ * Cada familia trae ademas su umbral TECLEADO, con el techo o el suelo escrito
+ * a mano: es la pieza que no se puede aflojar sin que el diff lo cuente.
+ *
+ * LAS CINCO INYECCIONES QUE VALIDAN ESTOS CUATRO BLOQUES estan citadas, con su
+ * rojo LITERAL, en el docblock de cada `describe` y en el de `FAMILIAS_MINIMAS`.
+ * Ninguna se da por buena sin haber visto ese rojo: se rompio la implementacion
+ * de forma reversible, se ejecuto `pnpm exec vitest run
+ * scripts/check-site-surfaces.test.mjs`, se leyo la salida, se restauro desde
+ * una copia de seguridad y se volvio a ver el verde (47/47).
+ */
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-06). Subiendo
+ * `TOLERANCIA_DEL_ESCENARIO_PX` de 1 a 1000 --que es exactamente como se vacia
+ * esta familia sin quitarla-- caen dos casos de este bloque:
+ *
+ *   AssertionError: un enlace que termina en 820 px dentro de un escenario que
+ *   acaba en 800 se pierde 20 px por abajo: con la tolerancia en 1.000 px la
+ *   portada oscura saldria en verde con el deck cortado: expected [] to have a
+ *   length of 1 but got +0
+ *
+ *   AssertionError: la tolerancia se fijo en 1 px, el mismo redondeo subpixel
+ *   que absorbe la sonda de perdida horizontal. Subirla vacia la familia sin
+ *   quitarla: con 1.000 px el CTA de Discord que la critica #19 midio fuera del
+ *   escenario saldria en verde: expected 1000 to be less than or equal to 1
+ *
+ * «Tests 2 failed | 45 passed (47)». Restaurada la tolerancia, 47/47 en verde.
+ */
+describe("la sonda del deck que no cabe en su escenario", () => {
+    /** Monta seccion > escenario > diapositiva > contenido, con sus rects. */
+    function montaDeck({
+        posicionDelEscenario = "sticky",
+        overflowDelEscenario = "hidden",
+        opacidad = "1",
+        topDelContenido = 780,
+    } = {}) {
+        const seccion = document.createElement("section");
+        seccion.id = "story";
+        const escenario = document.createElement("div");
+        escenario.className = "story-deck__ScStage-sc-85f43d66-1";
+        escenario.style.position = posicionDelEscenario;
+        escenario.style.overflowY = overflowDelEscenario;
+        const diapositiva = document.createElement("div");
+        diapositiva.className = "story-deck__ScSlide-sc-85f43d66-4";
+        diapositiva.style.opacity = opacidad;
+        const contenido = document.createElement("a");
+        contenido.href = "https://discord.gg/CuGhqdG3g3";
+        contenido.textContent = "Entra en el Discord";
+        diapositiva.appendChild(contenido);
+        escenario.appendChild(diapositiva);
+        seccion.appendChild(escenario);
+        document.body.appendChild(seccion);
+        medida(escenario, { left: 0, right: 320, top: 0, height: 800 });
+        medida(diapositiva, { left: 0, right: 320, top: 0, height: 800 });
+        medida(contenido, {
+            left: 0,
+            right: 320,
+            top: topDelContenido,
+            height: 40,
+        });
+        return { seccion, escenario, diapositiva, contenido };
+    }
+
+    const ARGUMENTOS = {
+        decks: DECKS_DEL_TEMA_OSCURO.filter((d) => d.id === "story"),
+        opacidadActiva: OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
+        toleranciaPx: TOLERANCIA_DEL_ESCENARIO_PX,
+    };
+
+    it("reporta el contenido que se sale del escenario que RECORTA, y no el del escenario que no recorta", () => {
+        /*
+         * EL CASO QUE REPRODUCE EL P1, en su forma minima. El escenario del deck
+         * oscuro esta pegado (`position: sticky`) y no deja escapar a sus hijos:
+         * lo que sobresale de su caja no se desplaza a ningun sitio, se pierde.
+         * Un enlace que empieza en 780 px dentro de un escenario que termina en
+         * 800 y mide 40 de alto se sale 20 px por abajo.
+         *
+         * LA SEGUNDA MITAD ES LA QUE IMPIDE QUE LA FAMILIA SEA UNA TRAMPA: con
+         * el MISMO layout y el escenario en `position: static` --que es una de
+         * las dos formas en que puede llegar el arreglo-- no hay recorte y no hay
+         * nada que reportar. Un candado que pidiera que quepa en una caja que ya
+         * no recorta estaria pidiendo lo contrario de lo que arregla el defecto.
+         */
+        montaDeck();
+        const recortado = probeDeckRecortado(ARGUMENTOS);
+        expect(recortado).toHaveLength(1);
+        expect(
+            recortado[0].recorta,
+            "un escenario sticky con overflow-y hidden recorta a sus hijos",
+        ).toBe(true);
+        expect(
+            recortado[0].activas,
+            "la diapositiva opaca es la activa: sin ninguna, la sonda seria vacua",
+        ).toBe(1);
+        expect(
+            recortado[0].fuera,
+            `un enlace que termina en 820 px dentro de un escenario que acaba en ` +
+                `800 se pierde 20 px por abajo: con la tolerancia en 1.000 px la ` +
+                `portada oscura saldria en verde con el deck cortado`,
+        ).toHaveLength(1);
+        expect(recortado[0].fuera[0].sobra).toBe(20);
+        expect(recortado[0].fuera[0].lado).toBe("abajo");
+        expect(recortado[0].fuera[0].texto).toBe("Entra en el Discord");
+
+        document.body.innerHTML = "";
+        montaDeck({ posicionDelEscenario: "static" });
+        const suelto = probeDeckRecortado(ARGUMENTOS);
+        expect(
+            suelto[0].recorta,
+            "un escenario static no recorta: sus hijos siguen en el flujo",
+        ).toBe(false);
+        expect(
+            suelto[0].fuera,
+            `con el escenario en position: static el contenido que sobresale NO se ` +
+                `pierde, y exigirle que quepa seria pedir lo contrario del arreglo`,
+        ).toEqual([]);
+    });
+
+    it("no cuenta la diapositiva que se esta apagando: solo la que el visitante lee", () => {
+        /* El deck cruza de una diapositiva a la siguiente con una transicion de
+           opacidad. En los fotogramas del cruce hay dos a medio camino y ninguna
+           es la que se lee; contarlas seria medir el desbordamiento de contenido
+           que ya no esta en pantalla. */
+        montaDeck({ opacidad: "0.5" });
+        const r = probeDeckRecortado(ARGUMENTOS);
+        expect(r[0].activas).toBe(0);
+        expect(
+            r[0].fuera,
+            "una diapositiva a media opacidad esta en el cruce, no en pantalla",
+        ).toEqual([]);
+    });
+
+    it("declara ausente el deck que no existe, en vez de dar por bueno el cero", () => {
+        /* La guarda de vacuidad, sobre la sonda: sin escenario no hay medida, y
+           el script convierte esa ausencia en rojo cuando el tema es el oscuro
+           --que es el unico que monta deck-- en vez de leerla como "no hay nada
+           recortado". */
+        const r = probeDeckRecortado(ARGUMENTOS);
+        expect(r[0].presente).toBe(false);
+        expect(r[0].activas).toBe(0);
+        for (const guarda of [
+            "el tema oscuro ya no monta la pista del deck de",
+            "ni una sola diapositiva del deck de",
+            "de opacidad en los",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda "${guarda}": sin ella ` +
+                    `un deck que desaparece pasaria por deck que cabe`,
+            ).toContain(guarda);
+        }
+    });
+
+    it("la matriz del deck es la acordada y la tolerancia no puede aflojarse", () => {
+        /*
+         * Los tres numeros TECLEADOS de esta familia, con el mismo criterio que
+         * `ANCHOS_ESPERADOS` y `FAMILIAS_MINIMAS`: una matriz que se recorre sale
+         * verde cuando encoge, y un umbral que se afloja vacia la familia sin
+         * quitarla.
+         */
+        expect(
+            ANCHOS_DEL_DECK,
+            "la banda estrecha del deck ya no son los dos anchos acordados: si son " +
+                "otros, se decide aqui y con la medicion delante",
+        ).toEqual([320, 390]);
+        expect(
+            RAICES_DEL_DECK,
+            "las tres raices son 16 (el CONTROL, donde el deck cabe: medido 0 px " +
+                "fuera), 24 y 32 (el 200 % de WCAG 1.4.4). Sin la de control, un " +
+                "recorte de siempre pasaria por defecto de zoom",
+        ).toEqual([ROOT_FONT_BASE_PX, 24, ZOOM_FONT_PX]);
+        for (const ancho of ANCHOS_DEL_DECK) {
+            expect(
+                WIDTH_SWEEP,
+                `la matriz del deck mide a ${ancho}px, que no es un ancho del ` +
+                    `barrido: los dos lados del candado tienen que medir las mismas ` +
+                    `anchuras reales`,
+            ).toContain(ancho);
+        }
+        expect(
+            TOLERANCIA_DEL_ESCENARIO_PX,
+            `la tolerancia se fijo en 1 px, el mismo redondeo subpixel que absorbe ` +
+                `la sonda de perdida horizontal. Subirla vacia la familia sin ` +
+                `quitarla: con 1.000 px el CTA de Discord que la critica #19 midio ` +
+                `fuera del escenario saldria en verde`,
+        ).toBeLessThanOrEqual(1);
+        expect(
+            OPACIDAD_DE_DIAPOSITIVA_ACTIVA,
+            "por debajo de 0,99 entrarian las diapositivas del cruce, que no son " +
+                "las que el visitante lee",
+        ).toBeGreaterThanOrEqual(0.99);
+        expect(
+            PASO_DE_PISTA_PX,
+            "el paso de 120 px es el de la sonda del arbitraje de la critica #19: " +
+                "agrandarlo se salta diapositivas enteras del recorrido",
+        ).toBeLessThanOrEqual(120);
+        expect(
+            DECKS_DEL_TEMA_OSCURO.map((d) => d.id),
+            "los dos decks del tema oscuro son Story y Journey: si nace un tercero, " +
+                "esta lista se toca a la vez que la seccion",
+        ).toEqual(["story", "journey"]);
+    });
+});
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-10). Devolviendo de `langEsperado` el
+ * castellano para las 404 --la excepcion `IDIOMA_HORNEADO_DE_LA_404` que se
+ * retiro ese dia-- caen los dos casos de este bloque:
+ *
+ *   404 (en) se sirve en en y con el cliente ya corriendo tiene que
+ *   anunciarlo: expected 'es' to be 'en' // Object.is equality
+ *   el HTML horneado de 404 (en) tiene que anunciarse en en:
+ *   expected 'es' to be 'en' // Object.is equality
+ *
+ * «Tests 2 failed | 185 passed (187)». Restaurado, en verde.
+ */
+describe("el idioma que cada superficie tiene que anunciar", () => {
+    it("con JavaScript cada superficie se anuncia en su idioma, la 404 inglesa incluida", () => {
+        for (const surface of SURFACES) {
+            expect(
+                langEsperado(surface),
+                `${surface.nombre} se sirve en ${surface.locale} y con el cliente ya ` +
+                    `corriendo tiene que anunciarlo`,
+            ).toBe(surface.locale);
+        }
+    });
+
+    it("sin JavaScript el idioma es el HORNEADO de la ruta, y la 404 inglesa ya no es excepcion", () => {
+        /*
+         * LA TABLA COMPLETA, tecleada superficie a superficie y no derivada de
+         * `SURFACES`: derivarla de la lista que se verifica es el test
+         * autorreferencial que este fichero ya pago cuatro veces.
+         *
+         * La 404 inglesa declaro `es` hasta el 2026-09-10, porque
+         * `output: "export"` solo emitia un `404.html` castellano. Desde el
+         * commit `06cdda8` se hornea `out/en/404.html` con `lang="en"` y
+         * Netlify lo sirve bajo `/en/*`; desde `403bd29` el servidor de
+         * medicion reproduce esa regla. Se le exige `en`.
+         *
+         * Las tres INGLESAS que no son la 404 ERAN el P1 de la critica #19: se
+         * horneaban con contenido ingles y se servian con `lang="es"` (medido
+         * el 2026-09-06 sobre el build servido, JavaScript desactivado). Esta
+         * tabla ya pedia `en` cuando el sitio todavia servia `es`: era la
+         * exigencia, no la descripcion. La ola S del mismo dia (commit
+         * `16c8451`) la satisface partiendo el root layout unico en tres raices
+         * --`app/(es)/layout.tsx`, `app/en/layout.tsx` y
+         * `app/global-not-found.tsx`-- que hornean su propio `<html lang>`
+         * sobre el documento comun `app/RootDocument.tsx`.
+         */
+        const ESPERADO_SIN_JS = {
+            "/": "es",
+            "/en": "en",
+            "/privacidad": "es",
+            "/en/privacy": "en",
+            "/aviso-legal": "es",
+            "/en/legal-notice": "en",
+            [`/${BROKEN_SEGMENT}`]: "es",
+            [`${EN_PREFIX}/${BROKEN_SEGMENT}`]: "en",
+        };
+        expect(
+            Object.keys(ESPERADO_SIN_JS).sort(),
+            "la tabla de idiomas horneados no cubre las mismas superficies que el barrido",
+        ).toEqual(SURFACES.map((s) => s.path).sort());
+        for (const surface of SURFACES) {
+            expect(
+                langEsperado(surface),
+                `el HTML horneado de ${surface.nombre} tiene que anunciarse en ` +
+                    `${ESPERADO_SIN_JS[surface.path]}`,
+            ).toBe(ESPERADO_SIN_JS[surface.path]);
+        }
+
+        /* La antigua excepcion, aislada: la 404 inglesa se exige en ingles, y
+           el script ya no exporta la constante que la sancionaba. */
+        const cuatrocientosEn = SURFACES.find(
+            (s) => s.kind === "notFound" && s.locale === "en",
+        );
+        expect(
+            langEsperado(cuatrocientosEn),
+            "la 404 inglesa sin JavaScript tiene que anunciarse en ingles: " +
+                "out/en/404.html se hornea con lang=en y Netlify la sirve bajo /en/*",
+        ).toBe("en");
+        expect(
+            SCRIPT,
+            "la excepcion IDIOMA_HORNEADO_DE_LA_404 volvio al script",
+        ).not.toMatch(/export const IDIOMA_HORNEADO_DE_LA_404\b/);
+
+        /* Y la otra mitad: que el script convierta la comparacion en rojo. Una
+           tabla que nadie usa para fallar es documentacion, no candado. */
+        for (const guarda of [
+            "sin JavaScript el documento se sirve anunciandose en",
+            "el HTML horneado no declara `lang` en su elemento raiz",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo la guarda "${guarda}"`,
+            ).toContain(guarda);
+        }
+    });
+});
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-06). Subiendo
+ * `DERIVA_MAXIMA_DE_RECARGA_PX` de `NAV_BAND_PX` (64) a 5000 caen dos casos de
+ * este bloque:
+ *
+ *   AssertionError: 120 px de deriva con la misma seccion son mas que los 5000
+ *   px de la banda de la barra: el visitante no vuelve donde estaba: expected
+ *   true to be false // Object.is equality
+ *
+ *   AssertionError: la tolerancia se fijo en el alto de la banda del navbar (64
+ *   px). Subirla vacia la familia sin quitarla: con 5.000 px la deriva de
+ *   -3.377 px medida en el tema oscuro pasaria por buena: expected 5000 to be
+ *   less than or equal to 64
+ *
+ * «Tests 2 failed | 45 passed (47)». Restaurada la tolerancia, 47/47 en verde.
+ */
+describe("el veredicto del modo de restitucion tras recargar", () => {
+    /* La tabla de la politica: desde el 2026-09-11 (P7-2, opcion 1 del
+       dueno) "manual" en las DOS portadas y "auto" fuera de ellas. Hasta esa
+       fecha la clara iba en "auto" (F20-A). Cada fila es una lectura posible
+       de `history.scrollRestoration` tras la recarga. */
+    it.each([
+        ["dark", "/", "manual", true],
+        ["dark", "/en", "manual", true],
+        ["dark", "/index.html", "manual", true],
+        ["dark", "/en.html", "manual", true],
+        ["dark", "/", "auto", false],
+        ["dark", "/en", "auto", false],
+        ["light", "/", "manual", true],
+        ["light", "/en", "manual", true],
+        ["light", "/", "auto", false],
+        ["light", "/en", "auto", false],
+        ["dark", "/privacidad", "auto", true],
+        ["dark", "/privacidad", "manual", false],
+        ["light", "/privacidad", "auto", true],
+        ["light", "/privacidad", "manual", false],
+    ])(
+        "tema %s en %s con modo %s -> cumple %s",
+        (theme, pathname, modo, cumple) => {
+            const r = evaluaModoDeRestitucion({ theme, pathname, modo });
+            expect(r.cumple).toBe(cumple);
+            if (!cumple) expect(r.motivo).toContain(pathname);
+        },
+    );
+
+    it("un modo ilegible no es verde: la sonda sin objeto se declara incumplimiento", () => {
+        const r = evaluaModoDeRestitucion({
+            theme: "dark",
+            pathname: "/",
+            modo: undefined,
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.motivo).toContain("vacua");
+    });
+
+    it("la tabla del instrumento es la acordada con el dueno", () => {
+        expect(MODO_DE_RESTITUCION_EN_LA_PORTADA).toEqual({
+            dark: "manual",
+            light: "manual",
+        });
+        expect(RUTAS_DE_PORTADA).toEqual([
+            "/",
+            "/index.html",
+            "/en",
+            "/en.html",
+        ]);
+    });
+});
+
+describe("el veredicto de la recarga", () => {
+    it("una recarga que cambia de seccion no cumple, y la que se queda dentro de la tolerancia si", () => {
+        /*
+         * LA MEDIDA REAL del P1 (2026-09-06, build servido, tema oscuro, `/`,
+         * 1440x900): el centro del viewport leia `contact` a 9.000 px y despues
+         * de recargar leia `journey` a 5.623, o sea 3.377 px de deriva. Y el
+         * CONTROL del tema claro, la misma sonda sobre la misma portada: `contact`
+         * a 5.065 px antes y `contact` a 5.081 despues, 16 px de deriva.
+         */
+        const oscuro = evaluaRecarga({
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 5623, seccion: "journey" },
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+        });
+        expect(
+            oscuro.cumple,
+            "una recarga que devuelve al visitante a otra seccion no conserva nada",
+        ).toBe(false);
+        expect(oscuro.deriva).toBe(-3377);
+        expect(oscuro.mismaSeccion).toBe(false);
+        expect(oscuro.motivo).toContain("contact");
+        expect(oscuro.motivo).toContain("journey");
+
+        const claro = evaluaRecarga({
+            antes: { y: 5065, seccion: "contact" },
+            despues: { y: 5081, seccion: "contact" },
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+        });
+        expect(
+            claro.cumple,
+            "16 px de deriva con la misma seccion es la restauracion funcionando",
+        ).toBe(true);
+        expect(claro.deriva).toBe(16);
+    });
+
+    it("conservar la seccion no basta: una deriva mayor que la banda de la barra tambien falla", () => {
+        /*
+         * LA SEGUNDA MITAD DE LA POLITICA, y la que cae si alguien afloja la
+         * tolerancia. Las secciones de esta portada miden miles de pixeles: una
+         * recarga puede devolver al visitante a la misma seccion y 900 px mas
+         * arriba, y eso es volver a buscar el parrafo. El tope es el alto de la
+         * banda del navbar, que es lo que el visitante ya tenia tapado.
+         *
+         * Con la tolerancia en 5.000 px este caso pasa y el candado deja de ver
+         * la deriva de -3.377 px del tema oscuro incluso si la seccion coincide.
+         */
+        const r = evaluaRecarga({
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 8880, seccion: "contact" },
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+        });
+        expect(
+            r.cumple,
+            `120 px de deriva con la misma seccion son mas que los ` +
+                `${DERIVA_MAXIMA_DE_RECARGA_PX} px de la banda de la barra: el ` +
+                `visitante no vuelve donde estaba`,
+        ).toBe(false);
+        expect(r.mismaSeccion).toBe(true);
+        expect(r.motivo).toContain("deriva");
+    });
+
+    it("sin seccion bajo el centro del viewport el veredicto no es 'cumple'", () => {
+        /* La direccion conservadora, la misma que la sonda de legibilidad toma
+           sin ancho de documento: un instrumento que se queda sin objeto se pone
+           ruidoso, no silencioso. */
+        const r = evaluaRecarga({
+            antes: { y: 9000, seccion: null },
+            despues: { y: 9000, seccion: null },
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.motivo).toContain("vacua");
+    });
+
+    it("la tolerancia de la recarga y su objetivo por tema son los acordados", () => {
+        expect(
+            DERIVA_MAXIMA_DE_RECARGA_PX,
+            `la tolerancia se fijo en el alto de la banda del navbar (${NAV_BAND_PX} px). ` +
+                `Subirla vacia la familia sin quitarla: con 5.000 px la deriva de ` +
+                `-3.377 px medida en el tema oscuro pasaria por buena`,
+        ).toBeLessThanOrEqual(NAV_BAND_PX);
+        expect(
+            OBJETIVO_DE_RECARGA_PX,
+            "los dos objetivos son distintos porque las dos portadas no miden lo " +
+                "mismo de alto (11.008 px en oscuro y 6.588 en claro, medidos): un " +
+                "objetivo unico dejaria la portada clara pegada al final del " +
+                "documento, que es el caso degenerado en el que cualquier " +
+                "restauracion acierta",
+        ).toEqual({ dark: 9000, light: 5000 });
+    });
+});
+
+/**
+ * VALIDADO CON DOS BUGS INYECTADOS (2026-09-06), uno por cada mitad de lo que
+ * este bloque canda: la POLITICA y el INSTRUMENTO.
+ *
+ * PRIMERO, la politica. En `evaluaRecargaSimultanea`, `const caidas =
+ * veredictos` pasa a `const caidas = veredictos.slice(0, 1)` -- que es «exigir
+ * solo la primera lectura», la forma barata de que N recargas se cuenten como
+ * una. Cayo UN caso, el que tuerce la TERCERA pagina y no la primera:
+ *
+ *   AssertionError: cuatro de cinco no es cumplir: el quinto visitante esta
+ *   perdido igual, y una politica de mayoria firma en verde la carrera que
+ *   fallo 9 veces de 15: expected true to be false // Object.is equality
+ *
+ * «Tests 1 failed | 51 passed (52)». Restaurada la linea, 52/52 en verde.
+ *
+ * SEGUNDO, el instrumento. El `await Promise.all(paginasSimultaneas.map((p) =>
+ * p.reload(...)))` del script pasa a un `for (const p of paginasSimultaneas)
+ * await p.reload(...)`: las N recargas dejan de salir en el mismo tick y la
+ * familia mide N repeticiones del caso de reposo -- exactamente la combinacion
+ * que sobre el build sin arreglo dio 0 fallos de 10. Las tres funciones puras
+ * de arriba no notan nada; cayo el cuarto caso, el que lee el script:
+ *
+ *   AssertionError: el script ya no lanza las N recargas en el mismo tick: si
+ *   estan secuenciadas, la familia mide N veces el caso de reposo: expected
+ *   false to be true // Object.is equality
+ *
+ * «Tests 1 failed | 51 passed (52)». Restaurado el `Promise.all`, 52/52.
+ */
+describe("el veredicto de las recargas simultaneas", () => {
+    /**
+     * Cinco lecturas de `contact` con derivas pequenas, que es la forma que
+     * tiene el ACIERTO. El indice se le pasa a cada una para poder torcer solo
+     * la que interese sin tocar las demas.
+     */
+    const cincoAciertos = () =>
+        [0, 2, -4, 6, -8].map((deriva) => ({
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 9000 + deriva, seccion: "contact" },
+        }));
+
+    it("las N paginas en su seccion y dentro de la tolerancia cumplen, y la cuenta lo dice", () => {
+        const r = evaluaRecargaSimultanea({
+            lecturas: cincoAciertos(),
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(r.cumple).toBe(true);
+        expect(r.aciertos).toBe(5);
+        expect(r.total).toBe(5);
+        expect(
+            r.peorDeriva,
+            "la peor deriva es la de mayor VALOR ABSOLUTO y conserva su signo: " +
+                "un -8 dice hacia donde se fue el visitante y un 8 no",
+        ).toBe(-8);
+        expect(r.motivo).toBe(null);
+    });
+
+    it("una sola de las N que aterriza en otra seccion tumba la corrida, y el motivo dice cual y cuanto", () => {
+        /*
+         * EL CASO QUE SEPARA ESTA POLITICA DE «LA PRIMERA» Y DE «LA MAYORIA», y
+         * el que cae con el bug inyectado del docblock de arriba. Cuatro de las
+         * cinco paginas vuelven a `contact` y una --la TERCERA, no la primera--
+         * aterriza en `journey` a 5.623 px, que es la cifra real que la critica
+         * #19 midio en el tema oscuro: 3.377 px de deriva.
+         *
+         * Si el veredicto mirase solo la primera lectura, esta corrida saldria
+         * verde con un visitante perdido dentro. Si mirase la mayoria, tambien:
+         * cuatro de cinco. La carrera del 2026-09-06 fallaba 9 de 15, o sea que
+         * el reparto se mueve corrida a corrida y cualquier umbral por debajo de
+         * «todas» es un candado que a veces mira.
+         */
+        const lecturas = cincoAciertos();
+        lecturas[2] = {
+            antes: { y: 9000, seccion: "contact" },
+            despues: { y: 5623, seccion: "journey" },
+        };
+        const r = evaluaRecargaSimultanea({
+            lecturas,
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(
+            r.cumple,
+            "cuatro de cinco no es cumplir: el quinto visitante esta perdido " +
+                "igual, y una politica de mayoria firma en verde la carrera que " +
+                "fallo 9 veces de 15",
+        ).toBe(false);
+        expect(r.aciertos).toBe(4);
+        expect(r.total).toBe(5);
+        expect(
+            r.motivo,
+            "sin el INDICE, «una fallo» no distingue una carrera perdida por una " +
+                "pagina de una restauracion rota en todas",
+        ).toContain("pagina 3 de 5");
+        expect(
+            r.motivo,
+            "sin la DERIVA no se sabe si el visitante perdio el parrafo o el sitio entero",
+        ).toContain("-3377");
+        expect(r.motivo).toContain("journey");
+        expect(r.peorDeriva).toBe(-3377);
+    });
+
+    it("menos lecturas que paginas pedidas no es un verde parcial: es una medicion que no se hizo", () => {
+        /* La guarda de vacuidad, en la misma direccion conservadora que el resto
+           del fichero: tres paginas que aciertan cuando se pidieron cinco
+           describen un instrumento a medias, no un sitio que funciona. */
+        const r = evaluaRecargaSimultanea({
+            lecturas: cincoAciertos().slice(0, 3),
+            derivaMaxima: DERIVA_MAXIMA_DE_RECARGA_PX,
+            esperadas: 5,
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.aciertos).toBe(3);
+        expect(r.motivo).toContain("vacuo");
+    });
+
+    it("el eje de carga esta de verdad en el script: N paginas, recarga a la vez, y el control de una sola conservado", () => {
+        /*
+         * LO QUE NINGUNA FUNCION PURA PUEDE ATAR: que el script use la politica
+         * sobre paginas que de verdad recargan A LA VEZ. Secuenciar las N
+         * recargas --cambiar el `Promise.all` por un `for`-- dejaria la funcion
+         * pura intacta, los tres casos de arriba en verde y la familia midiendo
+         * N repeticiones del caso de reposo, que es exactamente la combinacion
+         * que sobre el build sin arreglo dio 0 fallos de 10.
+         *
+         * Y la otra mitad: el caso de UNA sola pagina se conserva a proposito
+         * como control. Sustituirlo por el simultaneo perderia la lectura que
+         * distingue «la restauracion pierde una carrera» de «la restauracion
+         * esta rota siempre».
+         */
+        expect(
+            RECARGAS_SIMULTANEAS,
+            "con menos de dos paginas no hay carga que simular y el segundo punto " +
+                "del eje seria el primero repetido",
+        ).toBeGreaterThanOrEqual(2);
+        expect(
+            RECARGAS_SIMULTANEAS,
+            "cinco es la N con la que se midio el defecto (9 fallos de 15 sobre el " +
+                "build sin arreglo) y el arreglo (20/20). Bajarla es una decision de " +
+                "coste que se escribe en el docblock de la constante, no un retoque",
+        ).toBe(5);
+        expect(
+            /Promise\.all\([\s\S]{0,200}paginasSimultaneas\.map\([\s\S]{0,160}\.reload\(/.test(
+                SCRIPT,
+            ),
+            "el script ya no lanza las N recargas en el mismo tick: si estan " +
+                "secuenciadas, la familia mide N veces el caso de reposo",
+        ).toBe(true);
+        expect(
+            SCRIPT,
+            "el control de una sola pagina con la maquina en reposo desaparecio del script",
+        ).toContain("una sola pagina, maquina en reposo");
+    });
+});
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-06). Sustituyendo en `probeArteNoPintado`
+ * la decision `pintado: html.includes(fichero) || pintadasPorImg.has(fichero)`
+ * por `pintado: true` --que es como se apaga esta familia sin borrar una sola
+ * linea del script-- cae el caso de las dos vias:
+ *
+ *   AssertionError: el fichero no esta en el HTML ni es currentSrc de ninguna
+ *   img: son 87.260 B que el visitante paga y que ninguna imagen del documento
+ *   usa: expected true to be false // Object.is equality
+ *
+ * «Tests 1 failed | 46 passed (47)». Restaurada la decision, 47/47 en verde.
+ */
+describe("la sonda del arte que se descarga y no se pinta", () => {
+    /** Sustituye `performance.getEntriesByType`, que jsdom no alimenta. */
+    function conRecursos(entradas, cuerpo) {
+        const original = performance.getEntriesByType;
+        Object.defineProperty(performance, "getEntriesByType", {
+            configurable: true,
+            writable: true,
+            value: (tipo) => (tipo === "resource" ? entradas : []),
+        });
+        try {
+            return cuerpo();
+        } finally {
+            Object.defineProperty(performance, "getEntriesByType", {
+                configurable: true,
+                writable: true,
+                value: original,
+            });
+        }
+    }
+
+    it("un fichero que no aparece en el HTML ni es currentSrc de ninguna img no esta pintado", () => {
+        /*
+         * LAS DOS VIAS DE "PINTADO", que hacen falta las dos. El `srcset` deja el
+         * nombre escrito en el HTML; la variante que el navegador ELIGE de ese
+         * `srcset` no siempre esta escrita como tal en ningun atributo y solo
+         * aparece en `currentSrc`. Contar solo una de las dos llenaria el informe
+         * de arte legitimo.
+         *
+         * El tercero es el defecto medido el 2026-09-06 en la portada oscura:
+         * `journey-presenting-640.webp`, 87.260 B descargados a DPR 1, que no
+         * esta en el HTML ni es el `currentSrc` de ninguna imagen del documento.
+         */
+        const img = document.createElement("img");
+        img.setAttribute("srcset", "/scenes/hero-640.webp 640w");
+        img.setAttribute("alt", "");
+        document.body.appendChild(img);
+        const elegida = document.createElement("img");
+        elegida.setAttribute("alt", "");
+        Object.defineProperty(elegida, "currentSrc", {
+            configurable: true,
+            get: () => "http://localhost:3000/figures/story-1024.webp",
+        });
+        document.body.appendChild(elegida);
+
+        const r = conRecursos(
+            [
+                {
+                    name: "http://localhost:3000/scenes/hero-640.webp",
+                    encodedBodySize: 12000,
+                    transferSize: 12500,
+                },
+                {
+                    name: "http://localhost:3000/figures/story-1024.webp",
+                    encodedBodySize: 0,
+                    transferSize: 41000,
+                },
+                {
+                    name: "http://localhost:3000/scenes/journey-presenting-640.webp",
+                    encodedBodySize: 87260,
+                    transferSize: 88000,
+                },
+                {
+                    name: "http://localhost:3000/_next/static/chunks/main.js",
+                    encodedBodySize: 90000,
+                    transferSize: 90000,
+                },
+            ],
+            () => probeArteNoPintado({ patron: PATRON_DE_ARTE }),
+        );
+
+        expect(
+            r.evaluados,
+            "el chunk de JavaScript no es arte y no entra en la cuenta; los tres " +
+                "ficheros de imagen si",
+        ).toBe(3);
+        const porNombre = Object.fromEntries(
+            r.recursos.map((x) => [x.fichero, x]),
+        );
+        expect(
+            porNombre["hero-640.webp"].pintado,
+            "su nombre esta escrito en el srcset del documento",
+        ).toBe(true);
+        expect(
+            porNombre["story-1024.webp"].pintado,
+            "es la variante que el navegador eligio: solo aparece en currentSrc",
+        ).toBe(true);
+        expect(
+            porNombre["story-1024.webp"].bytes,
+            "sin encodedBodySize se cae a transferSize, que es lo que costo la red",
+        ).toBe(41000);
+        expect(
+            porNombre["journey-presenting-640.webp"].pintado,
+            `el fichero no esta en el HTML ni es currentSrc de ninguna img: son ` +
+                `87.260 B que el visitante paga y que ninguna imagen del documento ` +
+                `usa`,
+        ).toBe(false);
+        expect(porNombre["journey-presenting-640.webp"].bytes).toBe(87260);
+    });
+
+    it("sin recursos que casen con el patron la sonda lo dice, y el script lo pone en rojo", () => {
+        const r = conRecursos([], () =>
+            probeArteNoPintado({ patron: PATRON_DE_ARTE }),
+        );
+        expect(r.evaluados).toBe(0);
+        expect(r.recursos).toEqual([]);
+        expect(
+            SCRIPT,
+            "el script ya no convierte en rojo la guarda de vacuidad del patron de " +
+                "arte: sin ella un filtro roto pasaria por pagina sin desperdicio",
+        ).toContain("la sonda de arte no vio ni un solo recurso");
+    });
+
+    it("el tope de bytes sin pintar es cero y las dos densidades son las acordadas", () => {
+        /*
+         * EL TOPE EN CERO, y por que no los 100 KB del ancla de la critica. Un
+         * umbral en bytes convierte un defecto de correccion --el navegador pide
+         * una pieza que nadie va a pintar-- en un presupuesto, y la pieza de
+         * 87.260 B medida el 2026-09-06 habria pasado por debajo de 100 KB sin
+         * una sola linea roja.
+         *
+         * Se pudo poner en cero porque se midio antes: en el tema claro, a DPR 1
+         * y a DPR 2, los cinco recursos de arte de la portada estan los cinco
+         * pintados. No hay poblacion legitima que absolver.
+         */
+        expect(
+            MAX_BYTES_DE_ARTE_NO_PINTADO,
+            "con un tope mayor que cero, los 87.260 B medidos en la portada oscura " +
+                "cabrian dentro del presupuesto y el candado saldria verde",
+        ).toBe(0);
+        expect(
+            DPRS_DEL_ARTE,
+            "las dos densidades son 1 y 2: a DPR 1 fijo el candado no ve lo que " +
+                "descarga la mitad de los visitantes, y son ficheros distintos " +
+                "(87.260 B contra 163.368 B, medidos)",
+        ).toEqual([1, 2]);
+        expect(
+            PATRON_DE_ARTE,
+            "el patron cubre las tres carpetas de piezas del repo y los dos formatos",
+        ).toContain("scenes/");
+    });
+});
+
+/*
+ * LAS DOS FAMILIAS DE LA CRITICA #20 (2026-09-07), EJERCITADAS EN JSDOM.
+ *
+ * Mismo patron que sus hermanas y con el mismo limite declarado: las sondas de
+ * pagina se ejercitan con el layout DADO --rects sobrescritos por elemento-- y
+ * los veredictos, que son funciones puras, con los datos tal cual salen de las
+ * sondas. Lo que se verifica es la DECISION, no el layout.
+ *
+ * LO QUE NO CABE AQUI, dicho para que nadie lo confunda con un descuido: la
+ * sonda de contraste (`probeContrasteDeLaCabecera`) decodifica una captura PNG
+ * en un lienzo, y jsdom no implementa `canvas`. De esa familia se ejercitan aqui
+ * las piezas PURAS --el umbral por tamano y peso, la formula de contraste y el
+ * veredicto por percentil--, que son las que deciden; lo que la sonda hace es
+ * leer pixeles y ordenarlos, y eso se verifico contra el navegador con las
+ * cifras que estan en el docblock del script.
+ */
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-07). Quitando de `probeEstadoModal` el
+ * filtro que descarta lo que cuelga de un `[inert]` --dejando
+ * `.filter((el) => visible(el))`, que es contar como operable lo que nadie puede
+ * usar-- cae el caso que reproduce el P1:
+ *
+ *   AssertionError: con la cabecera, el main y el pie inertes no queda un solo
+ *   control que el visitante pueda usar: contar los que cuelgan de un [inert]
+ *   es exactamente como esta familia deja de ver el defecto: expected 2 to be
+ *   +0 // Object.is equality
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurado el filtro, 64/64 en verde.
+ */
+describe("la sonda del estado modal que sobrevive al cambio de anchura", () => {
+    const ARGUMENTOS = { selector: SELECTOR_FOCALIZABLE };
+
+    /**
+     * Monta el documento que la portada deja tras cruzar el escalon con la hoja
+     * abierta: cabecera, `main` y pie inertes, la hoja todavia `aria-modal` pero
+     * con la caja a cero, y su disparador diciendo que sigue abierta sin caja
+     * que pulsar. Es la forma minima del estado medido el 2026-09-07 en el
+     * navegador (`inert` sobre header, main#main, footer y el anunciador de
+     * rutas; dialogo 0x0; disparador 0x0).
+     */
+    function montaTrasElCruce({ fondoInerte = true } = {}) {
+        document.body.innerHTML = "";
+        const cabecera = document.createElement("header");
+        cabecera.id = "cabecera";
+        const disparador = document.createElement("button");
+        disparador.id = "disparador";
+        disparador.setAttribute("aria-expanded", "true");
+        disparador.setAttribute("aria-controls", "hoja");
+        disparador.setAttribute("aria-label", "Cerrar el menú de navegación");
+        cabecera.appendChild(disparador);
+
+        const principal = document.createElement("main");
+        principal.id = "main";
+        const enlacePrincipal = document.createElement("a");
+        enlacePrincipal.href = "#uno";
+        enlacePrincipal.textContent = "Ir a Historia";
+        principal.appendChild(enlacePrincipal);
+
+        const pie = document.createElement("footer");
+        const enlaceDelPie = document.createElement("a");
+        enlaceDelPie.href = "#dos";
+        enlaceDelPie.textContent = "Aviso legal";
+        pie.appendChild(enlaceDelPie);
+
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        hoja.setAttribute("aria-modal", "true");
+        hoja.setAttribute("aria-label", "Navegación");
+        const enlaceDeLaHoja = document.createElement("a");
+        enlaceDeLaHoja.href = "#tres";
+        enlaceDeLaHoja.textContent = "Contacto";
+        hoja.appendChild(enlaceDeLaHoja);
+
+        document.body.append(cabecera, principal, pie, hoja);
+        if (fondoInerte)
+            for (const nodo of [cabecera, principal, pie])
+                nodo.setAttribute("inert", "");
+
+        medida(cabecera, { left: 0, right: 1280, top: 0, height: 64 });
+        /* El disparador se queda sin caja al otro lado del escalon: la barra
+           ancha no monta hamburguesa. */
+        medida(disparador, { left: 0, right: 0, top: 0, height: 0 });
+        medida(enlacePrincipal, { left: 0, right: 120, top: 200, height: 24 });
+        medida(enlaceDelPie, { left: 0, right: 120, top: 600, height: 24 });
+        /* La hoja y su contenido dejan de pintarse, pero el estado modal sigue
+           declarado. */
+        medida(hoja, { left: 0, right: 0, top: 0, height: 0 });
+        medida(enlaceDeLaHoja, { left: 0, right: 0, top: 0, height: 0 });
+        return { cabecera, principal, pie, hoja, disparador };
+    }
+
+    it("reporta las cuatro caras del estado que sobrevive: cero operables, fondo inerte, modal sin caja y disparador abierto", () => {
+        /*
+         * EL CASO QUE REPRODUCE EL P1, en su forma minima y con las cuatro
+         * condiciones a la vez, que es como se midio en el navegador: 0
+         * operables de 76 focalizables, siete nodos inertes fuera de la hoja, un
+         * dialogo `aria-modal="true"` de 0x0 y un disparador con
+         * `aria-expanded="true"` sin caja.
+         */
+        montaTrasElCruce();
+        const estado = probeEstadoModal(ARGUMENTOS);
+
+        expect(
+            estado.focalizables,
+            "la guarda del filtro: si el selector dejara de casar, el cero de operables seria del instrumento",
+        ).toBe(4);
+        expect(
+            estado.operables,
+            "con la cabecera, el main y el pie inertes no queda un solo control " +
+                "que el visitante pueda usar: contar los que cuelgan de un [inert] " +
+                "es exactamente como esta familia deja de ver el defecto",
+        ).toBe(0);
+        expect(
+            estado.inertesFuera,
+            "los tres nodos de fondo que la hoja inertizo siguen inertes con la hoja ya cerrada",
+        ).toEqual(["header#cabecera", "main#main", "footer"]);
+        expect(
+            estado.modalesInalcanzables,
+            "un dialogo aria-modal de 0x0 reclama la pagina entera desde ningun sitio",
+        ).toHaveLength(1);
+        expect(estado.modalesInalcanzables[0]).toContain("caja 0x0");
+        expect(
+            estado.expandidosSinCaja,
+            "el disparador dice seguir abierto y no tiene caja que pulsar",
+        ).toHaveLength(1);
+        expect(estado.expandidosSinCaja[0]).toContain(
+            "Cerrar el menú de navegación",
+        );
+    });
+
+    it("el MISMO documento sin el fondo inerte no se reporta: la pagina se puede usar", () => {
+        /*
+         * LA SEGUNDA MITAD, la que impide que la familia sea una trampa. Con el
+         * mismo marcado y las mismas cajas, liberado el `inert` del fondo --que
+         * es lo que hace el arreglo--, los dos enlaces del documento vuelven a
+         * ser operables y no hay ni un nodo inerte que reportar. Un candado que
+         * siguiera en rojo aqui estaria pidiendo algo distinto de lo que arregla
+         * el defecto.
+         */
+        montaTrasElCruce({ fondoInerte: false });
+        const estado = probeEstadoModal(ARGUMENTOS);
+        expect(
+            estado.operables,
+            "sin el fondo inerte los dos enlaces visibles vuelven a poder usarse",
+        ).toBe(2);
+        expect(estado.inertesFuera).toEqual([]);
+    });
+
+    it("la hoja cerrada con su propio inert NO cuenta como fondo inerte", () => {
+        /*
+         * El contraejemplo que separa el defecto del comportamiento correcto: la
+         * hoja cerrada lleva `inert` a proposito (asi sale del recorrido de
+         * teclado sin desmontarse) y lo mismo sus hijos. Contarla seria pedir
+         * que la hoja cerrada quede tabulable, que es justo lo contrario.
+         */
+        document.body.innerHTML = "";
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        hoja.setAttribute("inert", "");
+        const dentro = document.createElement("div");
+        dentro.setAttribute("inert", "");
+        hoja.appendChild(dentro);
+        const enlace = document.createElement("a");
+        enlace.href = "#uno";
+        enlace.textContent = "Fuera de la hoja";
+        document.body.append(hoja, enlace);
+        medida(hoja, { left: 0, right: 320, top: 0, height: 400 });
+        medida(dentro, { left: 0, right: 320, top: 0, height: 400 });
+        medida(enlace, { left: 0, right: 120, top: 500, height: 24 });
+
+        const estado = probeEstadoModal(ARGUMENTOS);
+        expect(
+            estado.inertesFuera,
+            "ni la hoja ni lo que cuelga de ella son fondo: el inert de una hoja cerrada es correcto",
+        ).toEqual([]);
+        expect(estado.operables).toBe(1);
+    });
+
+    it("el disparador se busca por su nombre accesible y su dialogo, no por su clase ni por su texto", () => {
+        /*
+         * El desplegable «Mas» de la barra ancha tambien lleva `aria-expanded` y
+         * `aria-controls`, y no es una hoja modal: su panel no es un `dialog`.
+         * Buscar por gancho de test (`[data-nav-sheet-trigger]`) ataria el
+         * candado al marcado; buscar por el texto lo ataria a la traduccion.
+         */
+        document.body.innerHTML = "";
+        const mas = document.createElement("button");
+        mas.id = "mas";
+        mas.setAttribute("aria-expanded", "false");
+        mas.setAttribute("aria-controls", "panel");
+        mas.setAttribute("aria-label", "Más destinos del sitio");
+        const panel = document.createElement("div");
+        panel.id = "panel";
+        const hamburguesa = document.createElement("button");
+        hamburguesa.id = "hamburguesa";
+        hamburguesa.setAttribute("aria-expanded", "false");
+        hamburguesa.setAttribute("aria-controls", "hoja");
+        hamburguesa.setAttribute("aria-label", "Open the navigation menu");
+        const hoja = document.createElement("div");
+        hoja.id = "hoja";
+        hoja.setAttribute("role", "dialog");
+        document.body.append(mas, panel, hamburguesa, hoja);
+        medida(mas, { left: 0, right: 44, top: 0, height: 44 });
+        medida(hamburguesa, { left: 60, right: 104, top: 0, height: 44 });
+
+        const encontrado = probeDisparadorDeLaHoja();
+        expect(
+            encontrado?.id,
+            "el desplegable Mas no controla un dialogo: no es el disparador de la hoja",
+        ).toBe("hamburguesa");
+        expect(
+            encontrado.etiqueta,
+            "el rotulo se lee para el informe, en el idioma que sea, pero no se compara",
+        ).toBe("Open the navigation menu");
+
+        hamburguesa.removeAttribute("aria-label");
+        expect(
+            probeDisparadorDeLaHoja(),
+            "un control sin nombre accesible no es un disparador que nadie pueda encontrar",
+        ).toBeNull();
+    });
+
+    it("las dos guardas del veredicto cortan antes de juzgar, y dicen que el fallo es del instrumento", () => {
+        /*
+         * Sin disparador no hay hoja que abrir y sin controles dentro de la hoja
+         * recien abierta lo que hay es una hoja que no se abrio. Las dos son
+         * incumplimiento --una medicion que no ocurre no es un verde-- pero con
+         * el motivo apuntando al aparato, que es lo que distingue "arregla el
+         * sitio" de "arregla la sonda".
+         */
+        const combinacion = CAMBIOS_DE_ANCHURA_DE_LA_HOJA[0];
+        const sinDisparador = evaluaEstadoModal({
+            combinacion,
+            disparador: null,
+            abierta: null,
+            despues: null,
+        });
+        expect(sinDisparador.cumple).toBe(false);
+        expect(sinDisparador.motivos[0]).toContain(
+            "sin disparador no hay hoja que abrir",
+        );
+
+        const sinAbrir = evaluaEstadoModal({
+            combinacion,
+            disparador: { id: "x", etiqueta: "Abrir el menú" },
+            abierta: {
+                focalizables: 60,
+                operables: 60,
+                operablesEnLaHoja: 0,
+                inertesFuera: [],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+            despues: null,
+        });
+        expect(sinAbrir.cumple).toBe(false);
+        expect(sinAbrir.motivos[0]).toContain(
+            "la hoja no llego a abrirse y lo que falla es el instrumento",
+        );
+
+        const cruceLimpio = evaluaEstadoModal({
+            combinacion,
+            disparador: { id: "x", etiqueta: "Abrir el menú" },
+            abierta: {
+                focalizables: 60,
+                operables: 15,
+                operablesEnLaHoja: 15,
+                inertesFuera: ["header", "main#main"],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+            despues: {
+                focalizables: 62,
+                operables: 24,
+                operablesEnLaHoja: 0,
+                inertesFuera: [],
+                modalesInalcanzables: [],
+                expandidosSinCaja: [],
+            },
+        });
+        expect(
+            cruceLimpio.cumple,
+            "el fondo inerte MIENTRAS la hoja esta abierta es correcto: lo que se juzga es lo que queda DESPUES",
+        ).toBe(true);
+        expect(cruceLimpio.motivos).toEqual([]);
+    });
+
+    it("la matriz de la hoja es la acordada, cruza el escalon de verdad y no puede encoger", () => {
+        /*
+         * Los numeros TECLEADOS de esta familia, con el mismo criterio que
+         * `ANCHOS_ESPERADOS` y `FAMILIAS_MINIMAS`: una matriz que se recorre sale
+         * verde cuando encoge. Los tres cruces son los medidos el 2026-09-07 y el
+         * de DPR 3 es el que declara un telefono real.
+         */
+        expect(
+            VIEWPORT_DE_LA_HOJA,
+            "la hoja se abre en el viewport donde el sitio la entrega: 390x844",
+        ).toEqual({ ancho: 390, alto: 844 });
+        expect(
+            CAMBIOS_DE_ANCHURA_DE_LA_HOJA,
+            "los tres cruces son los acordados: el giro del telefono, una ventana " +
+                "de escritorio y la misma a la densidad de un telefono real. " +
+                "Recortar la lista mide menos y sale igual de verde",
+        ).toEqual([
+            { ancho: 844, alto: 390, dpr: 1 },
+            { ancho: 1280, alto: 390, dpr: 1 },
+            { ancho: 1280, alto: 390, dpr: 3 },
+        ]);
+        for (const cambio of CAMBIOS_DE_ANCHURA_DE_LA_HOJA)
+            expect(
+                cambio.ancho,
+                `el cruce a ${cambio.ancho}px no pasa del escalon md (768 px): sin ` +
+                    `cruzarlo la hoja no cambia de forma y no hay nada que medir`,
+            ).toBeGreaterThan(768);
+        expect(
+            CAMBIOS_DE_ANCHURA_DE_LA_HOJA.some((c) => c.dpr === 3),
+            "sin la pasada a DPR 3 el eje de densidad se da por irrelevante sin " +
+                "medirlo, que es justo el descuido que escondio el P1 de arte de la #19",
+        ).toBe(true);
+        expect(
+            SELECTOR_FOCALIZABLE,
+            "un nodo con tabindex -1 es enfocable a mano pero no alcanzable con el " +
+                "teclado: contarlo como operable inflaria la cuenta que decide",
+        ).toContain("[tabindex]:not([tabindex='-1'])");
+        expect(
+            LECTURAS_IGUALES_PARA_ASENTAR,
+            "el asentamiento se mide con lecturas repetidas, no con un tiempo fijo: " +
+                "con una sola lectura se juzga un estado intermedio que no existe",
+        ).toBeGreaterThanOrEqual(3);
+        for (const guarda of [
+            "la hoja movil no llego a abrirse en ninguna de las",
+            "el estado modal sobrevive al contexto que lo justificaba",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo "${guarda}": sin esa linea la ` +
+                    `familia mediria y callaria`,
+            ).toContain(guarda);
+        }
+    });
+});
+
+/**
+ * VALIDADO CON BUG INYECTADO (2026-09-07). Fijando el eje que da sentido a la
+ * familia --`REDUCES_DE_LA_CABECERA = ["reduce"]`, que es exactamente la
+ * comodidad de instrumento que la leccion del 2026-09-07 prohibe-- cae el caso
+ * que teclea la matriz:
+ *
+ *   AssertionError: la familia mide con y SIN prefers-reduced-motion, y ese eje
+ *   es su razon de ser: el arbitraje de la critica #20 dio 8,85 con la
+ *   preferencia fijada y 3,41 sin ella sobre la misma pieza. Fijarla deja de
+ *   ver el defecto: expected [ 'reduce' ] to deeply equal [ 'no-preference',
+ *   'reduce' ]
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurado el eje, 64/64 en verde.
+ *
+ * SEGUNDA INYECCION SOBRE EL MISMO BLOQUE, la que ata el veredicto y no la
+ * matriz: cambiando la comparacion de `evaluaContrasteDeCabecera` para que nunca
+ * reporte nada (`if (pieza.peor.percentil < 0)`, que es como se vacia una
+ * familia sin tocar ni una constante ni una lista) cae el caso que reproduce las
+ * dos medidas:
+ *
+ *   AssertionError: 3,56 esta por debajo de 4,5 y 8,76 no: solo la primera se
+ *   reporta: expected [] to have a length of 1 but got +0
+ *
+ * «Tests 1 failed | 63 passed (64)». Restaurada la comparacion, 64/64 en verde.
+ */
+describe("el veredicto del contraste de la cabecera", () => {
+    it("el umbral sale del tamano COMPUTADO y del peso, como manda WCAG 1.4.3", () => {
+        /*
+         * La tabla de la norma en px: texto grande es 24 px, o 18,66 px con peso
+         * 700 (los 18 pt y los 14 pt en negrita). Los enlaces de la cabecera del
+         * sitio miden 14 px, asi que les toca 4,5 lleven el peso que lleven --y
+         * ese es el umbral con el que se midieron los 3,56 del 2026-09-07.
+         */
+        expect(umbralDeContraste(14, 400)).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(
+            umbralDeContraste(14, 700),
+            "14 px en negrita siguen siendo texto normal: la norma pide 18,66",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(umbralDeContraste(18.66, 700)).toBe(UMBRAL_DE_CONTRASTE_GRANDE);
+        expect(
+            umbralDeContraste(18.65, 700),
+            "por debajo de 18,66 px el peso no basta",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+        expect(umbralDeContraste(24, 400)).toBe(UMBRAL_DE_CONTRASTE_GRANDE);
+        expect(
+            umbralDeContraste(23.99, 400),
+            "por debajo de 24 px sin negrita el umbral sigue siendo el normal",
+        ).toBe(UMBRAL_DE_CONTRASTE_NORMAL);
+    });
+
+    it("la formula de contraste es la de WCAG, y reproduce las DOS medidas del arbitraje", () => {
+        /*
+         * LOS DOS ANCLAS DE LA NORMA primero --21 entre blanco y negro, 1 contra
+         * si mismo-- y despues las dos medidas que dan sentido a la familia,
+         * tomadas del navegador el 2026-09-07 sobre la portada oscura con la
+         * tinta de «English» (rgb 183,183,187):
+         *
+         *   CON `prefers-reduced-motion` el arte no se desplaza y bajo la barra
+         *   queda el cristal oscuro (rgb 35,19,43): 8,76. Cumple de sobra.
+         *   SIN la preferencia, el arte del guardian pasa por debajo y el fondo
+         *   sube a rgb(88,89,92): por debajo de 4,5, que es el P1 que la ronda
+         *   #20 reporto y que el arbitraje estuvo a punto de retirar por medir
+         *   solo la primera combinacion.
+         *
+         * Las dos lineas de este caso son esa leccion escrita como candado: si
+         * la formula se moviera, la diferencia entre las dos dejaria de existir.
+         */
+        expect(razonDeContraste([255, 255, 255], [0, 0, 0])).toBeCloseTo(21, 5);
+        expect(razonDeContraste([120, 120, 120], [120, 120, 120])).toBeCloseTo(
+            1,
+            5,
+        );
+        expect(luminanciaRelativa([255, 255, 255])).toBeCloseTo(1, 5);
+        expect(luminanciaRelativa([0, 0, 0])).toBeCloseTo(0, 5);
+
+        expect(
+            razonDeContraste([183, 183, 187], [35, 19, 43]),
+            "con prefers-reduced-motion el arte no llega a pasar bajo la barra y la pieza cumple",
+        ).toBeCloseTo(8.76, 1);
+        expect(
+            razonDeContraste([183, 183, 187], [88, 89, 92]),
+            "sin la preferencia el arte pasa por debajo y la misma pieza cae por " +
+                "debajo del umbral: es el P1 de la critica #20",
+        ).toBeLessThan(UMBRAL_DE_CONTRASTE_NORMAL);
+    });
+
+    it("una pieza cuyo percentil cae por debajo de su umbral se reporta con su punto, su mediana y su porcentaje", () => {
+        /*
+         * Los dos casos reales, con las cifras medidas: «English» a 3,56 con el
+         * 92,3 % de su caja bajo umbral se reporta, y la misma pieza a 8,76 con
+         * `reduce` no. El motivo lleva los cuatro numeros porque son los que
+         * distinguen "un pixel raro" de "la pieza no se lee ahi".
+         */
+        const { fallos, comprobadas, formulaRota } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "1440x900 reduce=no-preference",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 3.56,
+                        mediana: 3.73,
+                        porcentajeBajo: 92.3,
+                        peorRazon: razonDeContraste(
+                            [183, 183, 187],
+                            [88, 89, 92],
+                        ),
+                        peorFondo: [88, 89, 92],
+                    },
+                },
+                {
+                    clave: "1440x900 reduce=reduce",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 8.76,
+                        mediana: 8.79,
+                        porcentajeBajo: 0,
+                        peorRazon: razonDeContraste(
+                            [183, 183, 187],
+                            [35, 19, 43],
+                        ),
+                        peorFondo: [35, 19, 43],
+                    },
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+
+        expect(comprobadas).toBe(2);
+        expect(formulaRota).toEqual([]);
+        expect(
+            fallos,
+            "3,56 esta por debajo de 4,5 y 8,76 no: solo la primera se reporta",
+        ).toHaveLength(1);
+        expect(fallos[0]).toContain("p05 3.56 en y = 9300");
+        expect(fallos[0]).toContain("mediana 3.73");
+        expect(fallos[0]).toContain("92.3 % de la caja bajo umbral");
+        expect(fallos[0]).toContain("reduce=no-preference");
+    });
+
+    it("si las dos copias de la formula no coinciden, la corrida se para en vez de creerse el numero", () => {
+        /*
+         * La sonda se serializa para correr dentro de la pagina y lleva su propia
+         * copia de la formula de WCAG. Dos copias son dos cosas que divergen, asi
+         * que en cada punto se devuelve el peor fondo y su razon, y el modulo la
+         * recalcula. Sin este cruce, una copia desviada mentiria en la direccion
+         * que le tocara sin que nada lo dijera.
+         */
+        const { formulaRota } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "1440x900 reduce=no-preference",
+                    texto: "English",
+                    px: 14,
+                    peso: 400,
+                    tinta: [183, 183, 187],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: {
+                        y: 9300,
+                        percentil: 8.9,
+                        mediana: 9,
+                        porcentajeBajo: 0,
+                        /* La pagina dice 8,9 para un par que da 3,5x. */
+                        peorRazon: 8.9,
+                        peorFondo: [88, 89, 92],
+                    },
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+        expect(formulaRota).toHaveLength(1);
+        expect(formulaRota[0]).toContain("la pagina devolvio 8.9");
+    });
+
+    it("una pieza sin ningun punto medido no pasa por verde: se cuenta y se dice", () => {
+        /* Una pieza que se quedo fuera de la banda capturada en todo el barrido
+           no es una pieza que cumpla: es una pieza que nadie miro. */
+        const { fallos, sinPuntos, comprobadas } = evaluaContrasteDeCabecera({
+            piezas: [
+                {
+                    clave: "390x844 reduce=reduce",
+                    texto: "Void",
+                    px: 18.4,
+                    peso: 700,
+                    tinta: [250, 250, 250],
+                    umbral: UMBRAL_DE_CONTRASTE_NORMAL,
+                    percentil: PERCENTIL_DE_CONTRASTE,
+                    peor: null,
+                },
+            ],
+            tolerancia: TOLERANCIA_DE_LA_FORMULA_DE_CONTRASTE,
+        });
+        expect(fallos).toEqual([]);
+        expect(comprobadas).toBe(0);
+        expect(sinPuntos).toEqual(['390x844 reduce=reduce ("Void")']);
+    });
+
+    it("la matriz del contraste es la acordada, con los DOS sentidos de reduce, y sus umbrales no se aflojan", () => {
+        /*
+         * El eje que no se puede tocar y los tres numeros que no se pueden
+         * aflojar. La matriz completa, con el porque de cada eje fijado, esta en
+         * el docblock de `VIEWPORTS_DE_LA_CABECERA`.
+         */
+        expect(
+            REDUCES_DE_LA_CABECERA,
+            "la familia mide con y SIN prefers-reduced-motion, y ese eje es su " +
+                "razon de ser: el arbitraje de la critica #20 dio 8,85 con la " +
+                "preferencia fijada y 3,41 sin ella sobre la misma pieza. Fijarla " +
+                "deja de ver el defecto",
+        ).toEqual(["no-preference", "reduce"]);
+        expect(
+            VIEWPORTS_DE_LA_CABECERA,
+            "los dos anchos son la cabecera ancha (con sus enlaces y su selector " +
+                "de idioma) y la estrecha (marca y disparador): son piezas " +
+                "distintas sobre el mismo arte",
+        ).toEqual([
+            { ancho: 1440, alto: 900 },
+            { ancho: 390, alto: 844 },
+        ]);
+        expect(
+            UMBRAL_DE_CONTRASTE_NORMAL,
+            "4,5 es el minimo de WCAG 1.4.3 para texto normal: bajarlo es aprobar " +
+                "el defecto en vez de arreglarlo",
+        ).toBe(4.5);
+        expect(UMBRAL_DE_CONTRASTE_GRANDE).toBe(3);
+        expect(
+            PERCENTIL_DE_CONTRASTE,
+            "el percentil 5 describe el fondo real de la caja; subirlo afloja el " +
+                "candado (con el 50 solo caeria una pieza cuando mas de media caja " +
+                "incumple) y bajarlo lo devuelve al ruido del pixel minimo",
+        ).toBe(5);
+        expect(
+            PASO_DEL_BARRIDO_DE_CABECERA,
+            "el paso de 300 px se eligio midiendo la banda del defecto (de 9.300 a " +
+                "9.700 px en la portada oscura, unos 500 px de ancho): agrandarlo " +
+                "puede colar una banda incumplidora entre dos puntos",
+        ).toBeLessThanOrEqual(300);
+        expect(
+            ALTO_DE_LA_BANDA_DE_CABECERA,
+            "la franja capturada tiene que dar holgura a la barra y a su " +
+                "desplazamiento; por debajo del alto de la cabecera no se mediria nada",
+        ).toBeGreaterThanOrEqual(64);
+        expect(
+            LADO_MINIMO_DE_PIEZA_PX,
+            "por debajo de 4 px una caja es un rotulo para lectores de pantalla " +
+                "(VisuallyHidden deja 1x1) y no tinta que nadie lea",
+        ).toBeGreaterThanOrEqual(4);
+        for (const guarda of [
+            "la sonda de contraste no encontro ni una sola pieza de texto en la cabecera",
+            "el barrido de scroll de la cabecera no llego a dar ni un solo punto",
+            "con la tinta puesta tras apagarla",
+            "las dos copias de la formula de contraste no coinciden",
+        ]) {
+            expect(
+                SCRIPT,
+                `el script ya no convierte en rojo "${guarda}": sin esa linea un ` +
+                    `instrumento roto pasaria por cabecera legible`,
+            ).toContain(guarda);
+        }
+    });
+});
+
+/*
+ * LA SALIDA DE EMERGENCIA, ATADA. Este candado no corre en el gate porque
+ * necesita el sitio servido; se ejecuta a mano, y la unica forma de ejecutarlo en
+ * esta maquina es apuntar `PLAYWRIGHT_CORE` al paquete instalado fuera del repo.
+ * Esa variable estuvo ROTA para la lectura natural de su propia documentacion --
+ * la ruta del DIRECTORIO del paquete --, y el script moria diciendo que
+ * Playwright no estaba instalado. Un candado que la ronda siguiente no sabe
+ * arrancar siguiendo sus instrucciones es un candado que no correra.
+ *
+ * Se prueba contra un paquete de mentira montado en disco, no contra el
+ * Playwright de esta maquina: la ruta real es de UNA maquina y el gate corre en
+ * otras. Lo que se verifica es lo que fallaba -- que una ruta de DIRECTORIO
+ * termine en un especificador que `import()` sabe resolver.
+ *
+ * VALIDADO CON BUG INYECTADO: desactivando la deteccion de directorio
+ * (`esDirectorio = false && statSync(valor).isDirectory()`, que devuelve
+ * exactamente el comportamiento anterior) los dos primeros casos caen con
+ *
+ *   AssertionError: un directorio tiene que resolverse al FICHERO de entrada: un
+ *   import() de una URL file:// de carpeta no lee el package.json del paquete
+ *
+ *   Error: loadChromium no supo cargar el paquete desde la ruta de su
+ *   DIRECTORIO, que es la forma en que la variable se reparte en los encargos y
+ *   la lectura natural de su propia documentacion. Salida de node: Error: Este
+ *   candado necesita Playwright, que NO es dependencia del repo a proposito...
+ *
+ * Restaurada la deteccion, verde. Y con el arreglo puesto, el candado entero
+ * corrio contra el build servido apuntando `PLAYWRIGHT_CORE` al DIRECTORIO del
+ * paquete: «CUMPLE - 6 superficies, 14 familias, cero incumplimientos (tema
+ * dark, base http://localhost:4321)», codigo de salida 0.
+ */
+const paquetesFalsos = [];
+function paqueteFalso(pkg, entrada) {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "vti-playwright-falso-"));
+    paquetesFalsos.push(dir);
+    writeFileSync(path.join(dir, "package.json"), JSON.stringify(pkg));
+    writeFileSync(
+        path.join(dir, entrada),
+        "export const chromium = { marca: 'paquete falso del candado' };\n",
+    );
+    return dir;
+}
+
+afterAll(() => {
+    for (const dir of paquetesFalsos)
+        rmSync(dir, { recursive: true, force: true });
+});
+
+describe("la salida de emergencia PLAYWRIGHT_CORE del candado de navegador", () => {
+    it("resuelve la ruta de un DIRECTORIO al fichero de entrada que declara su package.json", () => {
+        /* `playwright-core` declara `exports` y NO declara `main`, asi que
+           quedarse en `main` tampoco habria bastado (comprobado en el paquete
+           real de esta maquina). */
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./index.mjs" } },
+            },
+            "index.mjs",
+        );
+        const candidatos = especificadoresDePlaywright(dir);
+        expect(
+            candidatos[0],
+            `un directorio tiene que resolverse al FICHERO de entrada: un import() ` +
+                `de una URL file:// de carpeta no lee el package.json del paquete`,
+        ).toBe(pathToFileURL(path.join(dir, "index.mjs")).href);
+        expect(
+            candidatos.at(-2),
+            "los nombres de paquete siguen como ultimo recurso",
+        ).toBe("playwright-core");
+    });
+
+    it("importa de verdad el paquete cuando PLAYWRIGHT_CORE apunta a su directorio", () => {
+        /*
+         * En NODE PELADO, no dentro de Vitest, y a proposito: el defecto vivia en
+         * el `import()` real y el script se ejecuta con `node scripts/...`. Vite
+         * reescribe los import dinamicos y no sabe cargar un fichero de fuera de
+         * la raiz del proyecto (reproducido: llamar aqui a `loadChromium()`
+         * directamente falla aunque la ruta sea correcta), asi que medirlo desde
+         * dentro del corredor mediria otra cosa.
+         */
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./entrada.mjs" } },
+            },
+            "entrada.mjs",
+        );
+        const sonda = path.join(dir, "sonda.mjs");
+        writeFileSync(
+            sonda,
+            `import { loadChromium } from ${JSON.stringify(pathToFileURL(RUTA_SCRIPT).href)};\n` +
+                `const chromium = await loadChromium();\n` +
+                `process.stdout.write(String(chromium.marca));\n`,
+        );
+
+        let salida;
+        try {
+            salida = execFileSync(process.execPath, [sonda], {
+                encoding: "utf8",
+                env: { ...process.env, PLAYWRIGHT_CORE: dir },
+            });
+        } catch (error) {
+            throw new Error(
+                `loadChromium no supo cargar el paquete desde la ruta de su ` +
+                    `DIRECTORIO, que es la forma en que la variable se reparte en los ` +
+                    `encargos y la lectura natural de su propia documentacion. ` +
+                    `Salida de node: ${String(error.stderr || error.message).trim()}`,
+            );
+        }
+        expect(salida).toBe("paquete falso del candado");
+    });
+
+    it("acepta tambien el fichero de entrada y el nombre del paquete, y no inventa candidatos sin variable", () => {
+        const dir = paqueteFalso(
+            {
+                name: "playwright-core-falso",
+                exports: { ".": { import: "./index.mjs" } },
+            },
+            "index.mjs",
+        );
+        const fichero = path.join(dir, "index.mjs");
+        expect(especificadoresDePlaywright(fichero)[0]).toBe(
+            pathToFileURL(fichero).href,
+        );
+        expect(especificadoresDePlaywright("playwright-core")[0]).toBe(
+            "playwright-core",
+        );
+        expect(especificadoresDePlaywright(undefined)).toEqual([
+            "playwright-core",
+            "playwright",
+        ]);
+    });
+});
+
+/*
+ * LA LINEA BASE DE NODOS INERTES, y por que hace falta un caso propio: la
+ * familia del estado modal compara los nodos inertes de DESPUES del cruce con
+ * los que ya lo eran ANTES de abrir la hoja. Sin esa resta, un nodo que trae su
+ * propio `inert` del marcado -- hoy el panel del desplegable «Mas», cerrado --
+ * se cuenta como fondo que la hoja no libero, y la familia sale en rojo sobre
+ * una pagina correcta: paso de verdad el 2026-09-07, con la corrida citando
+ * `div#_R_79laivbH1_`, que es ese panel. Y la resta no puede tapar lo
+ * contrario: un nodo que la hoja SI inertizo y no libero tiene que seguir
+ * cayendo aunque haya linea base.
+ *
+ * Validado con bug inyectado (ignorando la linea base, `const yaInertesAntes =
+ * new Set()`):
+ *   AssertionError: un nodo que ya era inerte antes de abrir no es fondo que la
+ *   hoja dejara sucio: expected false to be true // Object.is equality
+ */
+describe("la linea base de nodos inertes de la familia del estado modal", () => {
+    const combinacion = { ancho: 844, alto: 390, dpr: 1 };
+    const disparador = { id: "abrir", etiqueta: "Abrir el menu" };
+    const abierta = { operablesEnLaHoja: 12, focalizables: 30, operables: 12 };
+    const base = (inertesFuera) => ({
+        focalizables: 30,
+        operables: 30,
+        inertesFuera,
+        modalesInalcanzables: [],
+        expandidosSinCaja: [],
+    });
+
+    it("un nodo que ya era inerte antes de abrir no cuenta como fondo sin liberar", () => {
+        const { cumple, motivos } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas"]),
+            lineaBase: base(["div#panel-mas"]),
+        });
+        expect(
+            cumple,
+            "un nodo que ya era inerte antes de abrir no es fondo que la hoja dejara sucio",
+        ).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("un nodo que la hoja inertizo y no libero sigue cayendo, haya linea base o no", () => {
+        const { cumple, motivos } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas", "main#main"]),
+            lineaBase: base(["div#panel-mas"]),
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("main#main");
+        expect(
+            motivos.join(" "),
+            "el nodo de la linea base no se nombra: no es lo que esta familia persigue",
+        ).not.toContain("panel-mas");
+    });
+
+    it("sin linea base se exige cero, que es el comportamiento anterior", () => {
+        const { cumple } = evaluaEstadoModal({
+            combinacion,
+            disparador,
+            abierta,
+            despues: base(["div#panel-mas"]),
+        });
+        expect(cumple).toBe(false);
+    });
+});
+
+/**
+ * LA FAMILIA VEINTICUATRO, `volver-arriba-vuelve-arriba` (critica externa #21,
+ * ola U, 2026-09-08). Se ejercita el VEREDICTO con las cifras REALES que la
+ * sonda midio sobre el build defectuoso de `27bf1f6`, no con numeros
+ * inventados: si algun dia alguien afloja la tolerancia o retira una guarda,
+ * estos casos dicen exactamente que defecto vuelve a pasar.
+ *
+ * La conduccion del navegador (`mideVueltaArriba`) no se prueba aqui: necesita
+ * un sitio servido, y esa mitad se valida corriendo la familia contra el build
+ * --roja sobre el defecto, verde tras el arreglo--, que es como se validan las
+ * veintitres familias anteriores.
+ */
+describe("familia volver-arriba-vuelve-arriba: el control cumple lo que promete", () => {
+    const SIN_REDUCE_1440 = {
+        ancho: 1440,
+        alto: 900,
+        reduce: "no-preference",
+    };
+
+    it("la matriz cubre los dos anchos sin reduce y deja constancia del sentido reduce", () => {
+        expect(VIEWPORTS_DE_VOLVER_ARRIBA).toEqual([
+            { ancho: 1440, alto: 900, reduce: "no-preference" },
+            { ancho: 390, alto: 844, reduce: "no-preference" },
+            { ancho: 1440, alto: 900, reduce: "reduce" },
+        ]);
+        /* El eje que separo a los dos bandos de la critica: sin este sentido
+           la familia mediria justo el lado donde el defecto es invisible. */
+        expect(
+            VIEWPORTS_DE_VOLVER_ARRIBA.filter(
+                (v) => v.reduce === "no-preference",
+            ).length,
+            "sin una combinacion sin `reduce` esta familia no puede ver su propio defecto",
+        ).toBeGreaterThanOrEqual(2);
+    });
+
+    it("tres pulsaciones, porque el defecto medido NO se autocorrige al insistir", () => {
+        expect(PULSACIONES_DE_VOLVER_ARRIBA).toBeGreaterThanOrEqual(3);
+    });
+
+    it("cae con las cifras reales del defecto a 1440 en claro (5623 -> 5320, tres veces)", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [5320, 5320, 5320],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("y=5320");
+        expect(motivos.join(" ")).toContain("94.6 %");
+    });
+
+    it("cae tambien con el defecto a 390, que se queda a mitad de recorrido", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: { ancho: 390, alto: 844, reduce: "no-preference" },
+            botonVisible: true,
+            partida: 9314,
+            intentos: [4198, 4198, 4198],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("45.1 %");
+    });
+
+    it("cae aunque solo falle UNA de las tres pulsaciones", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [0, 5320, 0],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("pulsacion 2");
+    });
+
+    it("pasa cuando las tres pulsaciones llegan al origen", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 5623,
+            intentos: [0, 0, 0],
+        });
+        expect(cumple).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("la tolerancia admite el redondeo subpixel y nada mas", () => {
+        expect(
+            evaluaVueltaArriba({
+                combinacion: SIN_REDUCE_1440,
+                botonVisible: true,
+                partida: 5623,
+                intentos: [TOLERANCIA_DE_VUELTA_ARRIBA_PX, 0, 0],
+            }).cumple,
+        ).toBe(true);
+        expect(
+            evaluaVueltaArriba({
+                combinacion: SIN_REDUCE_1440,
+                botonVisible: true,
+                partida: 5623,
+                intentos: [TOLERANCIA_DE_VUELTA_ARRIBA_PX + 1, 0, 0],
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("guarda de vacuidad: sin control que pulsar el verde no valdria nada", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: false,
+            partida: 5623,
+            intentos: [],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no llego a aparecer");
+    });
+
+    it("guarda de vacuidad: llegar a 0 desde 0 no demuestra que el control funcione", () => {
+        const { cumple, motivos } = evaluaVueltaArriba({
+            combinacion: SIN_REDUCE_1440,
+            botonVisible: true,
+            partida: 300,
+            intentos: [0, 0, 0],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("menos de una pantalla");
+    });
+});
+
+/**
+ * LA FAMILIA VEINTICINCO, `conmutar-el-tema-no-congela-la-pagina` (critica
+ * externa #21, ola U, 2026-09-08). Como en la veinticuatro, se ejercita el
+ * VEREDICTO con las cifras REALES medidas sobre el build defectuoso de
+ * `4d71a4f` -- 10 cubos de color con el 99,4 % dominante, `Story__ScGrid` con
+ * ratio 0,2538 en `data-revealed="false"`, el deck de Journey en 0,0,0,0,0,0
+ * durante 1.000 px de rueda --, no con numeros inventados.
+ *
+ * La conduccion del navegador (`mideConmutacionDeTema`) no se prueba aqui:
+ * necesita un sitio servido, y esa mitad se valida corriendo la familia contra
+ * el build -- roja sobre el defecto, verde tras el arreglo --, que es como se
+ * validan las veinticuatro familias anteriores.
+ */
+describe("familia conmutar-el-tema-no-congela-la-pagina: el gesto deja la pagina viva", () => {
+    const GESTO = { pasos: 12, reduce: "no-preference" };
+    const SANO = {
+        gesto: GESTO,
+        temaAntes: "dark",
+        temaDespues: "light",
+        yAntes: 2640,
+        yDespues: 1712,
+        alto: 900,
+        pixel: { cubos: 41, dominante: 90.8 },
+        atascados: [],
+        deck: null,
+    };
+
+    it("la matriz mide dos profundidades sin reduce y deja constancia del sentido reduce", () => {
+        expect(GESTOS_DEL_CONMUTADOR).toEqual([
+            { pasos: 12, reduce: "no-preference" },
+            { pasos: 24, reduce: "no-preference" },
+            { pasos: 12, reduce: "reduce" },
+        ]);
+        /* Sin `reduce` es donde el defecto se ve: bajo `reduce` las guardas CSS
+           de revelado ponen `opacity: 1` sin calificar por `data-revealed` y lo
+           TAPAN. Una familia que solo midiera con `reduce` saldria verde sobre
+           el defecto entero. */
+        expect(
+            GESTOS_DEL_CONMUTADOR.filter((g) => g.reduce === "no-preference")
+                .length,
+            "sin combinaciones sin `reduce` esta familia no puede ver su propio defecto",
+        ).toBeGreaterThanOrEqual(2);
+        /* Dos profundidades distintas porque el defecto no cae en un punto: la
+           ventana peor (99 % y 10 cubos) va de y ~2.600 a ~3.500, y mas abajo
+           el pixel ya sale verde con siete piezas todavia atascadas. Cada
+           medida ve una profundidad que la otra no. */
+        expect(new Set(GESTOS_DEL_CONMUTADOR.map((g) => g.pasos)).size).toBe(2);
+    });
+
+    it("cae con las cifras reales del defecto: 10 cubos de color y 99,4 % dominante", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            pixel: { cubos: 10, dominante: 99.4 },
+            atascados: [
+                {
+                    nombre: "Story__ScGrid",
+                    ratio: 0.2538,
+                    top: -700,
+                    opacidad: 0,
+                },
+                {
+                    nombre: "Story__ScStatementText",
+                    ratio: 1,
+                    top: 369,
+                    opacidad: 1,
+                },
+            ],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("10 cubos de color");
+        expect(motivos.join(" ")).toContain("Story__ScGrid ratio=0.2538");
+    });
+
+    it("cae por revelados atascados aunque el pixel salga verde (la profundidad de 24 muescas)", () => {
+        // Medido: a 24 muescas el histograma da 553 cubos --pantalla con
+        // contenido-- y siguen atascadas seis piezas de Journey y el grupo de
+        // Features. Si la familia solo mirara el pixel, ese caso saldria verde.
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            gesto: { pasos: 24, reduce: "no-preference" },
+            yAntes: 5280,
+            yDespues: 2612,
+            pixel: { cubos: 553, dominante: 69.8 },
+            atascados: [
+                {
+                    nombre: "Journey__ScStepReveal",
+                    ratio: 1,
+                    top: 120,
+                    opacidad: 0,
+                },
+            ],
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("data-revealed");
+        expect(motivos.join(" ")).not.toContain("cubos de color");
+    });
+
+    it("cae por la coreografia muerta aunque el pixel y los revelados salgan verdes (el sentido claro -> oscuro)", () => {
+        // El defecto medido en ese sentido: `--journey-progress` nunca escrita
+        // y `data-slide` en 0 durante 1.000 px de rueda. No hay pantalla en
+        // blanco ahi, asi que ninguna de las otras dos medidas lo ve.
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            temaAntes: "light",
+            temaDespues: "dark",
+            yAntes: 2640,
+            yDespues: 4078,
+            pixel: { cubos: 299, dominante: 61.4 },
+            deck: {
+                aplicable: true,
+                nombre: "journey-deck__ScJourneyStage",
+                serie: ["0", "0", "0", "0", "0", "0"],
+                progresos: [
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                    "NO ESCRITA",
+                ],
+                recorrido: 1000,
+                avanza: false,
+            },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no avanza al rodar 1000 px");
+    });
+
+    it("pasa con las cifras del mismo instante ya arreglado (41 cubos, 90,8 %, cero atascados)", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema(SANO);
+        expect(cumple).toBe(true);
+        expect(motivos).toEqual([]);
+    });
+
+    it("pasa con el deck avanzando, que es lo que se midio con el arreglo puesto", () => {
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                temaAntes: "light",
+                temaDespues: "dark",
+                yDespues: 4078,
+                deck: {
+                    aplicable: true,
+                    nombre: "journey-deck__ScJourneyStage",
+                    serie: ["0", "1", "1", "1", "2", "2"],
+                    progresos: [
+                        "0.0089",
+                        "0.1",
+                        "0.2",
+                        "0.25",
+                        "0.3",
+                        "0.3263",
+                    ],
+                    recorrido: 1000,
+                    avanza: true,
+                },
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("bajo `reduce` NO se juzga el pixel, porque ahi la guarda CSS tapa el defecto", () => {
+        /* Con `reduce` las reglas de revelado ponen `opacity: 1` sin calificar
+           por `data-revealed`, asi que la pantalla se pinta aunque la maquina
+           de estados se haya quedado atascada. Exigirle el pixel a esa
+           combinacion no mediria el defecto: mediria la piel accesible. Lo que
+           SI se le sigue exigiendo es que no queden revelados atascados. */
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                gesto: { pasos: 12, reduce: "reduce" },
+                pixel: { cubos: 10, dominante: 99.4 },
+            }).cumple,
+        ).toBe(true);
+        expect(
+            evaluaConmutacionDeTema({
+                ...SANO,
+                gesto: { pasos: 12, reduce: "reduce" },
+                pixel: { cubos: 655, dominante: 64.6 },
+                atascados: [
+                    {
+                        nombre: "Story__ScGrid",
+                        ratio: 0.2538,
+                        top: -700,
+                        opacidad: 1,
+                    },
+                ],
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("el techo del dominante caza el fondo liso que el suelo de cubos deja pasar", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            pixel: {
+                cubos: MIN_CUBOS_DE_COLOR + 1,
+                dominante: MAX_DOMINANTE_DEL_VIEWPORT + 0.1,
+            },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("un solo cubo de color ocupa");
+    });
+
+    it("el umbral de revelado es el que `useReveal` declara, no uno inventado", () => {
+        // Si alguien sube este numero, la banda ciega de Contact --que es
+        // DECISION DEL DUENO y esta pendiente-- empezaria a colarse dentro de
+        // esta familia y la dejaria roja por un defecto ajeno.
+        expect(UMBRAL_DECLARADO_DE_REVELADO).toBe(0.2);
+    });
+
+    it("guarda de vacuidad: si el conmutador no cambia el tema, no hay gesto que medir", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            temaDespues: "dark",
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("no llego a cambiar el tema");
+    });
+
+    it("guarda de vacuidad: sin haber bajado una pantalla no hay punto de lectura que corregir", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            ...SANO,
+            yAntes: 400,
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("menos de una pantalla");
+    });
+});
+
+/**
+ * EL INSTRUMENTO DE LA MEDIDA 3, ATADO APARTE. `evaluaEscenariosFijados`
+ * responde a la pregunta "¿cual de los escenarios de deck estoy midiendo?", y
+ * su primera version respondia "el primero" -- `querySelector("[data-slide]")`
+ * --. Con esa version la familia salia VERDE sobre el defecto entero: el
+ * primer nodo es el escenario de Story, que en ese punto ya paso, se queda en
+ * su ultima diapositiva y conserva escritas las variables de cuando si corria.
+ * El que el gesto acababa de matar era el segundo.
+ *
+ * Las muestras de estos casos son las REALES, inventariadas en el navegador
+ * sobre el build defectuoso tras conmutar claro -> oscuro a 12 muescas.
+ */
+describe("evaluaEscenariosFijados: mide el escenario ENGANCHADO, no el primero del DOM", () => {
+    /* Story ya paso: su escenario se va hacia arriba (-28 -> -1028) con la
+       ultima diapositiva y sus variables ya escritas. Journey es el que el
+       lector esta atravesando: clavado en top=0, y con el defecto puesto, sin
+       una sola variable escrita y con data-slide congelado en 0. */
+    const MUESTRAS_DEL_DEFECTO = [-28, -228, -428, -628, -828, -1028].map(
+        (top) => [
+            {
+                nombre: "story-deck__ScStage",
+                enPantalla: true,
+                top,
+                slide: "5",
+                progreso: "1.0000",
+            },
+            {
+                nombre: "journey-deck__ScJourneyStage",
+                enPantalla: true,
+                top: 0,
+                slide: "0",
+                progreso: null,
+            },
+        ],
+    );
+
+    it("elige el escenario clavado en 0 y no el que se esta yendo hacia arriba", () => {
+        const deck = evaluaEscenariosFijados(MUESTRAS_DEL_DEFECTO);
+        expect(deck.aplicable).toBe(true);
+        expect(deck.nombre).toBe("journey-deck__ScJourneyStage");
+        expect(deck.avanza).toBe(false);
+    });
+
+    it("ve el defecto que la version «el primer nodo» daba por bueno", () => {
+        const { cumple, motivos } = evaluaConmutacionDeTema({
+            gesto: { pasos: 12, reduce: "no-preference" },
+            temaAntes: "light",
+            temaDespues: "dark",
+            yAntes: 2640,
+            yDespues: 4078,
+            alto: 900,
+            pixel: { cubos: 282, dominante: 32.8 },
+            atascados: [],
+            deck: evaluaEscenariosFijados(MUESTRAS_DEL_DEFECTO),
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("journey-deck__ScJourneyStage");
+        expect(motivos.join(" ")).toContain("no avanza al rodar 1000 px");
+    });
+
+    it("pasa cuando el escenario enganchado avanza (las cifras del arreglo)", () => {
+        const serie = ["0", "1", "1", "1", "2", "2"];
+        const progresos = ["0.0089", "0.1", "0.2", "0.25", "0.3", "0.3263"];
+        const deck = evaluaEscenariosFijados(
+            serie.map((slide, i) => [
+                {
+                    nombre: "journey-deck__ScJourneyStage",
+                    enPantalla: true,
+                    top: 0,
+                    slide,
+                    progreso: progresos[i],
+                },
+            ]),
+        );
+        expect(deck.avanza).toBe(true);
+    });
+
+    it("un escenario que se va hacia arriba no cuenta como enganchado, aunque este congelado", () => {
+        // Sin esta regla la familia acusaria al deck de Story --que esta
+        // legitimamente parado en su ultima diapositiva-- de un defecto ajeno.
+        const deck = evaluaEscenariosFijados(
+            [-28, -228, -428, -628, -828, -1028].map((top) => [
+                {
+                    nombre: "story-deck__ScStage",
+                    enPantalla: true,
+                    top,
+                    slide: "5",
+                    progreso: "1.0000",
+                },
+            ]),
+        );
+        expect(deck.aplicable).toBe(false);
+    });
+
+    it("sin ningun escenario en pantalla la medida no aplica y no inventa un verde", () => {
+        expect(evaluaEscenariosFijados([[], [], []]).aplicable).toBe(false);
+        expect(evaluaEscenariosFijados([]).aplicable).toBe(false);
+    });
+});
+
+/*
+ * FAMILIA `atras-restituye-el-documento-de-la-url` (critica externa #21, P0).
+ *
+ * Las cifras de abajo NO son inventadas: son las que la sonda de este frente
+ * midio sobre el build de `6ce08ee` servido en local, tanto en la rama rota
+ * como en las tres de control. El veredicto se ejercita aqui con esos numeros
+ * tecleados; el gesto de verdad --clics reales, navegador de verdad-- lo ejerce
+ * `mideAtras`, que no puede correr dentro de la suite.
+ */
+describe("familia atras-restituye-el-documento-de-la-url", () => {
+    /** La portada espanola tal y como se midio, paso a paso. */
+    const CARGA = {
+        url: "/",
+        h1: "VoidToInfinite",
+        lang: "es",
+        hero: true,
+        docH: 6523,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+        centinela: true,
+    };
+    const ANCLA_ROTA = {
+        url: "/#contact",
+        h1: "VoidToInfinite",
+        lang: "es",
+        hero: true,
+        docH: 6588,
+        sellada: false,
+        estadoClaves: "null",
+        centinela: true,
+    };
+    const ANCLA_SANA = {
+        ...ANCLA_ROTA,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+    };
+    const LEGAL = {
+        url: "/aviso-legal",
+        h1: "Aviso legal",
+        lang: "es",
+        hero: false,
+        docH: 5308,
+        sellada: true,
+        estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+        centinela: true,
+    };
+    /** Lo que la pantalla mostraba tras el atras ANTES del arreglo. */
+    const ATRAS_ROTO = {
+        url: "/#contact",
+        h1: "Aviso legal",
+        lang: "es",
+        hero: false,
+        docH: 5308,
+        sellada: false,
+        estadoClaves: "null",
+        centinela: true,
+    };
+    /** Y lo que muestra DESPUES. */
+    const ATRAS_SANO = { ...ANCLA_SANA };
+    const GESTO = {
+        id: "/ barra@1440",
+        destino: "/aviso-legal",
+        naturaleza: "blanda",
+    };
+    const SANO = {
+        gesto: GESTO,
+        carga: CARGA,
+        trasAncla: ANCLA_SANA,
+        destino: LEGAL,
+        atras: ATRAS_SANO,
+    };
+
+    it("la matriz recorre las dos anchuras del encargo", () => {
+        expect(VIEWPORTS_DE_ATRAS).toEqual([
+            { ancho: 1440, alto: 900 },
+            { ancho: 390, alto: 844 },
+        ]);
+    });
+
+    it("la ventana de restitucion es finita y la tolerancia de alto separa las dos poblaciones medidas", () => {
+        /* El defecto no se corrige nunca (medido hasta 7,5 s), asi que la
+           ventana no esta para darle tiempo: esta para que una corrida sana no
+           pague la espera entera. */
+        expect(VENTANA_DE_RESTITUCION_MS).toBeGreaterThan(0);
+        /* La deriva mas pequena entre dos documentos distintos que este candado
+           tiene que distinguir es 6588 -> 5308 (portada clara contra aviso
+           legal), un 19,4 %. La tolerancia tiene que quedar por debajo. */
+        expect(TOLERANCIA_DE_ALTO_TRAS_ATRAS).toBeLessThan(
+            Math.abs(5308 - 6588) / 6588,
+        );
+    });
+
+    it("cae con las cifras reales del defecto: la URL dice portada y en pantalla sigue la legal", () => {
+        const { cumple, motivos } = evaluaAtras({
+            gesto: GESTO,
+            carga: CARGA,
+            trasAncla: ANCLA_ROTA,
+            destino: LEGAL,
+            atras: ATRAS_ROTO,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain("NO quedo sellada");
+        expect(motivos.join(" | ")).toContain(
+            'h1 "Aviso legal" en vez de "VoidToInfinite"',
+        );
+        expect(motivos.join(" | ")).toContain("19.4 % de deriva");
+    });
+
+    /*
+     * LAS DOS AFIRMACIONES QUE IMPIDEN APROBAR POR CASUALIDAD. Cada una cae
+     * SOLA, con el resto del gesto en verde: si solo cayeran junto al sintoma
+     * no aportarian nada que la asercion del `h1` no diga ya.
+     */
+    it("cae si la entrada dejo de sellarse aunque el gesto salga bien por otra via", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            trasAncla: ANCLA_ROTA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("history.state = null");
+    });
+
+    it("cae si el salto a la ruta siguiente dejo de ser blando (endurecer los enlaces por la puerta de atras)", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: { ...LEGAL, centinela: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("recargo el documento");
+    });
+
+    it("cae si el atras restituye recargando la pagina entera (la opcion D del diagnostico)", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, centinela: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("recargo el documento entero");
+    });
+
+    it("cae si el documento vuelve con el idioma del otro, aunque la URL y el h1 coincidan", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, lang: "en" },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain('lang="en" en vez de lang="es"');
+    });
+
+    it("cae si falta el landmark propio de la pagina aunque el titulo coincida", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            atras: { ...ATRAS_SANO, hero: false },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("#hero");
+    });
+
+    /*
+     * LAS GUARDAS DE VACUIDAD. Las tres describen una medicion que no ejercio
+     * el gesto, y las tres tienen que salir ROJAS: un candado que no midio nada
+     * no es un candado que cumple.
+     */
+    it("no aprueba si la entrada de la que se sale no tenia fragmento", () => {
+        const { cumple, motivos } = evaluaAtras({
+            gesto: GESTO,
+            carga: CARGA,
+            trasAncla: null,
+            destino: LEGAL,
+            atras: CARGA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no tiene fragmento");
+    });
+
+    it("no aprueba si el salto no llego a mover la URL", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: ANCLA_SANA,
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain("no movio la URL");
+    });
+
+    it("no aprueba si el documento de destino no se distingue del de partida", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            destino: { ...LEGAL, url: "/otra", h1: CARGA.h1, lang: CARGA.lang },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no se distingue");
+    });
+
+    it("no aprueba si el instrumento no encontro el enlace que tenia que pulsar", () => {
+        const { cumple, motivos } = evaluaAtras({
+            ...SANO,
+            gesto: { ...GESTO, instrumento: "no hay ningun ancla visible" },
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos[0]).toContain("no hay ningun ancla visible");
+    });
+
+    it("pasa con las cifras del gesto arreglado", () => {
+        expect(evaluaAtras(SANO)).toEqual({ cumple: true, motivos: [] });
+    });
+
+    /*
+     * LOS CONTROLES DE NAVEGACION DURA (la 404 y el cruce de idioma) no pueden
+     * exigir ni el sello ni el centinela: ahi el documento se recarga a
+     * proposito, y el router vuelve a sellar por su cuenta al montar. Si esta
+     * distincion se perdiera, los tres controles positivos saldrian rojos y la
+     * familia dejaria de distinguir el caso roto del sano.
+     */
+    it("un gesto de navegacion dura pasa sin sello y sin centinela", () => {
+        const gestoDuro = {
+            id: "404 (es) salto@1440",
+            destino: "/aviso-legal",
+            naturaleza: "dura",
+        };
+        const carga404 = {
+            url: "/ruta-que-no-existe",
+            h1: "Pagina no encontrada",
+            lang: "es",
+            hero: false,
+            docH: 900,
+            sellada: true,
+            estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+            centinela: true,
+        };
+        const ancla404 = {
+            ...carga404,
+            url: "/ruta-que-no-existe#main",
+            sellada: false,
+            estadoClaves: "null",
+        };
+
+        const { cumple } = evaluaAtras({
+            gesto: gestoDuro,
+            carga: carga404,
+            trasAncla: ancla404,
+            destino: { ...LEGAL, centinela: false },
+            atras: {
+                ...ancla404,
+                sellada: true,
+                estadoClaves: "__NA,__PRIVATE_NEXTJS_INTERNALS_TREE",
+                centinela: false,
+            },
+        });
+
+        expect(cumple).toBe(true);
+    });
+
+    /*
+     * LOS GESTOS SE DERIVAN DE LA SUPERFICIE, no se teclean: es la misma regla
+     * que ya cumplen `SURFACES` y `LEGAL_DOCS`. Lo que se ata aqui es que la
+     * derivacion apunta al destino correcto en cada rama de idioma y que los
+     * tres controles positivos siguen ahi.
+     */
+    it("la portada de cada idioma sale hacia SU aviso legal, y con los tres gestos rotos mas dos controles", () => {
+        const es = gestosDeAtras(
+            SURFACES.find((s) => s.kind === "home" && s.locale === "es"),
+        );
+        const en = gestosDeAtras(
+            SURFACES.find((s) => s.kind === "home" && s.locale === "en"),
+        );
+
+        expect(es.map((g) => g.destino)).toEqual([
+            "/aviso-legal",
+            "/aviso-legal",
+            "/aviso-legal",
+            "/aviso-legal",
+            "/en",
+        ]);
+        expect(en.map((g) => g.destino)).toEqual([
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/en/legal-notice",
+            "/",
+        ]);
+        /* Las dos anchuras, y la de 390 abriendo la hoja movil: a esa anchura
+           la fila de la barra no existe y sin abrir la hoja no hay nada que
+           pulsar. */
+        expect(es.map((g) => `${g.ancho}${g.viaHoja ? "-hoja" : ""}`)).toEqual([
+            "1440",
+            "390-hoja",
+            "1440",
+            "1440",
+            "1440",
+        ]);
+    });
+
+    it("las legales cruzan al OTRO documento legal de su idioma, en los dos sentidos", () => {
+        const porRuta = Object.fromEntries(
+            SURFACES.filter((s) => s.kind === "legal").map((s) => [
+                s.path,
+                gestosDeAtras(s)[0].destino,
+            ]),
+        );
+
+        expect(porRuta).toEqual({
+            "/privacidad": "/aviso-legal",
+            "/aviso-legal": "/privacidad",
+            "/en/privacy": "/en/legal-notice",
+            "/en/legal-notice": "/en/privacy",
+        });
+    });
+
+    it("los tres controles positivos existen y declaran su naturaleza", () => {
+        const todos = SURFACES.flatMap((s) => gestosDeAtras(s));
+        const controles = todos.filter((g) => g.control);
+
+        expect(controles.map((g) => g.id.split(" ").pop()).sort()).toEqual([
+            "control-carga-fragmento@1440",
+            "control-carga-fragmento@1440",
+            "control-cruce-de-idioma@1440",
+            "control-cruce-de-idioma@1440",
+            "salto@1440",
+            "salto@1440",
+        ]);
+        /* El de carga es blando (la salida sigue siendo `next/link`); los otros
+           dos cruzan raiz de documento y por eso son duros. */
+        expect(controles.filter((g) => g.naturaleza === "dura")).toHaveLength(
+            4,
+        );
+        /* Y la mayoria de los gestos NO son controles: si un dia lo fueran
+           todos, la familia no estaria midiendo el defecto. */
+        expect(todos.length - controles.length).toBeGreaterThanOrEqual(10);
+    });
+});
+
+/*
+ * FAMILIA `punto-de-lectura-de-la-url-es-de-un-solo-uso` (critica externa #21,
+ * P1, 2026-09-08). Las cifras de esta tabla NO son inventadas: son las que la
+ * sonda del frente midio sobre el build de `e8782f6` servido en local (Chrome
+ * real sin ventana, 1440x900, tema claro, clic REAL en el enlace de idioma).
+ *
+ *   paso                        SIN arreglo        CON arreglo
+ *   llegada a /en?read=…#story  y = 1.433          y = 1.433
+ *   el lector se va a leer      y = 3.133          y = 3.133
+ *   F5                          y = 1.433          y = 3.133
+ *   URL despues de la llegada   /en?read=…#story   /en
+ *
+ * Lo que este bloque prueba es el VEREDICTO y la eleccion del punto, que son
+ * puros. Que el navegador se comporte asi lo mide `midePuntoDeLectura`, y su
+ * verde vive fuera del gate por el motivo de siempre: necesita un build
+ * servido.
+ */
+describe("familia punto-de-lectura-de-la-url-es-de-un-solo-uso", () => {
+    /** Las anclas de la portada clara, medidas a 1440x900. */
+    const SECCIONES_CLARO = [
+        { id: "hero", topDoc: 0, alto: 900 },
+        { id: "story", topDoc: 900, alto: 1712 },
+        { id: "journey", topDoc: 2612, alto: 635 },
+        { id: "features", topDoc: 3247, alto: 1255 },
+        { id: "contact", topDoc: 4502, alto: 1136 },
+        { id: "about", topDoc: 5638, alto: 582 },
+    ];
+    /** Y las de la OSCURA, que se SOLAPAN -- el hecho que obligo a buscar el
+     *  punto recorriendo el documento en vez de por seccion. */
+    const SECCIONES_OSCURO = [
+        { id: "hero", topDoc: 0, alto: 900 },
+        { id: "story", topDoc: 900, alto: 4050 },
+        { id: "journey", topDoc: 4050, alto: 4950 },
+        { id: "features", topDoc: 8100, alto: 1974 },
+        { id: "contact", topDoc: 9174, alto: 949 },
+        { id: "about", topDoc: 10122, alto: 582 },
+    ];
+
+    const instantanea = (y, secciones, extra = {}) => ({
+        y,
+        alto: 6536,
+        vh: 900,
+        url: "/en",
+        urlDeCarga: "/en?read=0.3212#story",
+        hashchanges: 0,
+        sellada: true,
+        pathname: "/en",
+        secciones,
+        seccion: null,
+        ...extra,
+    });
+
+    /** El hostil que SI nombra una seccion existente y la deja en pantalla. */
+    const HOSTIL_SANO = {
+        id: "fuera-por-arriba",
+        consulta: "read=2",
+        fragmento: "features",
+        y: 3119,
+        vh: 900,
+        seccion: {
+            id: "features",
+            top: 128,
+            bottom: 1447,
+            topDoc: 3247,
+            alto: 1319,
+        },
+    };
+    /** Y el que no nombra ninguna: la pagina no se mueve. */
+    const HOSTIL_SIN_SECCION = {
+        id: "seccion-inexistente",
+        consulta: "read=0.5",
+        fragmento: "seccion-que-no-existe-candado-u4",
+        y: 0,
+        vh: 900,
+        seccion: null,
+    };
+
+    /** El gesto completo tal y como se midio CON el arreglo puesto. */
+    const SANO = {
+        partida: "/",
+        destino: "/en",
+        origen: instantanea(1450, SECCIONES_CLARO, { pathname: "/" }),
+        llegada: instantanea(1433, SECCIONES_CLARO),
+        lector: { y: 3133 },
+        recarga: instantanea(3133, SECCIONES_CLARO),
+        frio: instantanea(1433, SECCIONES_CLARO),
+        atras: instantanea(1450, SECCIONES_CLARO, { pathname: "/" }),
+        hostiles: [HOSTIL_SANO, HOSTIL_SIN_SECCION],
+        instrumento: null,
+    };
+
+    it("el gesto sano no tiene nada que decir", () => {
+        expect(evaluaPuntoDeLectura(SANO)).toEqual({
+            cumple: true,
+            vacuo: false,
+            motivos: [],
+        });
+    });
+
+    it("cae con las cifras reales del defecto: la recarga vuelve al punto de la URL, no al del lector", () => {
+        const { cumple, vacuo, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            recarga: instantanea(1433, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(vacuo).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("leia en y=3133");
+        expect(motivos[0]).toContain("lo deja en y=1433");
+        expect(motivos[0]).toContain("deriva 1700 px");
+    });
+
+    /*
+     * LAS CINCO AFIRMACIONES RESTANTES, cada una SOLA y con el resto del gesto
+     * en verde: si solo cayeran junto al sintoma no aportarian nada.
+     */
+    it("ve la regresion del cierre de la ola T: la llegada aterriza en el inicio de la seccion", () => {
+        /* 772 px es el aterrizaje real del fragmento medido en el navegador con
+           la correccion del punto de lectura desactivada: `#story` empieza en
+           900 y el desfase de cabecera son 128 px. El enlace en frio se mueve
+           con ella --lo hace el mismo codigo-- y por eso el caso lo mueve
+           tambien: dejarlo en 1.433 haria caer ademas la afirmacion 3 y este
+           caso no probaria que la 1 cae SOLA. */
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(772, SECCIONES_CLARO),
+            frio: instantanea(772, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("ya no conserva el punto de lectura");
+    });
+
+    it("ve un enlace compartido que deja de aterrizar donde estaba quien lo mando", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            frio: instantanea(0, SECCIONES_CLARO),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("compartido abierto en frio");
+    });
+
+    it("ve un atras que ya no vuelve a la pagina de partida", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            atras: instantanea(1450, SECCIONES_CLARO, { pathname: "/en" }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("el boton atras ya no vuelve");
+    });
+
+    /*
+     * EL SELLO DE HISTORIAL DEL FRENTE U2 es de otro arreglo del mismo dia, y
+     * por eso esta familia lo afirma en vez de suponerlo: los dos escriben en
+     * `history` en la misma carga.
+     */
+    it("ve que la limpieza de la URL desellara la entrada de historial", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { sellada: false }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("no esta sellada");
+    });
+
+    it("ve que retirar el fragmento despierte al sello por hashchange", () => {
+        const { cumple, motivos } = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { hashchanges: 1 }),
+        });
+
+        expect(cumple).toBe(false);
+        expect(motivos).toHaveLength(1);
+        expect(motivos[0]).toContain("hashchange");
+    });
+
+    it("ve un valor hostil que deja al lector donde la URL no nombra nada", () => {
+        const fuera = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [
+                {
+                    ...HOSTIL_SANO,
+                    seccion: {
+                        ...HOSTIL_SANO.seccion,
+                        top: 2000,
+                        bottom: 3319,
+                    },
+                },
+                HOSTIL_SIN_SECCION,
+            ],
+        });
+        expect(fuera.cumple).toBe(false);
+        expect(fuera.motivos.join(" | ")).toContain("no llega a verse");
+
+        const movida = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [HOSTIL_SANO, { ...HOSTIL_SIN_SECCION, y: 4000 }],
+        });
+        expect(movida.cumple).toBe(false);
+        expect(movida.motivos.join(" | ")).toContain(
+            "no se corresponde con nada",
+        );
+    });
+
+    /*
+     * LAS GUARDAS DE VACUIDAD, que son la mitad del candado: las cuatro formas
+     * de que este gesto salga verde sin haber medido nada.
+     */
+    it("no firma nada si el gesto no llego a componer la instruccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            llegada: instantanea(1433, SECCIONES_CLARO, { urlDeCarga: "/en" }),
+        });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("no es la instruccion");
+    });
+
+    it("no firma nada si el lector no llego a alejarse del punto de llegada", () => {
+        const r = evaluaPuntoDeLectura({ ...SANO, lector: { y: 1600 } });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("solo se alejo 167 px");
+    });
+
+    it("no firma nada si al pulsar el idioma el lector estaba pegado al inicio de la seccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            origen: instantanea(1000, SECCIONES_CLARO, { pathname: "/" }),
+        });
+        expect(r).toMatchObject({ cumple: false, vacuo: true });
+        expect(r.motivos[0]).toContain("100 px dentro de #story");
+    });
+
+    it("no firma nada si los valores hostiles dejan de encontrar su seccion", () => {
+        const r = evaluaPuntoDeLectura({
+            ...SANO,
+            hostiles: [HOSTIL_SIN_SECCION, HOSTIL_SIN_SECCION],
+        });
+        expect(r.cumple).toBe(false);
+        expect(r.motivos.join(" | ")).toContain(
+            `ninguno de los 2 valores hostiles encontro la seccion #${SECCION_HOSTIL}`,
+        );
+    });
+
+    /*
+     * LA ELECCION DEL PUNTO DE PARTIDA. Lo que se ata aqui es justo lo que la
+     * primera version de esta familia no hacia y costo una corrida entera: que
+     * el punto se elija sobre la geometria REAL, incluida la del tema oscuro,
+     * donde las anclas se solapan.
+     */
+    it("elige un punto util en las dos geometrias, con la oscura solapada", () => {
+        const claro = eligeElPuntoDeLectura(SECCIONES_CLARO, 900, 6523);
+        expect(claro).toMatchObject({ anclada: "story", y: 1450 });
+        expect(claro.profundidad).toBeGreaterThanOrEqual(PROFUNDIDAD_MINIMA_PX);
+
+        const oscuro = eligeElPuntoDeLectura(SECCIONES_OSCURO, 900, 11008);
+        expect(oscuro).toMatchObject({ anclada: "story", y: 2150 });
+        expect(oscuro.profundidad).toBeGreaterThanOrEqual(
+            PROFUNDIDAD_MINIMA_PX,
+        );
+    });
+
+    it("nunca elige el hero, desde donde el sitio no compone ninguna instruccion", () => {
+        /* Un documento que SOLO tiene hero no da punto de partida, y eso es un
+           `null` --caso vacuo-- y no un hero elegido: desde el hero
+           `useActiveSectionKey` devuelve `null` y el enlace de idioma no lleva
+           fragmento, asi que el gesto no compondria nada que medir. */
+        expect(
+            eligeElPuntoDeLectura(
+                [{ id: "hero", topDoc: 0, alto: 6000 }],
+                900,
+                6000,
+            ),
+        ).toBeNull();
+        expect(SECCIONES_SIN_PUNTO_DE_LECTURA).toEqual(["hero"]);
+    });
+
+    it("no elige un punto desde el que el lector no pueda alejarse", () => {
+        /* Documento clavado al viewport: no hay sitio ni arriba ni abajo. */
+        expect(
+            eligeElPuntoDeLectura(
+                [{ id: "story", topDoc: 0, alto: 2000 }],
+                900,
+                2000,
+            ),
+        ).toBeNull();
+    });
+
+    it("aleja al lector hacia el lado que tenga sitio, y avisa cuando no hay ninguno", () => {
+        /* Hacia abajo cuando cabe. */
+        expect(alejaAlLector(1433, 6536, 900)).toBe(
+            1433 + ALEJAMIENTO_DEL_LECTOR_PX,
+        );
+        /* Y hacia ARRIBA cuando no: es el caso del tema oscuro medido, con la
+           llegada a 780 px del final del documento. */
+        expect(alejaAlLector(9328, 11008, 900)).toBe(
+            9328 - ALEJAMIENTO_DEL_LECTOR_PX,
+        );
+        expect(alejaAlLector(500, 1400, 900)).toBeNull();
+    });
+
+    it("la banda de lectura y la separacion minima separan las dos poblaciones que hay que distinguir", () => {
+        /* El defecto medido mueve al lector 1.700 px: la separacion exigida
+           tiene que quedar por debajo, o el caso se declararia vacuo sobre el
+           gesto que existe para medir. */
+        expect(SEPARACION_MINIMA_PX).toBeLessThan(ALEJAMIENTO_DEL_LECTOR_PX);
+        /* Y por encima de un viewport, o "restituye al lector" y "vuelve al
+           punto de la URL" cabrian en la misma pantalla. */
+        expect(SEPARACION_MINIMA_PX).toBeGreaterThan(900);
+        /* La banda de lectura deja el punto lejos del inicio de la seccion,
+           que es donde aterriza el fragmento. */
+        expect(FRACCION_MINIMA_DE_LECTURA).toBeGreaterThan(0);
+        expect(FRACCION_MAXIMA_DE_LECTURA).toBeLessThan(1);
+        expect(FRACCION_MINIMA_DE_LECTURA).toBeLessThan(
+            FRACCION_MAXIMA_DE_LECTURA,
+        );
+        /* Y el paso de busqueda es mas fino que la seccion mas corta del sitio
+           (`about`, 582 px), o podria saltarsela entera. */
+        expect(PASO_DE_BUSQUEDA_PX).toBeLessThan(582);
+    });
+
+    it("los seis valores hostiles cubren las seis formas de llegar roto", () => {
+        expect(VALORES_HOSTILES.map((v) => v.id)).toEqual([
+            "fuera-por-abajo",
+            "fuera-por-arriba",
+            "no-es-numero",
+            "vacio",
+            "sin-fragmento",
+            "seccion-inexistente",
+        ]);
+        /* Todos llevan el parametro que el sitio lee, o no probarian nada. */
+        for (const v of VALORES_HOSTILES) {
+            expect(v.consulta.startsWith("read=")).toBe(true);
+        }
+        /* Y hay al menos uno de cada clase: con seccion y sin ella. */
+        expect(
+            VALORES_HOSTILES.filter((v) => v.fragmento !== null).length,
+        ).toBeGreaterThan(0);
+        expect(
+            VALORES_HOSTILES.filter((v) => v.fragmento === null).length,
+        ).toBeGreaterThan(0);
+    });
+
+    it("el fragmento de la URL de carga se lee sin inventar", () => {
+        expect(fragmentoDe("/en?read=0.5#story")).toBe("story");
+        expect(fragmentoDe("/en?read=0.5")).toBeNull();
+        expect(fragmentoDe("/en#")).toBeNull();
+        expect(fragmentoDe(null)).toBeNull();
+    });
+});
+
+/*
+ * LA FAMILIA DE LA TINTA (frente U5 de la ola U, 2026-09-08).
+ *
+ * Lo que estos casos protegen es la DECISION de la sonda, no el layout: se le da
+ * el layout a mano --caja por elemento, cajas de linea por prototipo de `Range`,
+ * ancho de viewport declarado-- exactamente con el mismo montaje que ya usan las
+ * dos sondas hermanas, y se comprueba que concluye lo que tiene que concluir.
+ * Las cifras reales de Chrome estan en el docblock de la sonda.
+ *
+ * Los DOS casos centrales son los dos errores que el arbitraje del P1 de la
+ * critica #21 cometio antes de que esta familia existiera: medir la caja en vez
+ * de la linea, y contar como perdida una tinta que no se pinta.
+ */
+function lineasDeTexto(rects) {
+    PROTO_RANGO.getClientRects = () =>
+        rects.map((r) => ({
+            ...r,
+            width: r.right - r.left,
+            height: r.height ?? 10,
+            top: r.top ?? 0,
+            bottom: (r.top ?? 0) + (r.height ?? 10),
+        }));
+}
+
+function montaPieza({ texto, caja, opacidad, seccion, desplazable }) {
+    const main = document.createElement("main");
+    let ancla = main;
+    if (seccion !== undefined) {
+        const envoltorio = document.createElement("section");
+        envoltorio.style.opacity = String(seccion);
+        medida(envoltorio, { left: 0, right: 300, height: 200 });
+        main.appendChild(envoltorio);
+        ancla = envoltorio;
+    }
+    if (desplazable) {
+        const region = document.createElement("div");
+        region.style.overflowX = "auto";
+        medida(region, { left: 0, right: 320, height: 200 });
+        ancla.appendChild(region);
+        ancla = region;
+    }
+    const el = document.createElement("span");
+    el.textContent = texto;
+    if (opacidad !== undefined) el.style.opacity = String(opacidad);
+    ancla.appendChild(el);
+    document.body.appendChild(main);
+    medida(main, { left: 0, right: 320, height: 400 });
+    medida(el, caja);
+    return el;
+}
+
+describe("la sonda de la tinta mide la LINEA REAL y solo la que se pinta", () => {
+    it("reporta el texto que se sale aunque la CAJA del elemento este dentro", () => {
+        /*
+         * El caso que da nombre a la familia. `probePerdidaHorizontal` mide
+         * `getBoundingClientRect`, que incluye el `transform` del elemento y no
+         * dice donde estan las letras: una caja dentro del viewport puede
+         * contener una linea que se sale (texto centrado en una caja mas ancha
+         * es el caso trivial; un `transform` sobre el bloque, el real).
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Cada idea",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -10.16, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas, "la sonda no llego a mirar la pieza").toBe(1);
+        expect(
+            r.fuera,
+            `la caja va de 4 a 300 dentro de un viewport de 320 y esta limpia; ` +
+                `la LINEA empieza en -10,16 y es la que WCAG protege`,
+        ).toHaveLength(1);
+        expect(r.fuera[0].lado).toBe("izquierda");
+        expect(r.fuera[0].sobra).toBe(10.16);
+        expect(r.fuera[0].borde).toBe(-10.16);
+    });
+
+    it("NO reporta la tinta que no se pinta, y la cuenta aparte", () => {
+        /*
+         * El segundo error del arbitraje. Las tres lineas del statement de Story
+         * declaran `opacity: 0` + `translateX(±16%)` como estado previo al
+         * reveal: en reposo su rango cae en x = -10,16 y no hay ni un pixel
+         * pintado ahi. Contarlo seria acusar al sitio de perder una tinta que
+         * nadie ve, y ademas taparia el defecto de verdad el dia que llegue.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Cada idea",
+            caja: { left: 4, right: 300, height: 40 },
+            opacidad: 0,
+        });
+        lineasDeTexto([{ left: -10.16, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(1);
+        expect(r.fuera).toEqual([]);
+        expect(
+            r.apagadas,
+            "la pieza sigue contandose: un cero en las dos cuentas seria vacuidad",
+        ).toBe(1);
+    });
+
+    it("la opacidad se lee de la CADENA de ancestros, no del elemento", () => {
+        /* Lo que apaga las tarjetas de una seccion sin revelar es el `opacity`
+           de la seccion, no el de cada texto: una lectura local las daria por
+           pintadas y la familia acusaria a media pagina. */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Texto de una seccion todavia sin revelar",
+            caja: { left: 4, right: 300, height: 40 },
+            seccion: 0,
+        });
+        lineasDeTexto([{ left: -12, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toEqual([]);
+        expect(r.apagadas).toBe(1);
+    });
+
+    it("sin opacidad declarada la pieza cuenta como PINTADA", () => {
+        /* La direccion conservadora, y la que hace que estos casos signifiquen
+           algo: si la ausencia de dato absolviera, la familia entera saldria
+           verde en cualquier motor que no resuelva `opacity`. */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Titular sin opacidad declarada",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -12, right: 238 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toHaveLength(1);
+        expect(r.fuera[0].opacidad).toBe(1);
+    });
+
+    it("descarta la caja de 1x1 de VisuallyHidden, cuyo rango mide el texto SIN el recorte", () => {
+        /*
+         * `Range.getClientRects()` no respeta el `overflow: hidden` del
+         * contenedor. Medido en Chrome el 2026-09-08 sobre `/`: el aviso "se
+         * abre en una pestana nueva" del enlace del statement da un rango de
+         * 376,41 px --71,41 px "fuera" de un viewport de 320-- con opacidad 1 y
+         * cero pixeles pintados, porque su caja es de 1x1 con
+         * `clip-path: inset(50%)`. Sin este filtro la familia nace acusando a
+         * cada texto para lectores de pantalla del sitio.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "se abre en una pestana nueva",
+            caja: { left: 15, right: 16, height: 1 },
+        });
+        lineasDeTexto([{ left: 15, right: 391.41 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(0);
+        expect(r.fuera).toEqual([]);
+        expect(r.apagadas).toBe(0);
+    });
+
+    it("NO reporta la tinta que se ALCANZA con scroll horizontal, y la cuenta aparte", () => {
+        /*
+         * El tercer absolvedor, y no es teorico: sin el, la familia nacia con
+         * 672 acusaciones sobre las ocho superficies servidas (medido el
+         * 2026-09-08), TODAS de la tabla de almacenamiento de las paginas
+         * legales, que vive dentro de un `overflow-x: auto` con `role="region"`
+         * y `tabindex`. Ahi el texto no esta perdido: esta desplazado, y se
+         * llega a el con el dedo, la rueda y el teclado. Es ademas parte de la
+         * definicion del defecto que trajo la familia -- tinta fuera Y sin
+         * ninguna forma de llegar a ella.
+         */
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Recuerda si elegiste el tema claro o el oscuro",
+            caja: { left: 4, right: 300, height: 40 },
+            desplazable: true,
+        });
+        lineasDeTexto([{ left: 4, right: 769.42 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(1);
+        expect(r.fuera).toEqual([]);
+        expect(r.alcanzables).toBe(1);
+        expect(
+            r.apagadas,
+            "alcanzable y apagada son dos absoluciones distintas y no se suman en la misma cuenta",
+        ).toBe(0);
+    });
+
+    it("mide tambien el lado derecho", () => {
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "un nuevo comienzo",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: 86.55, right: 325.6 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toHaveLength(1);
+        expect(r.fuera[0].lado).toBe("derecha");
+        expect(r.fuera[0].sobra).toBe(5.6);
+        expect(r.fuera[0].borde).toBe(325.6);
+    });
+
+    it("el redondeo subpixel no es un defecto", () => {
+        anchoDeViewport(320);
+        montaPieza({
+            texto: "Linea centrada en una caja de ancho impar",
+            caja: { left: 4, right: 300, height: 40 },
+        });
+        lineasDeTexto([{ left: -0.5, right: 320.5 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.fuera).toEqual([]);
+    });
+
+    it("sin `main` no inventa nada, y su cero de examinadas dispara la vacuidad", () => {
+        anchoDeViewport(320);
+        const suelto = document.createElement("p");
+        suelto.textContent = "Texto fuera de main";
+        document.body.appendChild(suelto);
+        medida(suelto, { left: -40, right: 300, height: 40 });
+        lineasDeTexto([{ left: -40, right: 300 }]);
+
+        const r = probeTintaPintadaFuera({
+            toleranciaPx: TOLERANCIA_DE_TINTA_PX,
+        });
+        expect(r.examinadas).toBe(0);
+        expect(r.fuera).toEqual([]);
+    });
+});
+
+describe("el veredicto de la familia de la tinta sobre la matriz entera", () => {
+    const lecturaLimpia = {
+        rootFontPx: 32,
+        clientWidth: 320,
+        examinadas: 94,
+        fuera: [],
+        apagadas: 2,
+        alcanzables: 3,
+    };
+
+    it("acumula piezas y celdas, y no falla cuando no hay tinta fuera", () => {
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: lecturaLimpia,
+            },
+            {
+                etiqueta: "320px raiz 32px reduce",
+                raizPedida: 32,
+                lectura: lecturaLimpia,
+            },
+        ]);
+        expect(r.fallos).toEqual([]);
+        expect(r.instrumento).toEqual([]);
+        expect(r.examinadasTotales).toBe(188);
+        expect(r.apagadasTotales).toBe(4);
+        expect(r.alcanzablesTotales).toBe(6);
+        expect(r.celdasConTinta).toBe(0);
+    });
+
+    it("reporta cada pieza con su celda, su lado y su opacidad", () => {
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: {
+                    ...lecturaLimpia,
+                    fuera: [
+                        {
+                            zona: "statement",
+                            sel: "span",
+                            lado: "izquierda",
+                            borde: -10.16,
+                            sobra: 10.16,
+                            opacidad: 1,
+                            texto: "Every idea",
+                        },
+                    ],
+                },
+            },
+        ]);
+        expect(r.celdasConTinta).toBe(1);
+        expect(r.fallos).toHaveLength(1);
+        expect(r.fallos[0]).toContain("320px raiz 32px no-preference");
+        expect(r.fallos[0]).toContain("statement/span");
+        expect(r.fallos[0]).toContain("10.16 px fuera por la izquierda");
+        expect(r.fallos[0]).toContain("opacidad 1");
+    });
+
+    it("delata la raiz que no llego, que es la forma de salir verde midiendo otra pagina", () => {
+        /* La reemulacion en vivo no recarga, asi que nada mas delataria una
+           peticion de `Page.setFontSizes` que el navegador ignorase: el barrido
+           mediria tres veces la misma composicion y saldria verde. */
+        const r = evaluaTintaPintada([
+            {
+                etiqueta: "320px raiz 32px no-preference",
+                raizPedida: 32,
+                lectura: { ...lecturaLimpia, rootFontPx: 16 },
+            },
+        ]);
+        expect(r.instrumento).toHaveLength(1);
+        expect(r.instrumento[0]).toContain("se pidio 32 px");
+        expect(r.instrumento[0]).toContain("la pagina tiene 16");
+    });
+});
+
+describe("la matriz de la familia de la tinta es la acordada", () => {
+    it("los tres anchos son la zona estrecha del encargo, en las dos direcciones", () => {
+        /* `toEqual` y no `toContain`: quitar un ancho vacia el candado y
+           anadirlo es coste de corrida sin criterio detras, igual que en
+           `ANCHOS_ESPERADOS`. */
+        expect(ANCHOS_DE_LA_TINTA).toEqual([320, 360, 390]);
+    });
+
+    it("las tres raices incluyen la de fabrica y el 200 %, y el peldano intermedio", () => {
+        /*
+         * El eje que no se recorta. 24 px no es decorativo: el barrido propio
+         * del 2026-09-08 encontro en `/en` a 360 px con la raiz a 24 una pieza
+         * 15,78 px fuera que ni a 16 ni a 32 aparece. Los dos extremos se leen
+         * de las constantes que ya gobiernan la familia hermana, no se teclean.
+         */
+        expect(RAICES_DE_LA_TINTA).toEqual([
+            ROOT_FONT_BASE_PX,
+            24,
+            ZOOM_FONT_PX,
+        ]);
+        expect(RAICES_DE_LA_TINTA).toHaveLength(3);
+    });
+
+    it("los DOS sentidos de la preferencia de movimiento, que es el eje que justifica la familia", () => {
+        /*
+         * `texto-al-200-por-ciento` mide SIEMPRE con `reduce`, y con esa
+         * preferencia el repo declara los estados finales de sus reveals: la
+         * composicion en reposo SIN la preferencia --que es otra, y es donde
+         * vivia el P1 de la critica #21-- no la ve ninguna familia anterior.
+         * Recortar este eje devuelve el candado a ese punto ciego.
+         */
+        expect(REDUCES_DE_LA_TINTA).toEqual(["no-preference", "reduce"]);
+    });
+
+    it("la tolerancia es subpixel, no holgura de criterio", () => {
+        expect(TOLERANCIA_DE_TINTA_PX).toBeGreaterThan(0);
+        expect(TOLERANCIA_DE_TINTA_PX).toBeLessThanOrEqual(1);
+    });
+});
+
+/*
+ * LA FAMILIA VEINTINUEVE, `revelado-sin-banda-ciega` (ola U, 2026-09-08).
+ *
+ * Lo que estos casos atan no es la sonda --necesita layout real y jsdom no lo
+ * tiene-- sino la REGLA y la MATRIZ: que una pieza de copia apagada asomando
+ * por encima de la linea es un fallo, que una escalera que termina mal no se
+ * cuenta como verde, que sin piezas juzgadas el verde seria vacuo, y que las
+ * dos mitades de la familia miden en geometrias distintas a proposito.
+ *
+ * Y ata sobre todo el numero que esta familia COMPARTE con el codigo del sitio:
+ * el tope del retraso del umbral vive en `src/hooks/useReveal.ts` y aqui hay
+ * una copia. Dos copias de una invariante se desincronizan en silencio --regla
+ * 41 del repo--, asi que el caso lee la fuente del hook y las compara.
+ */
+const RUTA_DEL_HOOK_DE_REVELADO = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "src",
+    "hooks",
+    "useReveal.ts",
+);
+
+/** Paradas limpias de relleno, para que las guardas de vacuidad no disparen. */
+function paradasJuzgadas(cuantas) {
+    return Array.from({ length: cuantas }, (_, i) => ({
+        id: `punteria relleno ${i}`,
+        apuntada: true,
+        motivoDeParada: "revelado",
+        asomoReal: 12,
+        objetivos: 12,
+        topePx: 11,
+        acusados: [],
+    }));
+}
+
+describe("familia veintinueve: el revelado no deja banda ciega", () => {
+    it("el tope del retraso es EL MISMO numero que el hook le pide al observador", () => {
+        const fuente = readFileSync(RUTA_DEL_HOOK_DE_REVELADO, "utf8");
+        const declarado = /RETRASO_MAXIMO_DEL_UMBRAL\s*=\s*([\d.]+)/.exec(
+            fuente,
+        );
+
+        expect(
+            declarado,
+            "src/hooks/useReveal.ts ya no declara RETRASO_MAXIMO_DEL_UMBRAL: " +
+                "si el hook cambio de forma, esta familia esta midiendo contra " +
+                "un tope que ya no existe",
+        ).not.toBeNull();
+        expect(
+            Number(declarado[1]),
+            "el tope que promete el hook y el que exige el candado se han " +
+                "separado: uno de los dos se movio solo y el candado dejaria " +
+                "pasar (o inventaria) una banda ciega",
+        ).toBe(TOPE_DEL_RETRASO_DEL_UMBRAL);
+    });
+
+    it("acusa a una pieza de copia apagada que asoma por encima del tope", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: [
+                {
+                    id: "aterrizaje ?read=0.5#features",
+                    apuntada: false,
+                    objetivos: 12,
+                    topePx: 11,
+                    acusados: [
+                        {
+                            nombre: "Contact__ScCard",
+                            top: 771,
+                            alto: 944,
+                            solape: 21,
+                            ratio: 0.0218,
+                        },
+                    ],
+                },
+                ...paradasJuzgadas(3),
+            ],
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(veredicto.fallos).toHaveLength(1);
+        expect(veredicto.fallos[0]).toContain("Contact__ScCard");
+        expect(veredicto.fallos[0]).toContain("21 px");
+        expect(veredicto.instrumento).toEqual([]);
+    });
+
+    it("una escalera que no llega no cuenta como verde: se dice que no responde a la pregunta", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: [
+                {
+                    id: "punteria Contact__ScCard(h=3250)",
+                    apuntada: true,
+                    motivoDeParada: "fuera-de-alcance",
+                    asomoReal: 4,
+                    objetivos: 12,
+                    topePx: 10.44,
+                    acusados: [],
+                },
+                ...paradasJuzgadas(3),
+            ],
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 25,
+        });
+
+        expect(veredicto.instrumento).toHaveLength(1);
+        expect(veredicto.instrumento[0]).toContain("fuera-de-alcance");
+    });
+
+    it("una pieza que llega ya revelada no se juzga, y si no queda ninguna juzgada lo dice", () => {
+        const contaminadas = Array.from({ length: 5 }, (_, i) => ({
+            id: `punteria pieza ${i}`,
+            apuntada: true,
+            motivoDeParada: "revelado-antes-de-empezar",
+            asomoReal: 0,
+            objetivos: 12,
+            topePx: 11,
+            acusados: [],
+        }));
+
+        const veredicto = evaluaBandaCiega({
+            lecturas: contaminadas,
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(veredicto.juzgadas).toBe(0);
+        expect(veredicto.contaminadas).toBe(5);
+        expect(veredicto.instrumento).toHaveLength(1);
+        expect(veredicto.instrumento[0]).toContain(
+            `suelo ${JUZGADAS_MINIMAS_DE_LA_PUNTERIA}`,
+        );
+    });
+
+    it("cero objetivos vistos es vacuidad, no un verde", () => {
+        const veredicto = evaluaBandaCiega({
+            lecturas: paradasJuzgadas(3).map((l) => ({ ...l, objetivos: 0 })),
+            objetivosMinimos: OBJETIVOS_MINIMOS_DE_REVELADO,
+            asomoPedidoPx: 27,
+        });
+
+        expect(
+            veredicto.instrumento.some((m) =>
+                m.includes("objetivos de revelado"),
+            ),
+        ).toBe(true);
+    });
+
+    it("los dos temas tienen aterrizajes propios, porque las secciones no caen en el mismo sitio", () => {
+        expect(Object.keys(ATERRIZAJES_DE_LA_BANDA_CIEGA).sort()).toEqual([
+            "dark",
+            "light",
+        ]);
+        for (const [tema, lista] of Object.entries(
+            ATERRIZAJES_DE_LA_BANDA_CIEGA,
+        )) {
+            expect(
+                lista.length,
+                `el tema ${tema} se quedo sin aterrizajes: la mitad calibrada de la familia no mediria nada`,
+            ).toBeGreaterThanOrEqual(4);
+            for (const aterrizaje of lista) {
+                expect(aterrizaje.read).toBeGreaterThan(0);
+                expect(aterrizaje.read).toBeLessThan(1);
+                expect(typeof aterrizaje.destino).toBe("string");
+            }
+        }
+    });
+
+    it("la pasada de punteria mide en OTRO ancho y OTRA raiz que los aterrizajes", () => {
+        /*
+         * El encargo lo pedia y la medicion lo justifica: los valores de R de un
+         * aterrizaje solo valen en la geometria en que se midieron (a 1280x720
+         * la misma banda aparece en R=0,65 en vez de en 0,50). Si las dos
+         * mitades midieran lo mismo, la familia entera quedaria clavada a la
+         * geometria de hoy.
+         */
+        expect(GEOMETRIAS_DE_LA_BANDA_CIEGA.length).toBeGreaterThanOrEqual(1);
+        for (const geometria of GEOMETRIAS_DE_LA_BANDA_CIEGA) {
+            expect(geometria.ancho).not.toBe(
+                GEOMETRIA_DE_LOS_ATERRIZAJES.ancho,
+            );
+            expect(geometria.raiz).not.toBe(GEOMETRIA_DE_LOS_ATERRIZAJES.raiz);
+        }
+    });
+
+    it("el asomo de la punteria queda por encima del tope y por debajo de la banda que el defecto producia", () => {
+        /*
+         * Las dos direcciones de la calibracion. Por abajo: apuntar a un asomo
+         * que no supere el tope dejaria pasar cualquier cosa. Por arriba: la
+         * banda mas pequena que el umbral fijo del 20 % producia en el censo es
+         * la de `Journey ScStepsRow` --165 px de alto, 33 px de banda--, asi que
+         * un asomo mayor que eso dejaria de cazarla.
+         */
+        expect(ASOMO_DE_LA_PUNTERIA).toBeGreaterThan(1);
+        expect(
+            ASOMO_DE_LA_PUNTERIA * TOPE_DEL_RETRASO_DEL_UMBRAL * 900,
+        ).toBeLessThan(UMBRAL_DECLARADO_DE_REVELADO * 165);
+        expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeGreaterThan(0);
+        expect(HOLGURA_DE_LA_BANDA_CIEGA_PX).toBeLessThanOrEqual(2);
+    });
+});
+
+/*
+ * FAMILIA TREINTA, `condiciones-de-navegador-estables-en-la-corrida`, y el eje
+ * de conexion de la familia del arte (frente U7, 2026-09-08).
+ *
+ * EL DEFECTO QUE LAS DOS COSAS CIERRAN NO ESTABA EN EL SITIO, ESTABA AQUI. La
+ * familia veintiuna daba dos veredictos distintos sobre el MISMO build segun
+ * como estuviera la maquina: doce medidas seguidas en verde con el navegador
+ * recien abierto y una corrida completa del orquestador en rojo con 188.870 B
+ * en `/` y en `/en`, los dos ficheros identicos en las dos densidades. La
+ * variable era una que ningun informe nombraba: el tipo de conexion ESTIMADO,
+ * que fija el umbral de distancia del cargador perezoso de Chrome (1.250 px con
+ * conexion rapida, 2.500 px a 3g, ~8.000 px a 2g) y que vive en el PROCESO
+ * navegador, compartido por todos los contextos que abra -- incluidos los que la
+ * familia estrenaba para cada densidad creyendose aislada.
+ *
+ * Reproducido a voluntad con `--force-effective-connection-type` sobre el build
+ * de `1f9f880`, sin tocar una linea del sitio: 0 B a 4g, 188.870 B a 3g
+ * (`story-pointing-640.webp` 106.770 + `feature-learning-640.webp` 82.100) y
+ * 447.868 B a DPR 1 / 538.720 B a DPR 2 a 2g. La geometria lo explica entera: en
+ * la prehidratacion oscura las figuras claras quedan a 1.611, 2.356, 2.711,
+ * 2.711 y 3.536 px bajo el viewport, y el corte del rojo caia exactamente entre
+ * la segunda y la tercera.
+ *
+ * LAS DOS PIEZAS Y POR QUE NINGUNA SOBRA. `veredictoDeConexionDeclarada` protege
+ * a la familia que YA sabemos que depende de esa estimacion: declara la conexion
+ * con la que mide y comprueba que es la que midio. `veredictoDeDerivaDeCondiciones`
+ * protege a las que vengan: interroga al navegador COMPARTIDO al empezar y al
+ * terminar la corrida, y si la propia corrida movio la condicion por debajo lo
+ * dice con nombre propio en vez de dejar que cada familia publique un veredicto
+ * medido en condiciones distintas de las de su vecina. Es el invariante que el
+ * encargo pedia --al terminar, el estado observable es el que habia al
+ * empezar-- aplicado al estado que de verdad se midio moviendose.
+ */
+describe("el eje de conexion de la familia del arte", () => {
+    it("declara el PEOR caso, que es el que subsume a los otros dos", () => {
+        /*
+         * No es una preferencia de laboratorio: cuanto peor es la conexion
+         * estimada, MAS arte pide el navegador por adelantado, asi que medir con
+         * conexion rapida seria ser ciego justo para el visitante que mas paga
+         * el desperdicio. `2G` es el umbral mas ancho que Chrome aplica.
+         */
+        expect(CONEXION_ESTIMADA_DEL_ARTE).toBe("2G");
+    });
+
+    it("acepta la corrida en la que las dos densidades midieron con la conexion declarada", () => {
+        expect(
+            veredictoDeConexionDeclarada({
+                declarada: "2G",
+                observadas: ["2g", "2g"],
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("declara incumplimiento si una sola medida se hizo con otra conexion", () => {
+        const v = veredictoDeConexionDeclarada({
+            declarada: "2G",
+            observadas: ["2g", "4g"],
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/2g\/4g en 1 de 2 medidas/);
+    });
+
+    it("no da por buena una corrida que no llego a leer la conexion", () => {
+        /*
+         * Guarda de vacuidad, mismo criterio que `esperadas` en la familia de
+         * la recarga: cero medidas no es "todas coinciden".
+         */
+        const v = veredictoDeConexionDeclarada({
+            declarada: "2G",
+            observadas: [],
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/no leyo la conexion/);
+    });
+});
+
+describe("familia condiciones-de-navegador-estables-en-la-corrida", () => {
+    it("acepta la corrida que termina en la misma condicion en que empezo", () => {
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: "4g",
+                alTerminar: "4g",
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("declara incumplimiento cuando la propia corrida degrada la estimacion compartida", () => {
+        const v = veredictoDeDerivaDeCondiciones({
+            alEmpezar: "4g",
+            alTerminar: "3g",
+        });
+
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toMatch(/paso de 4g a 3g/);
+        expect(v.motivo).toMatch(/no midieron lo mismo/);
+    });
+
+    it("una lectura ausente es la sonda sin objeto, no un verde", () => {
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: null,
+                alTerminar: "4g",
+            }).cumple,
+        ).toBe(false);
+        expect(
+            veredictoDeDerivaDeCondiciones({
+                alEmpezar: "4g",
+                alTerminar: null,
+            }).cumple,
+        ).toBe(false);
+    });
+});
+
+/**
+ * LAS FAMILIAS TREINTA Y UNO Y TREINTA Y DOS (critica externa #21, P1 y P2 del
+ * objetivo >=98, 2026-09-10). Se ejercitan los VEREDICTOS con las cifras
+ * REALES medidas sobre el build de `d29da8e` (31 de 59 paradas fuera; primer
+ * aterrizaje a 192 px frente a 128, con `#contact` bajando de 4502 a 4566).
+ * La conduccion del navegador (`mideTabulacion`, `mideAterrizajeDeAncla`) se
+ * valida corriendola contra el build servido, roja sin el arreglo y verde con
+ * el, como las familias anteriores.
+ */
+describe("familia tabulacion-sin-rezago: el foco no se adelanta al scroll", () => {
+    const SIN_REDUCE = { ancho: 1440, alto: 900, reduce: "no-preference" };
+    const RATON_SUAVE = {
+        enlace: 'header a[href$="#story"]',
+        posiciones: 15,
+        focoVisible: false,
+    };
+
+    it("la matriz mide sin reduce, deja constancia de reduce y teclea a 120 ms", () => {
+        expect(COMBINACIONES_DE_TABULACION).toEqual([
+            { ancho: 1440, alto: 900, reduce: "no-preference" },
+            { ancho: 1440, alto: 900, reduce: "reduce" },
+        ]);
+        expect(INTERVALO_DE_TABULACION_MS).toBe(120);
+    });
+
+    it("cae con las cifras reales del defecto (31 de 59 paradas fuera)", () => {
+        const fuera = Array.from({ length: 31 }, (_, i) => `${i + 1}:a`);
+        const { cumple, motivos } = evaluaTabulacionSinRezago({
+            combinacion: SIN_REDUCE,
+            paradas: 59,
+            fuera,
+            raton: RATON_SUAVE,
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("31 de 59 paradas");
+    });
+
+    it("pasa con cero paradas fuera y el raton todavia suave", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: RATON_SUAVE,
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("cae si el arreglo se hace quitando el barrido tambien al raton", () => {
+        const { cumple, motivos } = evaluaTabulacionSinRezago({
+            combinacion: SIN_REDUCE,
+            paradas: 59,
+            fuera: [],
+            raton: { ...RATON_SUAVE, posiciones: 1 },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain("barrido suave del raton");
+    });
+
+    it("cae si el clic de raton enciende :focus-visible", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: { ...RATON_SUAVE, focoVisible: true },
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("cae si el recorrido no dio ni una parada o falta el enlace del raton", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 0,
+                fuera: [],
+                raton: RATON_SUAVE,
+            }).cumple,
+        ).toBe(false);
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: SIN_REDUCE,
+                paradas: 59,
+                fuera: [],
+                raton: null,
+            }).cumple,
+        ).toBe(false);
+    });
+
+    it("con reduce no exige el barrido del raton (alli el scroll es auto por diseno)", () => {
+        expect(
+            evaluaTabulacionSinRezago({
+                combinacion: { ...SIN_REDUCE, reduce: "reduce" },
+                paradas: 59,
+                fuera: [],
+                raton: null,
+            }).cumple,
+        ).toBe(true);
+    });
+});
+
+describe("familia aterrizaje-de-ancla-constante: el primer salto aterriza como los siguientes", () => {
+    const SIN_REDUCE = { ancho: 1440, alto: 900, reduce: "no-preference" };
+
+    it("la matriz cubre las cuatro secciones de la barra en los dos sentidos de reduce", () => {
+        expect(SECCIONES_DE_ATERRIZAJE).toEqual([
+            "story",
+            "journey",
+            "features",
+            "contact",
+        ]);
+        expect(COMBINACIONES_DE_ATERRIZAJE.map((c) => c.reduce)).toEqual([
+            "no-preference",
+            "reduce",
+        ]);
+    });
+
+    it("cae con las cifras reales del defecto (192 frente a 128, 4502 -> 4566)", () => {
+        const { cumple, motivos } = evaluaAterrizajeDeAncla({
+            combinacion: SIN_REDUCE,
+            seccion: "contact",
+            enlace: true,
+            docTopAntes: 4502,
+            primero: { top: 192, docTop: 4566 },
+            segundo: { top: 128, docTop: 4566 },
+        });
+        expect(cumple).toBe(false);
+        expect(motivos.join(" ")).toContain(
+            "el primer salto aterriza a 192 px y el segundo a 128 px",
+        );
+        expect(motivos.join(" ")).toContain("de 4502 a 4566");
+    });
+
+    it("pasa cuando los dos saltos aterrizan a 128 y el destino no se mueve", () => {
+        expect(
+            evaluaAterrizajeDeAncla({
+                combinacion: SIN_REDUCE,
+                seccion: "contact",
+                enlace: true,
+                docTopAntes: 4566,
+                primero: { top: 128, docTop: 4566 },
+                segundo: { top: 128, docTop: 4566 },
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("cae si no hay enlace visible: un salto sin medir no es un verde", () => {
+        expect(
+            evaluaAterrizajeDeAncla({
+                combinacion: SIN_REDUCE,
+                seccion: "contact",
+                enlace: false,
+            }).cumple,
+        ).toBe(false);
+    });
+});
+
+/*
+ * EL TESTIGO DE SCROLL SIN LLAMADA JS (familia 20, F20-C1). Tabla del
+ * evaluador puro; el rojo de navegador se valido aparte con un movimiento de
+ * 900 px por el setter nativo de `scrollTop` que vuelve a los 300 ms (deriva
+ * final 0, dentro de tolerancia) y con la sonda sin envolver ese setter.
+ */
+describe("evaluaTestigoDeScroll: un solo motor de scroll tras la correccion", () => {
+    const correccion = {
+        t: 505,
+        tipo: "window.scrollTo",
+        suave: false,
+        y: 9000,
+        id: "contact",
+        top: 174,
+    };
+    const base = {
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        exigeLlamada: true,
+    };
+    it.each([
+        [
+            "la correccion y sus eventos en el mismo sitio",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 630, y: 9000, id: "contact", top: 174 }],
+            },
+            true,
+        ],
+        [
+            "la nativa llega despues de la correccion (+1108, la carrera medida)",
+            {
+                llamadas: [correccion],
+                eventos: [
+                    { t: 630, y: 9000, id: "contact", top: 174 },
+                    { t: 640, y: 10108, id: "about", top: 20 },
+                ],
+            },
+            false,
+        ],
+        [
+            "sale 900 px y vuelve: la deriva final es 0 pero el testigo lo ve",
+            {
+                llamadas: [correccion],
+                eventos: [
+                    { t: 810, y: 9900, id: "contact", top: -726 },
+                    { t: 1110, y: 9000, id: "contact", top: 174 },
+                ],
+            },
+            false,
+        ],
+        [
+            "compensacion del scroll anchoring: mueve scrollY, no el contenido",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 700, y: 9300, id: "contact", top: 170 }],
+            },
+            true,
+        ],
+        [
+            "una segunda llamada explica el segundo movimiento",
+            {
+                llamadas: [
+                    correccion,
+                    {
+                        ...correccion,
+                        t: 900,
+                        tipo: "scrollTop=",
+                        y: 9900,
+                        top: -726,
+                    },
+                ],
+                eventos: [{ t: 920, y: 9900, id: "contact", top: -726 }],
+            },
+            true,
+        ],
+        [
+            "una llamada suave explica el recorrido HACIA su destino",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 700, y: 8600, id: "contact", top: 574 }],
+            },
+            true,
+        ],
+        [
+            "suave que llega y despues salta sin llamada: rojo",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [
+                    { t: 600, y: 8500, id: "contact", top: 674 },
+                    { t: 800, y: 9000, id: "contact", top: 174 },
+                    { t: 1100, y: 9900, id: "about", top: 20 },
+                ],
+                fin: { t: 3000, y: 9900 },
+            },
+            false,
+        ],
+        [
+            "suave que llega y queda quieta: verde",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [
+                    { t: 600, y: 8500, id: "contact", top: 674 },
+                    { t: 800, y: 9000, id: "contact", top: 174 },
+                ],
+                fin: { t: 5000, y: 9000 },
+            },
+            true,
+        ],
+        [
+            "suave que nunca llega (se queda a medias): rojo tras el tope",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 600, y: 8500, id: "contact", top: 674 }],
+                fin: { t: 5000, y: 8500 },
+            },
+            false,
+        ],
+        [
+            "suave que se aleja de su destino: rojo aunque este en tiempo",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: 9000 },
+                ],
+                eventos: [{ t: 600, y: 7000, id: "story", top: 20 }],
+                fin: { t: 5000, y: 7000 },
+            },
+            false,
+        ],
+        [
+            "suave sin destino calculable: exime hasta el primer asentamiento",
+            {
+                llamadas: [
+                    { ...correccion, suave: true, y: 8000, destino: null },
+                ],
+                eventos: [
+                    { t: 520, y: 8300, id: "contact", top: 874 },
+                    { t: 540, y: 8700, id: "contact", top: 474 },
+                    { t: 560, y: 9000, id: "contact", top: 174 },
+                    { t: 1000, y: 9900, id: "about", top: 20 },
+                ],
+                fin: { t: 3000, y: 9900 },
+            },
+            false,
+        ],
+        [
+            "antes de la primera llamada no se juzga (la nativa en auto)",
+            {
+                llamadas: [correccion],
+                eventos: [{ t: 100, y: 9000, id: "contact", top: 174 }],
+            },
+            true,
+        ],
+    ])("%s", (_nombre, registro, esperado) => {
+        expect(evaluaTestigoDeScroll({ ...base, ...registro }).cumple).toBe(
+            esperado,
+        );
+    });
+
+    it("el motivo del rojo trae las cifras del movimiento sin explicar", () => {
+        const { motivo } = evaluaTestigoDeScroll({
+            ...base,
+            llamadas: [correccion],
+            eventos: [{ t: 640, y: 10108, id: "about", top: 20 }],
+        });
+        expect(motivo).toContain("y=10108");
+        expect(motivo).toContain("lo dejo en y=9000 (1108 px");
+    });
+
+    /* El "control envuelto" de F20-C1 rehecho: la pagina se va 900 px con el
+       setter de `scrollTop` (suave por el `scroll-behavior` de `<html>`) y
+       vuelve. Pasa porque cada `y` CUADRA con el destino de su llamada, y lo
+       dicen los contadores; con los mismos eventos y otro destino, cae. */
+    const envuelto = (destinoIda, destinoVuelta) => ({
+        ...base,
+        llamadas: [
+            correccion,
+            {
+                ...correccion,
+                t: 810,
+                tipo: "scrollTop=",
+                suave: true,
+                destino: destinoIda,
+            },
+            {
+                ...correccion,
+                t: 1110,
+                tipo: "scrollTop=",
+                suave: true,
+                y: 9900,
+                top: -726,
+                destino: destinoVuelta,
+            },
+        ],
+        eventos: [
+            { t: 830, y: 9300, id: "contact", top: -126 },
+            { t: 870, y: 9700, id: "contact", top: -526 },
+            { t: 900, y: 9900, id: "contact", top: -726 },
+            { t: 1130, y: 9500, id: "contact", top: -326 },
+            { t: 1170, y: 9100, id: "contact", top: 74 },
+            { t: 1200, y: 9000, id: "contact", top: 174 },
+        ],
+        fin: { t: 6000, y: 9000 },
+    });
+
+    it("control envuelto: pasa porque la y cuadra con el destino de cada llamada", () => {
+        const v = evaluaTestigoDeScroll(envuelto(9900, 9000));
+        expect(v.cumple).toBe(true);
+        expect(v.explicados.llegada).toBe(2);
+        expect(v.explicados.haciaDestino).toBe(4);
+    });
+
+    it("control envuelto con un destino que no cuadra: cae", () => {
+        const v = evaluaTestigoDeScroll(envuelto(9900, 9900));
+        expect(v.cumple).toBe(false);
+        expect(v.motivo).toContain("se aleja del destino");
+    });
+
+    it("el tope de la exencion suave es una constante declarada", () => {
+        expect(TOPE_DE_SCROLL_SUAVE_MS).toBe(1500);
+        const { motivo } = evaluaTestigoDeScroll({
+            ...base,
+            llamadas: [{ ...correccion, suave: true, y: 8000, destino: 9000 }],
+            eventos: [{ t: 600, y: 8500, id: "contact", top: 674 }],
+            fin: { t: 5000, y: 8500 },
+        });
+        expect(motivo).toContain("se queda a medias en y=8500");
+    });
+
+    it("en manual, sin ninguna llamada JS registrada, es vacuo y cae", () => {
+        expect(
+            evaluaTestigoDeScroll({ ...base, llamadas: [], eventos: [] })
+                .cumple,
+        ).toBe(false);
+    });
+
+    it("en auto, sin llamadas, no hay correccion que vigilar y no cae", () => {
+        expect(
+            evaluaTestigoDeScroll({
+                ...base,
+                exigeLlamada: false,
+                llamadas: [],
+                eventos: [{ t: 100, y: 5000, id: "features", top: 10 }],
+            }).cumple,
+        ).toBe(true);
+    });
+
+    it("sin registro (el testigo no se instalo) cae", () => {
+        expect(
+            evaluaTestigoDeScroll({
+                ...base,
+                llamadas: undefined,
+                eventos: undefined,
+            }).cumple,
+        ).toBe(false);
+    });
+});
+
+/*
+ * FAMILIA 33, `atras-y-adelante-restituyen-la-lectura` (F20-C1). Tabla del
+ * evaluador puro. El rojo de navegador: con el restituidor desactivado en el
+ * SITIO (`useHistoryScrollRestoration` sin aplicar la posicion), la familia cae
+ * en oscuro --modo `"manual"`-- y pasa en claro.
+ */
+describe("evaluaAtrasYAdelante: el Atras vuelve a la profundidad leida", () => {
+    const P = PROFUNDIDAD_DE_LECTURA_PX;
+    const entrada = (
+        pathname,
+        y,
+        modo = "manual",
+        clave = "k1",
+        hash = "",
+    ) => ({
+        pathname,
+        hash,
+        y,
+        modo,
+        clave,
+    });
+    const contacto = (y) => entrada("/", y, "manual", "k2", "#contact");
+    const verde = () => ({
+        theme: "dark",
+        surface: "/",
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        rutas: [
+            {
+                ruta: "fragmento",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: contacto(9046),
+                atras: entrada("/", P),
+                adelante: contacto(9046),
+                segundoAtras: entrada("/", P),
+            },
+            {
+                ruta: "legal",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: entrada("/privacidad", 0, "auto"),
+                atras: entrada("/", P + 3),
+                adelante: entrada("/privacidad", 0, "auto"),
+                segundoAtras: entrada("/", P),
+            },
+            {
+                ruta: "idioma",
+                enlace: true,
+                antes: entrada("/", P),
+                salida: entrada("/en", 1900),
+                atras: entrada("/", P),
+                adelante: entrada("/en", 0),
+            },
+        ],
+        claves: {
+            idioma: { antes: "k1", despues: "k1" },
+            recarga: { antes: "k1", despues: "k1" },
+        },
+    });
+
+    it("la matriz declarada: tres rutas y dos claves", () => {
+        expect(RUTAS_DE_ATRAS_Y_ADELANTE).toEqual([
+            "fragmento",
+            "legal",
+            "idioma",
+        ]);
+        expect(CLAVES_DE_ENTRADA_ESTABLES).toEqual(["idioma", "recarga"]);
+        expect(RUTAS_CON_SEGUNDO_ATRAS).toEqual(["fragmento", "legal"]);
+    });
+
+    it("pasa con las tres vueltas dentro de tolerancia y las claves estables", () => {
+        expect(evaluaAtrasYAdelante(verde()).cumple).toBe(true);
+    });
+
+    it.each([
+        [
+            "fragmento sin restituidor: el Atras se queda en Contacto",
+            (m) => {
+                m.rutas[0].atras = entrada("/", 9046);
+            },
+            "fragmento (/ dark): se leia en y=2400 y el Atras vuelve a y=9046",
+        ],
+        [
+            "legal sin restituidor: el Atras deja la portada arriba",
+            (m) => {
+                m.rutas[1].atras = entrada("/", 0);
+            },
+            "legal (/ dark): se leia en y=2400 y el Atras vuelve a y=0",
+        ],
+        [
+            "idioma: el Atras deja otra ruta",
+            (m) => {
+                m.rutas[2].atras = entrada("/en", P);
+            },
+            "el Atras deja /en y la lectura estaba en /",
+        ],
+        [
+            "la clave de la entrada cambia entre cargas de documento",
+            (m) => {
+                m.claves.idioma.despues = "k2";
+            },
+            'navigation.currentEntry.key cambia de k1 a "k2"',
+        ],
+        [
+            "la clave no se pudo leer",
+            (m) => {
+                m.claves.recarga = { antes: null, despues: null };
+            },
+            "no se pudo leer",
+        ],
+        [
+            "una ruta sin enlace no es un verde",
+            (m) => {
+                m.rutas[1] = { ruta: "legal", enlace: false };
+            },
+            "no se encontro el enlace",
+        ],
+        [
+            "una ruta que no se midio",
+            (m) => {
+                m.rutas.pop();
+            },
+            "idioma (/ dark): la ruta no se midio",
+        ],
+        [
+            "partir de la cima no distingue restituir de no hacer nada",
+            (m) => {
+                m.rutas[0].antes = entrada("/", 0);
+                m.rutas[0].atras = entrada("/", 0);
+            },
+            "a menos de 128 px de la cima",
+        ],
+        [
+            "un salto que no salio de la lectura no prueba nada",
+            (m) => {
+                m.rutas[0].salida = entrada("/", P);
+                m.rutas[0].adelante = entrada("/", P);
+            },
+            "el gesto no salio de la lectura",
+        ],
+        [
+            "fragmento: el Adelante no vuelve a Contacto",
+            (m) => {
+                m.rutas[0].adelante = contacto(P);
+            },
+            "fragmento (/ dark): el Adelante vuelve a /#contact en y=2400 y la entrada de destino estaba en y=9046",
+        ],
+        [
+            "fragmento: el Adelante pierde el fragmento",
+            (m) => {
+                m.rutas[0].adelante = entrada("/", 9046);
+            },
+            "el Adelante deja / y la entrada de destino era /#contact",
+        ],
+        [
+            "fragmento: el segundo Atras se queda en Contacto",
+            (m) => {
+                m.rutas[0].segundoAtras = entrada("/", 9046);
+            },
+            "fragmento (/ dark): se leia en y=2400 y el segundo Atras vuelve a y=9046",
+        ],
+        [
+            "legal: el Adelante no llega a la legal",
+            (m) => {
+                m.rutas[1].adelante = entrada("/", P);
+            },
+            "el Adelante deja / y la entrada de destino era /privacidad",
+        ],
+        [
+            "legal: el segundo Atras deja la portada arriba",
+            (m) => {
+                m.rutas[1].segundoAtras = entrada("/", 0);
+            },
+            "legal (/ dark): se leia en y=2400 y el segundo Atras vuelve a y=0",
+        ],
+        [
+            "idioma: el Adelante no llega a la otra portada",
+            (m) => {
+                m.rutas[2].adelante = entrada("/", P);
+            },
+            "idioma (/ dark): el Adelante deja / y la entrada de destino era /en",
+        ],
+        [
+            "un Adelante sin medir no es un verde",
+            (m) => {
+                delete m.rutas[2].adelante;
+            },
+            "idioma (/ dark): el Adelante no se midio",
+        ],
+        [
+            "un segundo Atras sin medir no es un verde",
+            (m) => {
+                delete m.rutas[1].segundoAtras;
+            },
+            "legal (/ dark): el segundo Atras no se midio",
+        ],
+    ])("cae: %s", (_nombre, rompe, texto) => {
+        const m = verde();
+        rompe(m);
+        const { cumple, motivos } = evaluaAtrasYAdelante(m);
+        expect(cumple).toBe(false);
+        expect(motivos.join(" | ")).toContain(texto);
+    });
+});
+
+/*
+ * FAMILIA 34, `adelante-a-la-portada-vuelve-a-su-lectura` (P7-1B). Tabla del evaluador
+ * puro. El rojo de navegador, medido: sobre `65a6e25` (antes del registro en
+ * `onNavigate`) la familia cae en oscuro con la portada en y=1500 a los 700 ms
+ * y a los 3 s, y pasa en claro.
+ */
+describe("evaluaAdelanteALaPortada: Adelante devuelve la portada a donde se dejo", () => {
+    const N = PROFUNDIDAD_EN_LA_LEGAL_PX;
+    const lee = (pathname, y, modo = "manual") => ({
+        pathname,
+        hash: "",
+        y,
+        modo,
+        clave: "k",
+    });
+    const medida = (viewport) => ({
+        viewport,
+        logo: true,
+        rutaPortada: "/",
+        legal: lee("/privacidad", N, "auto"),
+        portada: lee("/", 0),
+        atras: lee("/privacidad", N, "auto"),
+        adelante: INSTANTES_TRAS_ADELANTE_MS.map((ms) => ({
+            ms,
+            ...lee("/", 0),
+        })),
+    });
+    const verde = (theme = "dark") => ({
+        theme,
+        surface: "/",
+        tolerancia: DERIVA_MAXIMA_DE_RECARGA_PX,
+        medidas: VIEWPORTS_DE_ADELANTE.map((v) =>
+            medida(`${v.width}x${v.height}`),
+        ),
+    });
+
+    it("la matriz declarada: dos viewports, dos instantes y una legal lejos de la cima", () => {
+        expect(VIEWPORTS_DE_ADELANTE).toEqual([
+            { width: 1440, height: 900 },
+            { width: 390, height: 844 },
+        ]);
+        expect(INSTANTES_TRAS_ADELANTE_MS).toEqual([700, 3000]);
+        expect(N).toBeGreaterThanOrEqual(2 * DERIVA_MAXIMA_DE_RECARGA_PX);
+    });
+
+    it("pasa con la portada de vuelta en la cima en los dos viewports", () => {
+        expect(evaluaAdelanteALaPortada(verde()).cumple).toBe(true);
+    });
+
+    it("en claro tambien exige 'manual' (P7-2B'): la portada por el logo salia en 'auto'", () => {
+        const m = verde("light");
+        for (const x of m.medidas) for (const l of x.adelante) l.modo = "auto";
+        const v = evaluaAdelanteALaPortada(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join("\n")).toContain(
+            '1440x900 (/ light): la portada tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        );
+        expect(evaluaAdelanteALaPortada(verde("light")).cumple).toBe(true);
+    });
+
+    it.each([
+        [
+            "C1 medido: el Adelante hereda la posicion de la legal",
+            (m) => {
+                m.medidas[0].adelante = INSTANTES_TRAS_ADELANTE_MS.map(
+                    (ms) => ({ ms, ...lee("/", 1500) }),
+                );
+            },
+            "1440x900 (/ dark): a los 700 ms del Adelante la portada esta en y=1500 y se dejo en y=0",
+        ],
+        [
+            "una restitucion tardia que se deshace a los 3 s",
+            (m) => {
+                m.medidas[1].adelante[1] = { ms: 3000, ...lee("/", N) };
+            },
+            "390x844 (/ dark): a los 3000 ms del Adelante la portada esta en y=1500",
+        ],
+        [
+            "en oscuro, aprobar volviendo a la nativa no vale",
+            (m) => {
+                for (const l of m.medidas[0].adelante) l.modo = "auto";
+            },
+            'tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        ],
+        [
+            "un viewport sin medir no es un verde",
+            (m) => {
+                m.medidas.pop();
+            },
+            "390x844 (/ dark): el viewport no se midio",
+        ],
+        [
+            "sin logo el camino no se ejercio",
+            (m) => {
+                m.medidas[0] = { viewport: "1440x900", logo: false };
+            },
+            "no se encontro el logo",
+        ],
+        [
+            "una legal leida en la cima no distingue heredar de volver",
+            (m) => {
+                m.medidas[0].legal = lee("/privacidad", 0, "auto");
+                m.medidas[0].atras = lee("/privacidad", 0, "auto");
+            },
+            "a menos de 128 px de la cima",
+        ],
+        [
+            "el Atras no devuelve la legal a su lectura",
+            (m) => {
+                m.medidas[0].atras = lee("/privacidad", 0, "auto");
+            },
+            "el Atras deja /privacidad en y=0 y la legal se leia en /privacidad y=1500",
+        ],
+        [
+            "el logo no deja la portada en la cima",
+            (m) => {
+                m.medidas[0].portada = lee("/", 900);
+            },
+            "el logo deja / en y=900",
+        ],
+        [
+            "el Adelante no llega a la portada",
+            (m) => {
+                m.medidas[0].adelante[0] = {
+                    ms: 700,
+                    ...lee("/privacidad", 0, "auto"),
+                };
+            },
+            "a los 700 ms el Adelante deja /privacidad y la entrada de destino era /",
+        ],
+        [
+            "falta una lectura del Adelante",
+            (m) => {
+                m.medidas[0].adelante = [m.medidas[0].adelante[0]];
+            },
+            "la portada no se leyo a los 3000 ms del Adelante",
+        ],
+    ])("%s", (_nombre, rompe, motivo) => {
+        const m = verde();
+        rompe(m);
+        const v = evaluaAdelanteALaPortada(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(motivo);
+    });
+});
+
+/*
+ * FAMILIA 35, `atras-con-fragmento-vuelve-a-la-lectura` (P7-2B). Tabla del
+ * evaluador puro, con las cifras de C2 medidas en P7-2A sobre `4bc3b15`
+ * (oscuro, 1440x900): el ancla en y=9.046, la lectura en y=10.108 y el Atras
+ * de vuelta en y=9.046. El rojo de navegador se mide con el runner aislado.
+ */
+describe("evaluaAtrasConFragmento: Atras con fragmento vuelve a la lectura", () => {
+    const T = DERIVA_MAXIMA_DE_RECARGA_PX;
+    const lee = (pathname, hash, y, contactTop, modo = "manual") => ({
+        pathname,
+        hash,
+        y,
+        modo,
+        contactTop,
+        margen: 128,
+    });
+    const enLaLectura = () => lee("/", "#contact", 10108, -934);
+    const enElAncla = () => lee("/", "#contact", 9046, 128);
+    const medida = (viewport) => ({
+        viewport,
+        enlace: true,
+        porHoja: false,
+        rutaPortada: "/",
+        rutaLegal: "/privacidad",
+        salida: enElAncla(),
+        lectura: enLaLectura(),
+        legal: lee("/privacidad", "", 0, null, "auto"),
+        atras: INSTANTES_TRAS_ATRAS_MS.map((ms) => ({ ms, ...enLaLectura() })),
+        nuevoEnlace: { via: "pie", ...enElAncla() },
+        fria: enElAncla(),
+    });
+    const verde = (theme = "dark") => ({
+        theme,
+        surface: "/",
+        tolerancia: T,
+        medidas: VIEWPORTS_DE_ATRAS_CON_FRAGMENTO.map((v) =>
+            medida(`${v.width}x${v.height}`),
+        ),
+    });
+
+    it("la matriz declarada: dos viewports, tres instantes y una rueda que se aleja del ancla", () => {
+        expect(VIEWPORTS_DE_ATRAS_CON_FRAGMENTO).toEqual([
+            { width: 1440, height: 900 },
+            { width: 390, height: 844 },
+        ]);
+        expect(INSTANTES_TRAS_ATRAS_MS).toEqual([400, 1500, 4000]);
+        expect(PASOS_DE_RUEDA_DESDE_EL_ANCLA * 100).toBeGreaterThanOrEqual(
+            2 * T,
+        );
+    });
+
+    it("pasa con la lectura restituida, en los dos temas", () => {
+        expect(evaluaAtrasConFragmento(verde("dark")).cumple).toBe(true);
+        expect(evaluaAtrasConFragmento(verde("light")).cumple).toBe(true);
+    });
+
+    it("en claro tambien exige 'manual' (P7-2, opcion 1): la nativa llevaba al fragmento", () => {
+        const m = verde("light");
+        for (const l of m.medidas[0].atras) l.modo = "auto";
+        const v = evaluaAtrasConFragmento(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(
+            '1440x900 (/ light): la portada tiene que estar en scrollRestoration "manual" y esta en "auto"',
+        );
+    });
+
+    it.each([
+        [
+            "C2 medido: el Atras aterriza en el ancla",
+            (m) => {
+                m.medidas[0].atras = INSTANTES_TRAS_ATRAS_MS.map((ms) => ({
+                    ms,
+                    ...enElAncla(),
+                }));
+            },
+            "1440x900 (/ dark): a los 400 ms del Atras la portada esta en y=9046 y se leia en y=10108",
+        ],
+        [
+            "una restitucion que se deshace a los 4 s",
+            (m) => {
+                m.medidas[1].atras[2] = { ms: 4000, ...enElAncla() };
+            },
+            "390x844 (/ dark): a los 4000 ms del Atras la portada esta en y=9046",
+        ],
+        [
+            "una lectura pegada al ancla no distingue restituir de aterrizar",
+            (m) => {
+                m.medidas[0].lectura = lee("/", "#contact", 9100, 74);
+                for (const l of m.medidas[0].atras) l.y = 9100;
+            },
+            "a menos de 128 px: volver al ancla no se distinguiria de restituir",
+        ],
+        [
+            "un viewport sin medir no es un verde",
+            (m) => {
+                m.medidas.pop();
+            },
+            "390x844 (/ dark): el viewport no se midio",
+        ],
+        [
+            "sin el enlace de Contacto la cadena no se ejercio",
+            (m) => {
+                m.medidas[0] = { viewport: "1440x900", enlace: false };
+            },
+            "no se encontro el enlace de Contacto",
+        ],
+        [
+            "el clic interno no aterriza en el ancla",
+            (m) => {
+                m.medidas[0].salida = lee("/", "#contact", 8000, 1174);
+            },
+            "control del clic interno",
+        ],
+        [
+            "el enlace nuevo tras el recorrido no aterriza",
+            (m) => {
+                m.medidas[0].nuevoEnlace = { via: "pie", ...enLaLectura() };
+            },
+            "control del enlace nuevo: tras el recorrido",
+        ],
+        [
+            "el enlace nuevo sin medir no es un verde",
+            (m) => {
+                m.medidas[0].nuevoEnlace = null;
+            },
+            "control del enlace nuevo: no se midio",
+        ],
+        [
+            "la carga en frio no aterriza",
+            (m) => {
+                m.medidas[0].fria = lee("/", "#contact", 5623, 3551);
+            },
+            "control de la carga en frio",
+        ],
+        [
+            "el Atras no vuelve a la entrada con fragmento",
+            (m) => {
+                m.medidas[0].atras[0] = {
+                    ms: 400,
+                    ...lee("/", "", 10108, -934),
+                };
+            },
+            "a los 400 ms el Atras deja / y la entrada de destino era /#contact",
+        ],
+        [
+            "falta una lectura del Atras",
+            (m) => {
+                m.medidas[0].atras = [m.medidas[0].atras[0]];
+            },
+            "la portada no se leyo a los 1500 ms del Atras",
+        ],
+        [
+            "el enlace del pie no sale de la portada",
+            (m) => {
+                m.medidas[0].legal = null;
+            },
+            "el enlace del pie no llevo a /privacidad",
+        ],
+    ])("%s", (_nombre, rompe, motivo) => {
+        const m = verde();
+        rompe(m);
+        const v = evaluaAtrasConFragmento(m);
+        expect(v.cumple).toBe(false);
+        expect(v.motivos.join(" | ")).toContain(motivo);
+    });
+});

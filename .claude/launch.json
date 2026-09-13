@@ -1,0 +1,19 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "vti-dev",
+            "runtimeExecutable": "pnpm",
+            "runtimeArgs": ["dev"],
+            "port": 3000,
+            "autoPort": true
+        },
+        {
+            "name": "vti-static",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["serve", "out", "-l", "4173"],
+            "port": 4173,
+            "autoPort": true
+        }
+    ]
+}

@@ -1,0 +1,519 @@
+{
+    "Legal": {
+        "common": {
+            "tocLabel": "Índice",
+            "updatedLabel": "Última actualización",
+            "versionLabel": "Versión",
+            "backToHome": "Volver al inicio",
+            "placeholderTitle": "Dato pendiente de completar por el responsable del sitio",
+            "entity": {
+                "name": "Denominación",
+                "legalForm": "Forma jurídica",
+                "taxId": "NIF/CIF",
+                "address": "Domicilio",
+                "registry": "Datos registrales",
+                "contactEmail": "Correo de contacto",
+                "dpo": "Delegado de Protección de Datos"
+            },
+            "dpoNotAppointed": "No se ha designado un Delegado de Protección de Datos (DPO).",
+            "notApplicable": "No procede.",
+            "legalForm": {
+                "naturalPerson": "Persona física"
+            },
+            "storageTable": {
+                "id": "Identificador",
+                "purpose": "Finalidad",
+                "kind": "Tipo",
+                "duration": "Duración",
+                "provider": "Titular",
+                "persistent": "Persistente hasta que la borres",
+                "session": "Hasta que cierres esta pestaña",
+                "days": "{{count}} días",
+                "regionLabel": "Tabla de almacenamiento, desplazable en horizontal"
+            },
+            "storage": {
+                "vti-theme": {
+                    "name": "Tema (claro / oscuro)",
+                    "purpose": "Recuerda si elegiste el tema claro o el oscuro, para no volver a preguntártelo en cada visita."
+                },
+                "vti-reading-position": {
+                    "name": "Posición de lectura (solo en esta pestaña)",
+                    "purpose": "Anota en qué sección de la portada ibas leyendo, para devolverte ahí si recargas la página o vuelves a ella con Atrás o Adelante. Vive solo en esta pestaña y se borra sola al cerrarla."
+                }
+            }
+        },
+        "privacy": {
+            "title": "Política de privacidad",
+            "description": "Política de privacidad de VoidToInfinite: esta web no usa analítica, seguimiento ni publicidad. Qué se guarda en tu equipo, qué ocurre si nos escribes y cómo ejercer tus derechos.",
+            "intro": "Esta política sigue el modelo de dos capas que permite el artículo 11.1 LOPDGDD: primero un resumen breve y, después, el detalle del artículo 13 RGPD, sección por sección. Es corta a propósito, porque el tratamiento que describe también lo es.",
+            "sections": [
+                {
+                    "id": "resumen",
+                    "heading": "Resumen (primera capa)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Si solo tienes un minuto: navegar por esta web no nos da ningún dato sobre ti. No hay analítica, ni seguimiento, ni publicidad, ni perfiles. En tu equipo solo se guardan dos cosas: el tema que tú mismo elijas y, mientras la pestaña siga abierta, por dónde ibas leyendo."
+                        },
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Responsable",
+                                    "description": "Daniel Mosquera, persona física (ver el apartado «Quién es el responsable»)."
+                                },
+                                {
+                                    "term": "Finalidad",
+                                    "description": "Recordar el tema que elijas, y responderte si decides escribirnos por correo."
+                                },
+                                {
+                                    "term": "Legitimación",
+                                    "description": "Tu propia elección al usar la interfaz, y —solo si nos escribes— la gestión de tu mensaje."
+                                },
+                                {
+                                    "term": "Destinatarios",
+                                    "description": "Netlify (alojamiento), y Cloudflare y Google si nos escribes por correo. No cedemos ni vendemos datos a terceros."
+                                },
+                                {
+                                    "term": "Derechos",
+                                    "description": "Acceso, rectificación, supresión, limitación, oposición y portabilidad. Ver el apartado «Tus derechos»."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "responsable",
+                    "heading": "Quién es el responsable del tratamiento (art. 13.1.a RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El responsable del tratamiento de tus datos es:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "Estos datos identificativos están pendientes de que el titular del sitio los aporte. Mientras falten, esta página no cumple el artículo 13.1.a RGPD y no debe considerarse una política de privacidad publicable."
+                        }
+                    ]
+                },
+                {
+                    "id": "delegado",
+                    "heading": "Delegado de Protección de Datos (art. 13.1.b RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No se ha designado un Delegado de Protección de Datos (DPO)."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "No es obligatorio designarlo: no concurre ninguno de los supuestos del artículo 37 RGPD (no somos una autoridad pública, nuestra actividad no implica una observación habitual y sistemática de personas a gran escala, ni tratamos categorías especiales de datos a gran escala) ni ninguno de los supuestos adicionales del artículo 34 LOPDGDD."
+                        }
+                    ]
+                },
+                {
+                    "id": "navegacion",
+                    "heading": "Qué NO hacemos cuando navegas",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Esta web es una página de presentación. Durante la navegación ordinaria no recogemos datos personales tuyos, y en concreto:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "No usamos herramientas de analítica ni de medición de audiencia.",
+                                "No usamos tecnologías de seguimiento, píxeles publicitarios ni identificadores de terceros.",
+                                "No elaboramos perfiles ni tomamos decisiones automatizadas que te afecten (art. 13.2.f y art. 22 RGPD).",
+                                "No mostramos publicidad ni hacemos publicidad comportamental.",
+                                "No cargamos widgets, feeds ni SDK de redes sociales: los enlaces a plataformas externas son anclas normales, y no contactan con esas plataformas hasta que tú las pulsas.",
+                                "No vendemos, alquilamos ni cedemos datos con fines comerciales.",
+                                "No hay ningún formulario que envíe datos a un servidor nuestro: esta web es una exportación estática y no tiene servidor de aplicación al que enviarlos."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "finalidades",
+                    "heading": "Con qué fines tratamos tus datos y con qué base legal (art. 13.1.c RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Recordar el tema que elijas",
+                                    "description": "Base legal: el interés legítimo en ofrecerte la interfaz que tú mismo pediste al pulsar el conmutador de tema (art. 6.1.f RGPD). Este almacenamiento está exento de consentimiento por el artículo 22.2 LSSI-CE, ver el apartado «Qué guardamos en tu equipo»."
+                                },
+                                {
+                                    "term": "Responder a tu mensaje si nos escribes",
+                                    "description": "Solo si decides enviarnos un correo. Base legal: depende de por qué escribas —tu consentimiento cuando es una consulta general (art. 6.1.a RGPD), o la aplicación de medidas precontractuales a petición tuya cuando escribes para plantear una colaboración o un encargo (art. 6.1.b RGPD)—. No afirmamos una sola base para todos los casos porque no todos los mensajes son iguales."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "interes-legitimo",
+                    "heading": "Interés legítimo perseguido (art. 13.1.d RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El único tratamiento que se apoya en el interés legítimo (art. 6.1.f RGPD) es recordar el tema, y ese interés es simplemente ofrecerte la preferencia que tú mismo elegiste. No se realiza ningún otro tratamiento basado en el interés legítimo del responsable."
+                        }
+                    ]
+                },
+                {
+                    "id": "almacenamiento",
+                    "heading": "Qué guardamos en tu equipo (almacenamiento técnico)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Esta es la lista completa y única de todo lo que este sitio escribe en tu equipo, y no todo es de la misma clase: hay una preferencia que eliges tú, el tema, y un estado técnico de la propia sesión de navegación, por dónde ibas leyendo, que no elige nadie. Se guardan con las tecnologías localStorage y sessionStorage de tu propio navegador, y la segunda se borra sola al cerrar la pestaña. No hay cookies HTTP, ni analítica, ni scripts de terceros."
+                        },
+                        {
+                            "kind": "storage"
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Cada entrada sirve únicamente para la finalidad que declara su fila: recordar el tema que elegiste y devolverte a donde ibas leyendo. No se usan para analítica, publicidad, seguimiento, identificación, elaboración de perfiles ni para relacionar tus visitas con ninguna otra finalidad."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "Por eso este sitio no muestra un aviso de cookies: el artículo 22.2 de la LSSI-CE exceptúa del consentimiento el almacenamiento estrictamente necesario para prestar el servicio expresamente solicitado por el usuario, y la Guía de cookies de la AEPD incluye entre esos supuestos la personalización de interfaz elegida por la propia persona. Pedir permiso para lo que la ley exime sería fricción sin cobertura. El día que se incorporase una tecnología no exenta, se pediría consentimiento antes de activarla."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Puedes borrar estas entradas en cualquier momento desde las opciones de tu navegador (borrar datos de sitios o datos de navegación). El sitio seguirá funcionando: simplemente volverá a sus valores por defecto."
+                        }
+                    ]
+                },
+                {
+                    "id": "contacto",
+                    "heading": "Si nos escribes por correo",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El contacto de esta web funciona con un enlace de correo: al pulsarlo, tu navegador abre tu propia aplicación de correo con el mensaje ya iniciado. La web no recibe, no envía y no almacena nada de eso; el envío lo haces tú, desde tu propia cuenta, y puedes no hacerlo."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Ahora bien, si decides enviarlo, ese correo llega a nuestra bandeja de entrada como cualquier otro, y a partir de ahí sí tratamos los datos que hayas incluido. Según lo que escribas, eso puede abarcar:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "tu dirección de correo electrónico;",
+                                "tu nombre;",
+                                "la empresa u organización a la que representes, si la mencionas;",
+                                "el contenido del mensaje;",
+                                "cualquier otro dato que decidas incluir, incluidos los archivos que adjuntes."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Los usamos únicamente para leer tu mensaje, responderte y mantener las comunicaciones relacionadas con esa consulta, incluida su tramitación como solicitud comercial o precontractual cuando ese sea el motivo por el que escribes. No los usamos para enviarte comunicaciones comerciales no solicitadas ni los incorporamos a ninguna lista de difusión."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Facilitar estos datos es completamente voluntario (art. 13.2.e RGPD): decides tú qué escribes y si envías el correo. Si no nos escribes, la única consecuencia es que no podremos responderte."
+                        }
+                    ]
+                },
+                {
+                    "id": "destinatarios",
+                    "heading": "Quién recibe tus datos (art. 13.1.e RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio es una exportación estática (sin servidor propio de aplicación) alojada en Netlify, que actúa como encargado del tratamiento para el alojamiento técnico y trata los datos técnicos de las peticiones —por ejemplo, direcciones IP en sus registros de acceso— según su propia política de privacidad."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, como encargado del tratamiento, para el alojamiento técnico del sitio.",
+                                "Cloudflare, que enruta el correo dirigido a la dirección de contacto. No lo almacena: lo reenvía a un buzón de destino.",
+                                "Google, proveedor de ese buzón de destino, donde el mensaje queda alojado. Es una cuenta personal de Gmail, no un servicio contratado como encargado del tratamiento: se declara así en vez de afirmar una relación contractual que no existe."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "No hay ningún otro destinatario. No cedemos tus datos a terceros con fines comerciales ni los vendemos."
+                        }
+                    ]
+                },
+                {
+                    "id": "transferencias",
+                    "heading": "Transferencias internacionales de datos (art. 13.1.f RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio se aloja en la infraestructura de Netlify y el correo de contacto se enruta a través de Cloudflare. Las dos son empresas estadounidenses, así que puede haber transferencias de datos técnicos fuera del Espacio Económico Europeo."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, Inc.: cláusulas contractuales tipo de la Comisión Europea, recogidas en su acuerdo de tratamiento de datos, y adhesión certificada al Marco de Privacidad de Datos UE-EE. UU.",
+                                "Cloudflare, Inc.: cláusulas contractuales tipo (módulo dos, responsable a encargado) en la sección 6.2 de su acuerdo de tratamiento de datos, y adhesión al Marco de Privacidad de Datos confirmada en su sección 6.4."
+                            ]
+                        },
+                        {
+                            "kind": "note",
+                            "text": "El buzón final de la dirección de contacto es una cuenta personal de Gmail. Google se adhiere al Marco de Privacidad de Datos, pero una cuenta de consumo no está cubierta por un acuerdo de tratamiento como encargado: no se afirma aquí una garantía contractual que no se ha suscrito. Si prefieres no enviar tus datos a un proveedor estadounidense, no uses el correo para contactar."
+                        }
+                    ]
+                },
+                {
+                    "id": "conservacion",
+                    "heading": "Cuánto tiempo conservamos tus datos (art. 13.2.a RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Tema elegido",
+                                    "description": "Se queda en tu propio equipo, no en un servidor nuestro, y no caduca por sí solo: permanece hasta que borres los datos de este sitio en tu navegador."
+                                },
+                                {
+                                    "term": "Tu correo y su contenido",
+                                    "description": "Se conserva hasta que tu consulta quede resuelta y, como máximo, tres meses desde entonces. Pasado ese plazo se elimina."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "derechos",
+                    "heading": "Tus derechos (art. 13.2.b y 13.2.c RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "En cualquier momento puedes ejercer estos derechos sobre tus datos:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Acceso: saber qué datos tratamos sobre ti.",
+                                "Rectificación: corregir datos inexactos.",
+                                "Supresión: pedir que eliminemos tus datos.",
+                                "Limitación: pedir que restrinjamos su tratamiento.",
+                                "Oposición: oponerte a un tratamiento concreto.",
+                                "Portabilidad: recibir tus datos en un formato estructurado y de uso común."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Para ejercerlos, escribe a hello@voidtoinfinite.com indicando el derecho que quieres ejercer."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Cuando el tratamiento se base en tu consentimiento, puedes retirarlo en cualquier momento sin que ello afecte a la licitud del tratamiento realizado antes de la retirada."
+                        }
+                    ]
+                },
+                {
+                    "id": "reclamacion",
+                    "heading": "Cómo reclamar ante la autoridad de control (art. 13.2.d RGPD)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Si consideras que el tratamiento de tus datos vulnera la normativa, puedes presentar una reclamación ante la Agencia Española de Protección de Datos (AEPD), www.aepd.es, calle Jorge Juan 6, 28001 Madrid."
+                        }
+                    ]
+                },
+                {
+                    "id": "cambios",
+                    "heading": "Cambios en esta política",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Actualizaremos esta política cuando cambie la forma en que tratamos tus datos, y en particular si algún día se incorporase alguna tecnología que hoy no existe en el sitio. La fecha y la versión de la última revisión sustantiva aparecen al principio de este documento."
+                        }
+                    ]
+                }
+            ]
+        },
+        "legalNotice": {
+            "title": "Aviso legal",
+            "description": "Aviso legal de VoidToInfinite conforme al artículo 10 de la LSSI-CE: identificación del titular, datos registrales, condiciones de uso del sitio, propiedad intelectual y responsabilidad.",
+            "intro": "Este aviso legal recoge la información exigida por el artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), en sus siete letras, de la a) a la g), y añade las condiciones generales que rigen el uso de este sitio.",
+            "sections": [
+                {
+                    "id": "titular",
+                    "heading": "Titular del sitio (letras a y e)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Información identificativa del titular, siguiendo el artículo 10.a) (denominación, domicilio y correo electrónico) y el artículo 10.e) (NIF) de la LSSI-CE:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "Sobre el domicilio y el NIF: no se publican. La LSSI-CE regula los servicios de la sociedad de la información prestados como actividad económica, y este sitio no la tiene —no vende, no anuncia, no ingresa y no recaba datos de quien lo visita—, por lo que se entiende que ese deber de identificación no le resulta exigible. Es una interpretación razonada, no una certeza confirmada por un profesional, y se declara como tal en lugar de omitir la cuestión. El titular queda identificado por su nombre y es localizable en la dirección de correo indicada, que se atiende. Si el proyecto pasara a tener actividad económica, esta decisión se revisaría."
+                        }
+                    ]
+                },
+                {
+                    "id": "actividad",
+                    "heading": "Actividad y objeto del sitio",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Este sitio presenta el proyecto VoidToInfinite y su trabajo. Es una web informativa: no vende productos ni servicios, no permite realizar compras ni reservas, no ofrece registro ni cuentas de usuario, no aloja contenido publicado por visitantes y no presta ningún servicio contratable en línea."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Por eso no se activa el régimen de contratación electrónica (arts. 23 a 29 LSSI-CE) ni el de información precontractual a consumidores (arts. 97 y 98 del texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios)."
+                        }
+                    ]
+                },
+                {
+                    "id": "registro",
+                    "heading": "Datos registrales (letra b)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No procede: el responsable es una persona física, no una sociedad, así que no hay inscripción en ningún registro público que reseñar."
+                        }
+                    ]
+                },
+                {
+                    "id": "autorizacion",
+                    "heading": "Autorización administrativa (letra c)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. La actividad de este sitio (presentación de un equipo y su trabajo) no está sujeta a ningún régimen de autorización administrativa previa."
+                        }
+                    ]
+                },
+                {
+                    "id": "profesion-regulada",
+                    "heading": "Colegio profesional (letra d)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. La actividad de este sitio no corresponde a una profesión regulada sujeta a colegiación."
+                        }
+                    ]
+                },
+                {
+                    "id": "precios",
+                    "heading": "Precios (letra f)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No aplica. Este sitio no comercializa productos ni servicios, así que no hay precios que informar."
+                        }
+                    ]
+                },
+                {
+                    "id": "codigos-conducta",
+                    "heading": "Códigos de conducta (letra g)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio no está adherido a ningún código de conducta de los previstos en el artículo 10.g) de la LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "uso-del-sitio",
+                    "heading": "Condiciones de uso del sitio",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Puedes navegar y consultar libremente el contenido del sitio para tu uso personal. No está permitido:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Usar el sitio con fines ilícitos o que perjudiquen a terceros.",
+                                "Intentar acceder a áreas o sistemas no destinados al público.",
+                                "Extraer o reutilizar de forma masiva el contenido del sitio sin autorización.",
+                                "Interferir con el funcionamiento normal del sitio."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Propiedad intelectual e industrial",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Los textos, gráficos, logotipos y demás contenidos de este sitio están protegidos conforme al Real Decreto Legislativo 1/1996, de 12 de abril, por el que se aprueba el texto refundido de la Ley de Propiedad Intelectual, y pertenecen al titular del sitio o se usan con la autorización correspondiente. No se concede ninguna licencia sobre ellos salvo la necesaria para navegar por el sitio; queda prohibida su reproducción sin autorización, salvo en los términos permitidos por la ley."
+                        }
+                    ]
+                },
+                {
+                    "id": "enlaces-externos",
+                    "heading": "Enlaces a sitios de terceros",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El sitio enlaza a plataformas de terceros, como GitHub y Discord, sobre las que no tenemos control. Son enlaces normales: no cargan scripts, widgets ni contenido de esas plataformas dentro de esta web, y no las contactan hasta que decides pulsarlos."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Una vez que sales de este sitio, se aplican los términos y la política de privacidad de la plataforma a la que llegues, no los nuestros. No respondemos de su contenido ni de sus prácticas; te recomendamos revisarlos."
+                        }
+                    ]
+                },
+                {
+                    "id": "disponibilidad",
+                    "heading": "Disponibilidad",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Hacemos lo razonable para mantener el sitio disponible, pero no garantizamos un acceso continuo, ininterrumpido o libre de errores. Podemos suspender el acceso temporalmente por mantenimiento o por causas fuera de nuestro control."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Responsabilidad",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Procuramos que la información publicada sea correcta y esté actualizada, sin que ello suponga una garantía absoluta de exactitud. En la medida que permita la ley, no respondemos de los daños derivados del uso del sitio, salvo en los casos que la ley no permita excluir."
+                        }
+                    ]
+                },
+                {
+                    "id": "modificaciones",
+                    "heading": "Modificaciones",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Podemos modificar este aviso legal en cualquier momento, por ejemplo si cambia la actividad del sitio. La versión y la fecha de la última revisión sustantiva aparecen al principio de este documento."
+                        }
+                    ]
+                },
+                {
+                    "id": "legislacion",
+                    "heading": "Legislación aplicable y fuero",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Este aviso legal se rige por la legislación española, en particular por la LSSI-CE. Cuando la otra parte tenga la condición de consumidor, será competente el fuero que la ley le reserve para su protección; no imponemos ningún juzgado o tribunal distinto de ese, porque el artículo 90 del texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios declara abusiva y nula cualquier cláusula que someta al consumidor a un fuero distinto al de su propio domicilio."
+                        }
+                    ]
+                },
+                {
+                    "id": "privacidad",
+                    "heading": "Protección de datos",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "El tratamiento de datos personales, lo que este sitio guarda en tu equipo y lo que ocurre si nos escribes por correo se explican en la Política de privacidad, enlazada en el pie de todas las páginas."
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

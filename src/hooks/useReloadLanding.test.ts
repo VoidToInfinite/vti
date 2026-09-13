@@ -1,0 +1,1319 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { renderHook } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type MockInstance,
+} from "vitest";
+import { STORAGE_KEYS } from "@/config/storage";
+import { THEME_ATTRIBUTE } from "@/theme/resolveTheme";
+import { FRAGMENT_LANDING_SETTLE_MS } from "./useFragmentLanding";
+import {
+  resetReadingRestorationForTests,
+  useReloadLanding,
+} from "./useReloadLanding";
+
+/*
+ * LO QUE ESTE FICHERO PUEDE PROBAR Y LO QUE NO, escrito antes que los tests
+ * para que nadie lea de más en un verde.
+ *
+ * jsdom no maqueta, no pinta, no recarga y no restituye scroll (CLAUDE.md §5,
+ * punto 2). Aquí NO se puede observar "el lector volvió a su sección tras
+ * recargar": eso es una propiedad de píxeles de un navegador real, y su
+ * candado vive en `scripts/check-site-surfaces.mjs` (otro frente de esta ola).
+ * Lo que sí se ata aquí es el MECANISMO completo, que es donde vivía el
+ * defecto: QUÉ se anota antes de irse, CUÁNDO se decide restituir, CONTRA QUÉ
+ * geometría, CUÁNTAS veces (una) y en qué casos NO se restituye en absoluto.
+ *
+ * MATRIZ DE ESTE CANDADO (regla 2 de la lección del 2026-09-06), porque un
+ * candado que no dice qué combinaciones mira miente por omisión:
+ *
+ * - Tipo de navegación: `reload`, `back_forward`, `navigate` y la ausencia de
+ *   entrada. LAS CUATRO se ejercitan; es el eje del defecto.
+ * - Rama de tema: se ejercita el CAMBIO de rama (claro -> oscuro), que es la
+ *   secuencia real de la hidratación bajo `output: "export"`, y también la
+ *   carga que ya venía con la rama definitiva. Los NOMBRES de rama son
+ *   irrelevantes para el hook (recibe un `string` opaco), así que no se
+ *   multiplica por tema.
+ * - Fragmento en la URL: con y sin.
+ * - `pathname`: coincidente y distinto.
+ * - Relojes: los dos caminos, el doble `requestAnimationFrame` y el tope de la
+ *   pestaña sin frames.
+ * - Gesto humano: rueda, arrastre táctil y tecla de desplazamiento.
+ *
+ * QUEDA FUERA A PROPÓSITO, y no por comodidad: `prefers-reduced-motion` y el
+ * DPR no entran en ninguna rama de este código (la restitución es
+ * `behavior: "instant"` siempre, así que no hay movimiento que la preferencia
+ * pueda pedir retirar -- ver `restoreReadingAnchor`), y el ancho de viewport
+ * solo entra como `window.innerHeight` dentro de la aritmética del ancla, que
+ * tiene su propio candado en `themeScrollAnchor.test.ts`.
+ */
+
+/*
+ * `requestAnimationFrame` propio con cancelación REAL -- mismo patrón y mismo
+ * motivo que `useFragmentLanding.test.ts`: un `cancelAnimationFrame` de
+ * mentira dejaría correr los frames que el hook cree haber cancelado. Sirve
+ * además para el escenario de pestaña oculta: basta con NO vaciar la cola, que
+ * es literalmente lo que hace el navegador ahí.
+ */
+let frames: Map<number, FrameRequestCallback>;
+let nextFrameId: number;
+
+function flushFrame(): void {
+  const pending = [...frames.values()];
+  frames.clear();
+  for (const callback of pending) callback(0);
+}
+
+const GUARD_EVENTS = ["wheel", "touchmove", "keydown"] as const;
+const ALL_GUARD_EVENTS = [...GUARD_EVENTS].sort();
+
+let addSpy: MockInstance;
+let removeSpy: MockInstance;
+let setTimeoutSpy: MockInstance;
+
+/**
+ * La rama EFECTIVA tal y como la deja el script anti-flash del `<head>` antes
+ * de que React hidrate (`buildThemeBootstrapScript`). `null` reproduce el caso
+ * en que ese script no llegó a correr o lanzó: sin atributo que leer.
+ *
+ * El nombre del atributo se importa de `resolveTheme.ts` y no se escribe a
+ * mano: es el mismo dueño único que lee el código bajo prueba, así que un
+ * renombrado no puede dejar estos candados verdes contra un atributo que ya no
+ * existe.
+ */
+function setResolvedTheme(value: string | null): void {
+  if (value === null) document.documentElement.removeAttribute(THEME_ATTRIBUTE);
+  else document.documentElement.setAttribute(THEME_ATTRIBUTE, value);
+}
+
+/**
+ * Cuántas veces se ha ARMADO la restitución. Cada armado deja exactamente un
+ * `setTimeout` con el tope de espera, así que contarlos cuenta armados -- es
+ * el mismo instrumento con el que la sonda de navegador del 2026-09-06
+ * distinguió la página que armó una vez (la que se restituyó con la geometría
+ * clara, `y = 4.063`) de la que armó dos (la que esperó a la rama efectiva y
+ * volvió a `y = 9.000`).
+ */
+function armados(): number {
+  return setTimeoutSpy.mock.calls.filter(
+    ([, delay]) => delay === FRAGMENT_LANDING_SETTLE_MS,
+  ).length;
+}
+
+/** Los eventos de la guarda que se han REGISTRADO, ordenados para comparar. */
+function guardListenersAdded(): string[] {
+  return addSpy.mock.calls
+    .map(([type]) => String(type))
+    .filter((type) =>
+      GUARD_EVENTS.includes(type as (typeof GUARD_EVENTS)[number]),
+    )
+    .sort();
+}
+
+function guardListenersRemoved(): string[] {
+  return removeSpy.mock.calls
+    .map(([type]) => String(type))
+    .filter((type) =>
+      GUARD_EVENTS.includes(type as (typeof GUARD_EVENTS)[number]),
+    )
+    .sort();
+}
+
+let scrollToMock: ReturnType<typeof vi.fn>;
+
+/** Entradas que `performance.getEntriesByType("navigation")` devuelve en este
+ *  test. Vacía = el navegador no expone la medición, el caso conservador. */
+let navigationEntries: PerformanceEntry[];
+
+function setNavigationType(type: string | null): void {
+  navigationEntries =
+    type === null ? [] : [{ type } as unknown as PerformanceEntry];
+}
+
+function setScrollY(value: number): void {
+  Object.defineProperty(window, "scrollY", {
+    value,
+    writable: true,
+    configurable: true,
+  });
+}
+
+/** Sección de primer nivel con su `rect` mockeado: jsdom no hace layout, así
+ *  que `getBoundingClientRect()` devolvería ceros y ni el ancla se capturaría
+ *  ni se restituiría (mismo patrón que `themeScrollAnchor.test.ts`). */
+function mountSection(id: string, top: number, height: number): void {
+  const el = document.createElement("section");
+  el.id = id;
+  el.getBoundingClientRect = (): DOMRect =>
+    ({
+      top,
+      bottom: top + height,
+      height,
+      left: 0,
+      right: 0,
+      width: 0,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    }) as DOMRect;
+  document.body.appendChild(el);
+}
+
+/*
+ * LA GEOMETRÍA DEL DEFECTO MEDIDO (crítica externa #19, P1 #2, sonda propia
+ * sobre el build de `f3594ad`, Chrome 1440x900, tema oscuro):
+ *
+ *   scroll a y = 9.000 (contact) -> recarga -> y = 5.623 (journey)
+ *
+ * Antes de irse, el lector estaba en `y = 9.000` con Contacto empezando en el
+ * píxel 8.200 del documento, es decir 800 px dentro de la sección. Tras la
+ * recarga el navegador lo deja en 5.623 (el final del documento CLARO
+ * horneado) y la hidratación monta la rama oscura, donde Contacto vuelve a
+ * empezar en el 8.200. La restitución correcta es, por tanto, 8.200 + 800.
+ */
+const SAVED_SCROLL_Y = 9000;
+const CONTACT_TOP_DOC = 8200;
+const CONTACT_HEIGHT = 1800;
+const OFFSET_IN_CONTACT = SAVED_SCROLL_Y - CONTACT_TOP_DOC;
+const BROWSER_RESTORED_SCROLL_Y = 5623;
+
+const SAVED_POSITION = {
+  pathname: "/",
+  scrollY: SAVED_SCROLL_Y,
+  anchor: {
+    id: "contact",
+    topDoc: CONTACT_TOP_DOC,
+    height: CONTACT_HEIGHT,
+    scrollY: SAVED_SCROLL_Y,
+  },
+} as const;
+
+/* jsdom NO expone la Navigation API (`window.navigation` es `undefined`): los
+   casos que no la simulan ejercitan el formato de `403bd29`, una sola
+   posición en la raíz, sin cambio alguno. */
+function seedStoredPosition(position: unknown): void {
+  window.sessionStorage.setItem(
+    STORAGE_KEYS.readingPosition,
+    typeof position === "string" ? position : JSON.stringify(position),
+  );
+}
+
+function readStoredPosition(): unknown {
+  const raw = window.sessionStorage.getItem(STORAGE_KEYS.readingPosition);
+  return raw === null ? null : JSON.parse(raw);
+}
+
+/** La página tal y como queda tras la recarga: el navegador restituyó contra
+ *  la geometría clara y la rama oscura ya montó Contacto en su sitio. */
+function mountPageAfterReload(): void {
+  mountSection(
+    "contact",
+    CONTACT_TOP_DOC - BROWSER_RESTORED_SCROLL_Y,
+    CONTACT_HEIGHT,
+  );
+  setScrollY(BROWSER_RESTORED_SCROLL_Y);
+}
+
+function renderWithBranch(branch = "light") {
+  return renderHook(({ branchKey }) => useReloadLanding(branchKey), {
+    initialProps: { branchKey: branch },
+  });
+}
+
+beforeEach(() => {
+  frames = new Map();
+  nextFrameId = 1;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+    const id = nextFrameId;
+    nextFrameId += 1;
+    frames.set(id, callback);
+    return id;
+  });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => {
+    frames.delete(id);
+  });
+  scrollToMock = vi.fn();
+  vi.stubGlobal("scrollTo", scrollToMock);
+  addSpy = vi.spyOn(window, "addEventListener");
+  removeSpy = vi.spyOn(window, "removeEventListener");
+  setTimeoutSpy = vi.spyOn(window, "setTimeout");
+  navigationEntries = [];
+  vi.spyOn(window.performance, "getEntriesByType").mockImplementation(
+    () => navigationEntries,
+  );
+  setScrollY(0);
+  window.sessionStorage.clear();
+  /* Cada caso es un DOCUMENTO NUEVO. En el sitio real eso lo garantiza la
+     carga: un documento nuevo trae un módulo nuevo y el guard de "ya consumí
+     mi restitución" nace abierto. jsdom reutiliza el módulo para todos los
+     casos de este fichero, así que sin esta línea solo el primero que
+     sembrara una entrada podría ejercitar una restitución -- y los demás
+     pasarían en verde por la razón equivocada. */
+  resetReadingRestorationForTests();
+});
+
+afterEach(() => {
+  document.body.innerHTML = "";
+  window.location.hash = "";
+  window.sessionStorage.clear();
+  /* El atributo vive en `<html>`, que jsdom NO recrea entre tests del mismo
+     fichero: sin esta línea la rama efectiva de un test se filtraría al
+     siguiente. */
+  setResolvedTheme(null);
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+describe("useReloadLanding: lo que se anota antes de irse", () => {
+  /*
+   * CANDADO (a). Sin esta anotación no hay nada que restituir y el defecto
+   * vuelve entero. Se afirma el PAYLOAD COMPLETO y no solo su presencia: la
+   * restitución necesita las cuatro cifras del ancla (`topDoc` para saber
+   * cuánto se movió la sección, `height` para el techo de encogimiento,
+   * `scrollY` para el desplazamiento dentro de ella) y el `pathname` para no
+   * aplicarse en otra ruta. Guardar "algo" no basta.
+   */
+  it("en pagehide guarda ancla, pathname y scrollY bajo la clave registrada", () => {
+    mountSection("contact", -800, CONTACT_HEIGHT);
+    setScrollY(SAVED_SCROLL_Y);
+
+    renderWithBranch("dark");
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(readStoredPosition()).toEqual({
+      pathname: "/",
+      scrollY: SAVED_SCROLL_Y,
+      anchor: {
+        id: "contact",
+        topDoc: CONTACT_TOP_DOC,
+        height: CONTACT_HEIGHT,
+        scrollY: SAVED_SCROLL_Y,
+      },
+    });
+  });
+
+  /*
+   * El respaldo de `pagehide`, que no es redundancia: hay motores móviles que
+   * descartan una pestaña sin llegar a emitirlo, y `visibilitychange` es el
+   * único aviso que se recibe en ese camino. Se comprueba además que NO
+   * escribe al volver a ser visible: escribir con la pestaña delante no
+   * aporta nada y pisaría la anotación buena con la misma.
+   */
+  it("al ocultarse la pestaña guarda igual, y no guarda al volver a mostrarse", () => {
+    mountSection("contact", -800, CONTACT_HEIGHT);
+    setScrollY(SAVED_SCROLL_Y);
+    renderWithBranch("dark");
+
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+
+    visibility.mockReturnValue("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(readStoredPosition()).toBeNull();
+
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(readStoredPosition()).toMatchObject({ scrollY: SAVED_SCROLL_Y });
+  });
+
+  it("al desmontar no queda ningún escritor suscrito", () => {
+    mountSection("contact", -800, CONTACT_HEIGHT);
+    setScrollY(SAVED_SCROLL_Y);
+
+    const { unmount } = renderWithBranch("dark");
+    unmount();
+
+    window.dispatchEvent(new Event("pagehide"));
+    expect(readStoredPosition()).toBeNull();
+  });
+});
+
+describe("useReloadLanding: cuándo se restituye", () => {
+  /*
+   * EL CANDADO DEL P1 #2 (candado b). El defecto no era "no se restituye": era
+   * "se restituye contra la geometría equivocada", la del HTML horneado, que
+   * bajo `output: "export"` es siempre la rama clara. Este test reproduce esa
+   * secuencia exacta -- el efecto se arma con la rama clara y a mitad de la
+   * espera la hidratación confirma la oscura -- y ata las dos mitades: la
+   * corrección pendiente de la rama vieja queda SIN EFECTO, y la que se aplica
+   * lleva el destino calculado sobre la rama que de verdad está montada.
+   *
+   * Desde el 2026-09-06 el montaje declara además la rama EFECTIVA en `<html>`
+   * (`dark`), que es lo que el script anti-flash deja escrito en esa recarga:
+   * así la secuencia que se ejercita es la real y no una en la que el atributo
+   * falta. Con la puerta puesta, la pasada clara ni siquiera arma -- lo que
+   * este test sigue atando es la propiedad de siempre (no se restituye con la
+   * geometría vieja); que además no arme nada lo ata el candado de la puerta,
+   * más abajo.
+   */
+  it("tras una recarga devuelve al lector a su sección, y solo con la rama efectiva ya montada", () => {
+    setResolvedTheme("dark");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const { rerender } = renderWithBranch("light");
+
+    // Primer frame de la rama CLARA: encola el segundo, que sería el que
+    // restituiría contra un maquetado que todavía no es el definitivo.
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+
+    rerender({ branchKey: "dark" });
+
+    // El frame heredado de la rama clara caería AQUÍ.
+    flushFrame();
+    expect(
+      scrollToMock,
+      "se restituyó con la rama vieja: el maquetado medido no era el definitivo",
+    ).not.toHaveBeenCalled();
+
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: CONTACT_TOP_DOC + OFFSET_IN_CONTACT,
+      behavior: "instant",
+    });
+  });
+
+  /*
+   * El complementario del anterior: el frame de la rama vieja no solo queda
+   * sin efecto, queda RETIRADO de la cola. Es la única aserción de este
+   * fichero que distingue la cancelación de relojes de la redundancia del
+   * guard `settled` en la limpieza del efecto.
+   *
+   * SE MONTA SIN `data-theme` A PROPÓSITO, y no por descuido: con la rama
+   * efectiva declarada, la puerta impide que una rama que no es la efectiva
+   * arme relojes, así que el escenario de "la rama vieja dejó un frame
+   * encolado" solo existe en el camino de respaldo -- el navegador en el que
+   * el script de arranque no llegó a correr y todas las ramas arman. Ahí es
+   * donde esta propiedad se puede seguir observando, y ahí sigue haciendo
+   * falta.
+   */
+  it("al cambiar de rama, la limpieza no deja relojes huérfanos en la cola", () => {
+    setResolvedTheme(null);
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const { rerender } = renderWithBranch("light");
+    flushFrame();
+    expect(frames.size, "la rama clara dejó su segundo frame encolado").toBe(1);
+
+    rerender({ branchKey: "dark" });
+
+    expect(
+      frames.size,
+      "quedan DOS frames en cola: el de la rama vieja sigue vivo",
+    ).toBe(1);
+  });
+
+  it("una vuelta por el historial se restituye igual que una recarga", () => {
+    setNavigationType("back_forward");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: CONTACT_TOP_DOC + OFFSET_IN_CONTACT,
+      behavior: "instant",
+    });
+  });
+
+  /*
+   * CANDADO (c), y la razón de que la condición de tipo de navegación exista.
+   * Sin ella, cualquier visita nueva heredaría la posición de la anterior de
+   * la misma pestaña: alguien que llega por un enlace aterrizaría a mitad de
+   * la página sin haberlo pedido -- un defecto peor que el que este hook
+   * arregla, porque afecta a TODAS las entradas y no solo a las recargas.
+   */
+  it("en una visita nueva (navigate) NO se restituye nada", () => {
+    setNavigationType("navigate");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * El caso conservador: sin entrada de navegación no se puede distinguir una
+   * recarga de una visita nueva, y ante la duda manda la visita nueva.
+   */
+  it("sin entrada de navegación que leer, tampoco se restituye", () => {
+    setNavigationType(null);
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * CANDADO (d). El destino de la URL es lo que la persona pidió
+   * explícitamente; la posición guardada, solo lo que había antes. Ese caso es
+   * entero de `useFragmentLanding`, y los dos hooks tirando del mismo scroll
+   * en el mismo frame darían el peor resultado posible.
+   */
+  it("con un fragmento en la URL se inhibe entero: ese caso es de useFragmentLanding", () => {
+    setNavigationType("reload");
+    window.location.hash = "#features";
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /* CANDADO (f). La posición de la portada no dice nada sobre otra ruta. */
+  it("si la posición guardada es de otra ruta, NO se restituye", () => {
+    setNavigationType("reload");
+    seedStoredPosition({ ...SAVED_POSITION, pathname: "/privacidad" });
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * F20-A, RUTA R2: LA SECUENCIA DE LA REVISIÓN. Cada paso es un DOCUMENTO
+   * (el cambio de idioma por `hreflang` y los Atrás entre raíces cargan de
+   * nuevo): A (`/`, sale a 5000) -> B (`/en`) -> C (`/`, navigate, sale a
+   * 200) -> Atrás a B -> Atrás a A. Un mapa por `pathname` dejaba a A en 200
+   * (la ranura de `/` la había escrito C); por entrada del historial, A
+   * recupera la suya. Sin Navigation API manda la nativa, como en `403bd29`.
+   */
+  describe("R2: A (/) -> B (/en) -> C (/) -> Atrás -> Atrás", () => {
+    let entryKey: string | null;
+
+    /** Una carga de documento: aterriza, corre sus frames y se va. */
+    function loadDocument(
+      pathname: string,
+      key: string,
+      type: string,
+      leaveAt: number,
+    ): void {
+      window.history.replaceState(null, "", pathname);
+      entryKey = key;
+      setNavigationType(type);
+      resetReadingRestorationForTests();
+      setScrollY(0);
+      const view = renderWithBranch("dark");
+      flushFrame();
+      flushFrame();
+      setScrollY(leaveAt);
+      window.dispatchEvent(new Event("pagehide"));
+      view.unmount();
+    }
+
+    function recorrer(): void {
+      loadDocument("/", "entrada-a", "navigate", 5000);
+      loadDocument("/en", "entrada-b", "navigate", 1500);
+      loadDocument("/", "entrada-c", "navigate", 200);
+      loadDocument("/en", "entrada-b", "back_forward", 1500);
+      scrollToMock.mockClear();
+      loadDocument("/", "entrada-a", "back_forward", 5000);
+    }
+
+    beforeEach(() => {
+      entryKey = null;
+    });
+
+    afterEach(() => {
+      window.history.replaceState(null, "", "/");
+    });
+
+    it("con Navigation API, A recupera SU posición (5000), no la de C (200)", () => {
+      vi.stubGlobal("navigation", {
+        get currentEntry() {
+          return entryKey === null ? null : { key: entryKey };
+        },
+      });
+
+      recorrer();
+
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: 5000,
+        behavior: "instant",
+      });
+    });
+
+    it("sin Navigation API, el formato y la regla de 403bd29: una sola posición y manda la nativa", () => {
+      recorrer();
+
+      expect(scrollToMock).not.toHaveBeenCalled();
+      expect(readStoredPosition()).toEqual({
+        pathname: "/",
+        scrollY: 5000,
+        anchor: null,
+      });
+    });
+  });
+
+  /*
+   * Entre la escritura y la lectura cabe un despliegue con otro formato, y
+   * `sessionStorage` es texto que cualquiera puede editar desde las
+   * herramientas del navegador. Ni una cosa ni la otra pueden tumbar la
+   * página: se descarta la entrada y se deja el scroll como estaba.
+   */
+  it.each([
+    ["no hay nada guardado", null],
+    ["la entrada no es JSON", "{no-es-json"],
+    [
+      "al ancla le falta un número",
+      '{"pathname":"/","scrollY":10,"anchor":{}}',
+    ],
+    ["falta el pathname", '{"scrollY":10,"anchor":null}'],
+  ])("%s: no se restituye y no se lanza", (_caso, contenido) => {
+    setNavigationType("reload");
+    if (contenido !== null) seedStoredPosition(contenido);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("useReloadLanding: cómo se restituye", () => {
+  /*
+   * EL CONTROL CLARO, medido en la misma sonda: `y = 5.000 -> 5.016` tras
+   * recargar, +16 px. Ahí el navegador ya había acertado y la corrección tiene
+   * que ser un no-op OBSERVABLE -- ni una llamada a `scrollTo`. Es la mitad
+   * del contrato que impide que este hook introduzca un tirón nuevo en la rama
+   * que hoy no tiene ningún defecto.
+   *
+   * Se monta con el ancla EXACTAMENTE donde estaba: la aritmética de
+   * `anchoredScrollY` devuelve entonces el `scrollY` de partida y el umbral de
+   * 1 px de `restoreReadingAnchor` corta la llamada.
+   */
+  it("si el navegador ya había acertado, no llama a scrollTo en absoluto", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountSection("contact", CONTACT_TOP_DOC - SAVED_SCROLL_Y, CONTACT_HEIGHT);
+    setScrollY(SAVED_SCROLL_Y);
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * `behavior: "instant"` no es un detalle de estilo: `"auto"` resolvería al
+   * `scroll-behavior: smooth` global de `GlobalStyles.tsx` y convertiría una
+   * corrección de colocación en un viaje animado de miles de píxeles -- el
+   * defecto que la Task 17 midió y retiró. Este candado fija la palabra.
+   */
+  it("nunca anima la restitución (jamás smooth ni auto)", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    const [options] = scrollToMock.mock.calls[0] as [ScrollToOptions];
+    expect(options.behavior).toBe("instant");
+  });
+
+  /*
+   * El respaldo por píxel, y la razón de que el `scrollY` se guarde además del
+   * ancla: cuando no hubo ninguna sección que capturar no hay ancla a la que
+   * volver, y el número guardado es lo único que queda. Es el ÚNICO camino en
+   * el que este hook usa el píxel: con ancla manda siempre el ancla.
+   */
+  it("sin ancla guardada, restituye el scrollY anotado", () => {
+    setNavigationType("reload");
+    seedStoredPosition({
+      pathname: "/",
+      scrollY: SAVED_SCROLL_Y,
+      anchor: null,
+    });
+    setScrollY(BROWSER_RESTORED_SCROLL_Y);
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: SAVED_SCROLL_Y,
+      behavior: "instant",
+    });
+  });
+
+  /*
+   * Lección pagada tres veces en este repo (`task/lessons.md` 2026-08-06 y
+   * 2026-08-02, CLAUDE.md §5 punto 3): en una pestaña oculta no hay frames.
+   * Aquí eso se reproduce literalmente -- la cola de frames NUNCA se vacía --,
+   * y sin el tope el lector se quedaría 3.377 px arriba para siempre.
+   */
+  it("en una pestaña sin frames, el tope restituye igual", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      setNavigationType("reload");
+      seedStoredPosition(SAVED_POSITION);
+      mountPageAfterReload();
+
+      renderWithBranch("dark");
+
+      vi.advanceTimersByTime(FRAGMENT_LANDING_SETTLE_MS - 1);
+      expect(scrollToMock).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(1);
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("los dos relojes corren a la vez pero la restitución se aplica UNA sola vez", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      setNavigationType("reload");
+      seedStoredPosition(SAVED_POSITION);
+      mountPageAfterReload();
+
+      renderWithBranch("dark");
+      flushFrame();
+      flushFrame();
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+
+      vi.advanceTimersByTime(FRAGMENT_LANDING_SETTLE_MS * 4);
+      expect(scrollToMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * La restitución es de la CARGA, no del ciclo de vida. Sin este candado,
+   * cada pulsación del conmutador de tema devolvería al lector a la posición
+   * con la que se cargó la página -- peleando de frente con la restitución del
+   * ancla de lectura de `useThemeScrollReset.ts`, que es justo lo contrario de
+   * lo que el lector pidió.
+   */
+  it("tras restituir, un cambio de rama posterior NO vuelve a saltar", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const { rerender } = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+
+    rerender({ branchKey: "light" });
+    flushFrame();
+    flushFrame();
+    rerender({ branchKey: "dark" });
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useReloadLanding: la guarda del control humano", () => {
+  /*
+   * CANDADO (e). Arrebatarle el scroll a quien ya está leyendo por su cuenta
+   * sería un defecto peor que el que este hook arregla. La guarda escucha
+   * INTENCIÓN, nunca el evento `scroll`: la propia restitución del navegador
+   * al recargar ya emite `scroll`, así que escucharlo abortaría siempre,
+   * contra la nada.
+   */
+  it.each([
+    ["rueda del ratón", (): Event => new Event("wheel")],
+    ["arrastre táctil", (): Event => new Event("touchmove")],
+    [
+      "tecla de desplazamiento",
+      (): Event => new KeyboardEvent("keydown", { key: "ArrowDown" }),
+    ],
+  ])(
+    "si el lector ya tomó el control del scroll (%s), se aborta y no quedan relojes",
+    (_nombre, crearEvento) => {
+      setNavigationType("reload");
+      seedStoredPosition(SAVED_POSITION);
+      mountPageAfterReload();
+
+      renderWithBranch("dark");
+      window.dispatchEvent(crearEvento());
+
+      expect(
+        frames.size,
+        "abortar tiene que cancelar el frame pendiente, no solo desactivarlo",
+      ).toBe(0);
+
+      flushFrame();
+      flushFrame();
+
+      expect(scrollToMock).not.toHaveBeenCalled();
+      expect(
+        guardListenersRemoved(),
+        "abortar tiene que retirar los tres listeners en el acto",
+      ).toEqual(ALL_GUARD_EVENTS);
+    },
+  );
+
+  /*
+   * El complementario, y la razón de que la lista de teclas sea cerrada:
+   * escribir en el campo de correo de Contacto o tabular no desplaza nada, y
+   * abortar por ello dejaría al lector tirado sin motivo.
+   */
+  it("una tecla que no desplaza la página no aborta la restitución", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "a" }));
+
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Sin nada que restituir no se registra ni un listener: ni guarda, ni
+   * relojes. Es la mitad barata del contrato -- una visita nueva no paga nada
+   * por la existencia de este hook salvo el escritor, que es lo que la deja
+   * preparada para su propia recarga.
+   */
+  it("cuando no hay nada que restituir, no arma guarda ni relojes", () => {
+    setNavigationType("navigate");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+
+    expect(guardListenersAdded()).toEqual([]);
+    expect(frames.size).toBe(0);
+  });
+});
+
+/*
+ * LA PUERTA DE LA RAMA EFECTIVA (2026-09-06). La reincidencia del P1 #2 de la
+ * crítica externa #19, y su candado.
+ *
+ * QUÉ DEFECTO ATRAPA: el arreglo original armaba la restitución en CADA pasada
+ * del efecto, la del HTML horneado incluida, y confiaba en que el commit de la
+ * rama oscura limpiara esa restitución antes de que sus relojes vencieran.
+ * Sonda propia sobre el build servido de `8213019` (Chrome 1440x900, tema
+ * oscuro, cinco páginas recargando a la vez para ocupar la máquina), con el
+ * `setTimeout` del tope y el `scrollTo` instrumentados:
+ *
+ *   9 de 15 paginas   armados=1   scrollTo(4.062,875)  deck=false alto=6.258
+ *   6 de 15 paginas   armados=2   scrollTo(9.000)      deck=true  alto=11.008
+ *
+ * Las nueve primeras aterrizaron en `y = 4.063` (Journey), 4.937 px arriba y
+ * una sección atrás -- peor que sin arreglo, porque `onFinish` cierra
+ * `finishedRef` y no se vuelve a intentar. El reloj que ganó la carrera fue el
+ * doble `requestAnimationFrame`, no el tope: subir el tope habría movido la
+ * carrera sin eliminarla.
+ *
+ * MATRIZ DE ESTE CANDADO (regla 2 de la lección del 2026-09-06):
+ *
+ * - Rama efectiva declarada en `<html>`: `dark`, `light` y AUSENTE (el
+ *   navegador donde el script anti-flash no llegó a correr).
+ * - Rama montada (`branchKey`): coincidente y no coincidente con la anterior.
+ * - Lo que se observa al no armar: las TRES vías por las que la restitución
+ *   podría escaparse -- los frames encolados, el `setTimeout` del tope y los
+ *   tres listeners de la guarda --, y además que ningún reloj posterior la
+ *   aplique.
+ * - Tipo de navegación: `reload`, que es donde el defecto vive; los otros tres
+ *   ya tienen sus casos arriba y no interactúan con la puerta (se descartan
+ *   antes, en la decisión de qué restituir).
+ *
+ * QUEDA FUERA: los nombres de rama no significan nada para el hook (recibe un
+ * `string` opaco); se usan `light`/`dark` porque son los que el atributo puede
+ * traer en el sitio real.
+ */
+describe("useReloadLanding: la puerta de la rama efectiva", () => {
+  /*
+   * CANDADO (a). VERIFICADO CON BUG INYECTADO el 2026-09-06: retirando la
+   * línea `if (!isMountedBranchEffective(branchKey)) return;` de
+   * `useReloadLanding.ts`, este test cae con la línea LITERAL
+   *
+   *   AssertionError: la rama del HTML horneado armó el tope de espera: la
+   *   restitución puede aplicarse contra la geometría que no es: expected 1
+   *   to be +0 // Object.is equality
+   *
+   * y con él el candado (b), `AssertionError: la rama efectiva tiene que
+   * armar, y una sola vez: expected 2 to be 1 // Object.is equality` --
+   * `Tests 2 failed | 27 passed (29)`. Sin la puerta, la rama del HTML
+   * horneado vuelve a armar, que es exactamente el estado en el que 9 de 15
+   * recargas medidas aterrizaron 4.937 px arriba.
+   */
+  it("con la rama efectiva ya resuelta en <html>, la rama del HTML horneado no arma nada", () => {
+    setResolvedTheme("dark");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("light");
+
+    expect(
+      armados(),
+      "la rama del HTML horneado armó el tope de espera: la restitución puede aplicarse contra la geometría que no es",
+    ).toBe(0);
+    expect(
+      frames.size,
+      "la rama del HTML horneado encoló frames: son los que ganaron la carrera en las 9 páginas medidas",
+    ).toBe(0);
+    expect(
+      guardListenersAdded(),
+      "sin restitución armada no hay nada que proteger: la guarda no se registra",
+    ).toEqual([]);
+
+    flushFrame();
+    flushFrame();
+    expect(
+      scrollToMock,
+      "se restituyó contra el documento claro: es exactamente el defecto medido (y = 4.063)",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * CANDADO (b). La otra mitad: la puerta no es un apagado, es una espera. En
+   * cuanto la hidratación confirma la rama, se arma UNA vez y se restituye UNA
+   * vez, con el destino calculado sobre la geometría que de verdad está
+   * montada -- los 9.000 px del ancla oscura, no los 4.063 del documento
+   * claro.
+   */
+  it("al confirmarse la rama efectiva, arma y restituye exactamente una vez", () => {
+    setResolvedTheme("dark");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const { rerender } = renderWithBranch("light");
+    rerender({ branchKey: "dark" });
+
+    expect(armados(), "la rama efectiva tiene que armar, y una sola vez").toBe(
+      1,
+    );
+    expect(guardListenersAdded()).toEqual(ALL_GUARD_EVENTS);
+
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(scrollToMock).toHaveBeenCalledWith({
+      top: CONTACT_TOP_DOC + OFFSET_IN_CONTACT,
+      behavior: "instant",
+    });
+  });
+
+  /*
+   * CANDADO (c). El visitante claro es la mayoría y no puede pagar ni un frame
+   * de retraso por esta puerta: su rama montada ya es la efectiva en la
+   * PRIMERA pasada del efecto, así que arma ahí mismo.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (comparación invertida en
+   * `isMountedBranchEffective`, `effective !== branchKey`): cae con
+   * `AssertionError: expected +0 to be 1 // Object.is equality` --
+   * `Tests 8 failed | 39 passed (47)` entre los dos ficheros de candados.
+   */
+  it("con la rama efectiva clara y la rama clara montada, arma en la primera pasada", () => {
+    setResolvedTheme("light");
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("light");
+
+    expect(armados()).toBe(1);
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * CANDADO (d). El respaldo, y la razón de que la puerta compare contra
+   * `null` y no exija coincidencia: sin atributo nadie ha resuelto ningún
+   * tema (el script de arranque no corrió, o lanzó con el almacenamiento
+   * bloqueado en modo privado estricto), la rama montada es la única que va a
+   * haber, y bloquear ahí dejaría al lector sin restitución para siempre.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (puerta estricta: se retira el
+   * `effective === null ||` de `isMountedBranchEffective`): cae con
+   * `AssertionError: expected +0 to be 1 // Object.is equality`, y con él la
+   * mitad de los dos ficheros -- `Tests 24 failed | 23 passed (47)`, porque
+   * ninguno de los tests existentes declara atributo.
+   */
+  it("sin atributo de tema en <html>, la rama montada es la única posible y se arma", () => {
+    setResolvedTheme(null);
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+
+    expect(armados()).toBe(1);
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * LA RESTITUCIÓN SE CONSUME (2026-09-06). El P1 que la verificación de la
+ * propia ola S encontró en el commit `58cb80f`, y su candado.
+ *
+ * QUÉ DEFECTO ATRAPA: pulsar un enlace interno para volver a la portada tras
+ * haber recargado una vez dejaba al lector a 9.000 px en vez de arriba. Sonda
+ * propia sobre el build servido (Chrome headless 1440x900, tema oscuro,
+ * muestreo del `scrollY` cada 100 ms durante 3 s tras volver a la portada):
+ *
+ *   A (control, sin recarga previa)   navType "navigate"   30 muestras a 0
+ *   B (con UNA recarga previa)        navType "reload"     30 muestras a 9.000
+ *
+ * En B, el `navType` leído YA EN /privacidad seguía siendo `"reload"` y la
+ * entrada `{"pathname":"/","scrollY":9000,"anchor":{"id":"contact",...}}`
+ * seguía entera: `performance.getEntriesByType("navigation")` describe el
+ * DOCUMENTO, y una navegación por `Link` del App Router no crea documento
+ * nuevo. Las tres condiciones del hook (tipo reanudado, sin fragmento, mismo
+ * `pathname`) volvían a cumplirse en cada vuelta a la portada, y `finishedRef`
+ * --un `useRef`-- moría con el desmontaje de `HomeSections`.
+ *
+ * MATRIZ DE ESTE CANDADO (regla 2 de la lección del 2026-09-06):
+ *
+ * - Ciclo de vida: el mismo montaje (ya cubierto arriba por el cambio de rama)
+ *   y un MONTAJE NUEVO tras desmontar, que es el eje del defecto.
+ * - Estado del almacén al remontar: entrada repuesta por el escritor
+ *   (`visibilitychange`), y ausente. Los dos, porque cada uno ejercita un
+ *   refuerzo distinto: el guard de módulo y el borrado.
+ * - Decisión de la primera carga: restituir (`reload`) y descartar
+ *   (`navigate`). El consumo no depende de cuál de las dos fue.
+ * - Contenido de la entrada: legible e ILEGIBLE, porque lo que decide el
+ *   consumo es que la entrada exista, no que sirva.
+ * - Tipo de navegación: `reload` en la carga y `reload` TAMBIÉN en la vuelta,
+ *   que es literalmente lo que el navegador reporta y la razón de que esa
+ *   condición no baste por sí sola.
+ *
+ * QUEDA FUERA: el `pathname`, el fragmento y la rama de tema no interactúan
+ * con el consumo (se evalúan después, sobre la entrada ya consumida) y tienen
+ * sus casos propios más arriba.
+ */
+describe("useReloadLanding: la restitución se consume", () => {
+  /*
+   * CANDADO (1), el del defecto medido. Reproduce el escenario B entero: se
+   * restituye tras la recarga, el lector oculta la pestaña (el escritor repone
+   * la entrada, que es lo que hace que el borrado POR SÍ SOLO no baste),
+   * `HomeSections` se desmonta al irse a la legal y se vuelve a montar al
+   * volver a la portada. El tipo de navegación sigue siendo `"reload"` en todo
+   * momento, igual que en el navegador.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (se retira el guard de módulo:
+   * `restorableRef.current = resolveRestorablePosition();` en vez de la
+   * consulta a `restorationConsumed`). Cae con la línea LITERAL
+   *
+   *   AssertionError: volver a la portada por un enlace repitió la
+   *   restitución: es el defecto medido (30 muestras a 9.000 px en vez de 0):
+   *   expected "spy" to not be called at all, but actually been called 1 times
+   *
+   * y con él el candado de la entrada ilegible, que se apoya en el mismo
+   * guard -- `Tests 2 failed | 34 passed (36)`.
+   *
+   * LA PRIMERA VERSIÓN DE ESTE CANDADO ERA UN FALSO VERDE, y queda escrito
+   * porque el siguiente que lo toque puede repetirlo: no movía el `scrollY`
+   * tras la restitución, así que la entrada que el escritor reponía apuntaba
+   * al sitio donde la página ya estaba y el remontaje no llamaba a `scrollTo`
+   * ni con el bug puesto (`Tests 1 failed | 35 passed (36)`, y el que caía era
+   * otro). Un candado de scroll tiene que dejar el scroll DONDE LA CORRECCIÓN
+   * ANTERIOR LO PUSO, o mide el umbral de 1 px en vez del defecto.
+   */
+  it("tras restituir, volver a la portada por un enlace NO vuelve a mover el scroll", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+
+    /* El motor lleva la página adonde la restitución acaba de pedir. Aquí se
+       refleja a mano porque `scrollTo` está espiado, y NO es un detalle
+       cosmético: sin mover el scroll, la entrada que el escritor repone abajo
+       apuntaría al sitio donde ya estamos y la restitución del remontaje sería
+       un no-op por el umbral de 1 px -- un verde que no probaría nada. */
+    document.body.innerHTML = "";
+    setScrollY(SAVED_SCROLL_Y);
+    mountSection("contact", CONTACT_TOP_DOC - SAVED_SCROLL_Y, CONTACT_HEIGHT);
+
+    // El lector se va a otra pestaña: el escritor repone la entrada con la
+    // posición del momento, para que la PRÓXIMA recarga tenga su valor fresco.
+    const visibility = vi.spyOn(document, "visibilityState", "get");
+    visibility.mockReturnValue("hidden");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(
+      readStoredPosition(),
+      "el escritor tiene que reponer la entrada al ocultarse la pestaña",
+    ).toMatchObject({ scrollY: SAVED_SCROLL_Y });
+    visibility.mockRestore();
+
+    /* La vuelta a la portada por un enlace: MISMO documento --el tipo de
+       navegación sigue diciendo "reload", igual que en la sonda--, el App
+       Router deja el scroll arriba y `HomeSections` se vuelve a montar. */
+    primeraCarga.unmount();
+    document.body.innerHTML = "";
+    setScrollY(0);
+    mountSection("contact", CONTACT_TOP_DOC, CONTACT_HEIGHT);
+    scrollToMock.mockClear();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(
+      scrollToMock,
+      "volver a la portada por un enlace repitió la restitución: es el defecto medido (30 muestras a 9.000 px en vez de 0)",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * CANDADO (2), el otro refuerzo por separado. Sin escritor de por medio, la
+   * entrada tiene que DEJAR DE ESTAR en cuanto la decisión se toma -- antes
+   * incluso de que los relojes venzan, porque lo que la retira es la decisión
+   * y no la corrección.
+   *
+   * Es además lo que sostiene la ficha de `/privacidad`: un dato de sesión
+   * declarado como estado técnico no puede seguir vivo cuando ya no hace
+   * falta.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (se retira la llamada a
+   * `clearStoredPosition()` de `consumeStoredPosition`). Cae con la línea
+   * LITERAL
+   *
+   *   AssertionError: la entrada sigue en sessionStorage tras decidir
+   *   restituirla: una navegación de cliente posterior volvería a
+   *   encontrarla: expected { pathname: '/', scrollY: 9000, …(1) } to be null
+   *
+   * y con él los otros tres casos de este bloque que miran el almacén --
+   * `Tests 4 failed | 32 passed (36)`.
+   */
+  it("al decidir restituir, la entrada de sessionStorage deja de estar", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+
+    expect(
+      readStoredPosition(),
+      "la entrada sigue en sessionStorage tras decidir restituirla: una navegación de cliente posterior volvería a encontrarla",
+    ).toBeNull();
+
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+    expect(readStoredPosition()).toBeNull();
+  });
+
+  /*
+   * La otra mitad del consumo: se retira igual cuando la decisión es
+   * DESCARTAR. Una entrada que este documento ya ha mirado no vuelve a estar
+   * disponible para nadie, decidiera lo que decidiera.
+   */
+  it("al decidir descartar (navigate), la entrada también deja de estar", () => {
+    setNavigationType("navigate");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(readStoredPosition()).toBeNull();
+  });
+
+  /*
+   * Lo que decide el consumo es que la entrada EXISTA, no que sirva. Sin esto
+   * quedaría un agujero estrecho pero real: el formato de un despliegue
+   * anterior no se retiraría ni cerraría el guard, y bastaría con que el
+   * siguiente `visibilitychange` escribiera una entrada legible encima para
+   * que un montaje posterior volviera a obtener un sí.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 por las DOS vías, porque este
+   * caso vigila los dos refuerzos a la vez: retirando el guard de módulo cae
+   * con `AssertionError: el guard quedó abierto tras consumir una entrada
+   * ilegible: expected "spy" to not be called at all, but actually been called
+   * 1 times` (`Tests 2 failed | 34 passed (36)`), y retirando
+   * `clearStoredPosition()` cae con `AssertionError: expected { pathname: '/',
+   * scrollY: 9000, …(1) } to be null` (`Tests 4 failed | 32 passed (36)`).
+   */
+  it("una entrada ilegible también se consume: se retira y cierra el guard", () => {
+    setNavigationType("reload");
+    seedStoredPosition("{formato-de-otro-despliegue");
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+    expect(
+      readStoredPosition(),
+      "la entrada ilegible se quedó viva en el almacén",
+    ).toBeNull();
+
+    primeraCarga.unmount();
+    seedStoredPosition(SAVED_POSITION);
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(
+      scrollToMock,
+      "el guard quedó abierto tras consumir una entrada ilegible",
+    ).not.toHaveBeenCalled();
+  });
+
+  /*
+   * El complementario que impide que este arreglo se pase de frenada: consumir
+   * la entrada NO puede dejar la pestaña sin restitución para la próxima
+   * recarga. El escritor sigue vivo y repone el valor en la siguiente salida,
+   * que es de dónde sale el dato fresco de la recarga siguiente.
+   */
+  it("consumida la entrada, el escritor la repone en la siguiente salida", () => {
+    setNavigationType("reload");
+    seedStoredPosition(SAVED_POSITION);
+    mountPageAfterReload();
+
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(readStoredPosition()).toBeNull();
+
+    window.dispatchEvent(new Event("pagehide"));
+
+    expect(readStoredPosition()).toMatchObject({
+      pathname: "/",
+      scrollY: BROWSER_RESTORED_SCROLL_Y,
+    });
+  });
+
+  /*
+   * Sin nada guardado no se ha consumido nada, y el guard tiene que quedarse
+   * ABIERTO: una portada que se monta antes de recibir su primera anotación no
+   * puede quedarse sin restitución para el resto de la vida del documento.
+   *
+   * Es el caso que separa "consumir" de "haber corrido una vez", y el que hace
+   * que este arreglo no rompa el candado de cableado de `HomeSections.test.tsx`
+   * --nueve montajes sin entrada sembrada antes del que sí la siembra--.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (`restorationConsumed = true`
+   * movido ANTES del `if (raw === null) return null;`, que es la versión
+   * "marcar siempre" que rompería ese candado de cableado): cae con
+   * `AssertionError: expected "spy" to be called 1 times, but got 0 times` --
+   * `Tests 1 failed | 35 passed (36)`.
+   */
+  it("si no había nada guardado, el guard queda abierto para un montaje posterior", () => {
+    setNavigationType("reload");
+    mountPageAfterReload();
+
+    const primeraCarga = renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+    expect(scrollToMock).not.toHaveBeenCalled();
+
+    primeraCarga.unmount();
+    seedStoredPosition(SAVED_POSITION);
+    renderWithBranch("dark");
+    flushFrame();
+    flushFrame();
+
+    expect(scrollToMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * `resetReadingRestorationForTests` abre el guard, así que una llamada suya
+   * en producción devolvería el defecto entero sin que ningún test de
+   * comportamiento se enterara: los candados de arriba la llaman en su
+   * `beforeEach`, y en verde seguirían. Esta barredura por `fs` es lo único
+   * que lo impide -- mismo patrón y mismo motivo que el censo del literal
+   * `"vti-"` en `storage.test.ts`.
+   *
+   * VERIFICADO CON BUG INYECTADO el 2026-09-06 (una línea con el nombre de la
+   * función añadida a `src/config/storage.ts`): cae con `AssertionError: abrir
+   * el guard fuera de un test devuelve el defecto de la navegación de cliente:
+   * expected [ Array(1) ] to deeply equal []` --
+   * `Tests 1 failed | 35 passed (36)`.
+   */
+  it("ningún fichero de producción llama a resetReadingRestorationForTests", () => {
+    const raiz = dirname(fileURLToPath(import.meta.url));
+    const arboles = [join(raiz, ".."), join(raiz, "..", "..", "app")];
+
+    function ficherosDeProduccion(dir: string): string[] {
+      const encontrados: string[] = [];
+      for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+        const completo = join(dir, entrada.name);
+        if (entrada.isDirectory()) {
+          encontrados.push(...ficherosDeProduccion(completo));
+        } else if (
+          /\.(ts|tsx)$/.test(entrada.name) &&
+          !/\.test\.(ts|tsx)$/.test(entrada.name)
+        ) {
+          encontrados.push(completo);
+        }
+      }
+      return encontrados;
+    }
+
+    /*
+     * Se busca la LLAMADA, no la mención. Barrer por nombre a secas convierte
+     * en infractor a cualquier docblock que cite la función como precedente, y
+     * eso pasó de verdad: la ola T (2026-09-07) escribió en
+     * `LanguageSelector.tsx` un comentario que la nombra para explicar que su
+     * propio guard de módulo sigue el mismo patrón, y este candado se puso en
+     * rojo dentro del gate sin que nadie hubiera abierto nada. Un candado que
+     * cobra por citarlo enseña a no citarlo, que es justo lo contrario de lo
+     * que este repo quiere de sus docblocks.
+     *
+     * El paréntesis es lo que distingue las dos cosas, y sigue cazando el
+     * defecto real (una llamada se escribe siempre con él). Un comentario que
+     * escribiera la invocación completa también caería: es un falso positivo
+     * que se prefiere al falso negativo contrario.
+     */
+    const LLAMADA = /resetReadingRestorationForTests\s*\(/;
+    const infractores = arboles
+      .flatMap(ficherosDeProduccion)
+      .filter(
+        (fichero) =>
+          !fichero.endsWith("useReloadLanding.ts") &&
+          LLAMADA.test(readFileSync(fichero, "utf-8")),
+      );
+
+    expect(
+      infractores,
+      "abrir el guard fuera de un test devuelve el defecto de la navegación de cliente",
+    ).toEqual([]);
+  });
+});

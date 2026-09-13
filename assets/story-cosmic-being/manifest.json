@@ -1,0 +1,364 @@
+{
+    "name": "story-cosmic-being-layers",
+    "description": "Figura celestial con nucleo luminoso y geometria orbital, separada en 11 capas para parallax 2.5D en el fondo de Story (tema oscuro). La capa 00 es una base OPACA en blend normal; las diez restantes son aditivas (plus-lighter) y su suma reconstruye el original.",
+    "source": "Story Dark Theme 2 parallax-cosmic-being-v2.zip (Downloads), entregado por el usuario 2026-08-03. Sustituye al zip 3 del 2026-08-01. A diferencia de aquella entrega (que solo recortaba de nuevo 08 y 09 sobre la MISMA imagen), esta descompone una IMAGEN NUEVA: su README declara que toda la geometria se ha vuelto a medir sin reutilizar ninguna coordenada, y las 22 imagenes desplegadas cambian (sha256 distinto en 22/22). Se mantienen identicos el lienzo (3344x1882), el reparto en 11 capas, los depth, los blend, el negro del lienzo y los motionHints, asi que el codigo de la escena no cambia: solo los binarios y este manifest. Los maestros PNG (26,49 MB) NO se versionan: quedan solo en el zip de origen.",
+    "canvas": {
+        "width": 3344,
+        "height": 1882,
+        "aspect": 1.77683
+    },
+    "compositing": {
+        "required": "mix-blend-mode: plus-lighter",
+        "fallback": "mix-blend-mode: screen (aprox: error medio 1.87/255)",
+        "container": "isolation: isolate; background: #05010e;"
+    },
+    "anchors": {
+        "ringCenterPct": [76.5, 30.2],
+        "heartPct": [77.2, 29.9]
+    },
+    "motionHints": {
+        "swingXpx": 46,
+        "swingYpx": 30,
+        "scrollTravelPx": 190,
+        "ease": 0.075
+    },
+    "deployed": {
+        "quality": 70,
+        "widths": [1024, 1280],
+        "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=70 method=6. Parametros no supuestos: antes de tocar nada se recodificaron los once PNG maestros del zip 3 (el arte SALIENTE, que no cambia) y reprodujeron byte a byte las 22 imagenes que ya estaban desplegadas (sha256 identico, 22/22). Ese test fija el filtro, el method Y la calidad de ESTA escena; la calidad se reconfirmo ademas midiendo la curva sobre el arte nuevo (ver rationale), porque es un parametro por escena, no del repo.",
+        "rationale": "Medido sobre la escena compuesta (11 capas sumadas en plus-lighter contra el compuesto de los PNG maestros reescalados al mismo tamano). Arte del 2026-08-03: a q70, 1600px da 45.50 dB por 2.03 MiB y 1280px da 45.33 dB por 1.37 MiB -- +48% de peso por +0.17 dB. Subir la calidad en la pista de 1280 tampoco compensa: q85 da 45.77 dB por 1.68 MiB (+23% por +0.44 dB) y q90, 46.05 dB por 1.89 MiB. Se conserva 1280 q70, la misma eleccion (y el mismo peso) que con el arte anterior.",
+        "swap20260803": "Sustitucion COMPLETA de las 22 imagenes (las 11 capas x 2 anchos), no un reencode parcial como el del 2026-08-01: el zip v2 descompone una imagen nueva. Peso desplegado: 2397978 -> 2397454 bytes (-524 B, 2.29 -> 2.29 MiB). El arte nuevo reparte distinto la misma energia -- la figura queda mas blanca y con menos halo azul (08-figure-aura baja de 102874 a 85336 B a 1280) y hay mas estrellas resueltas (03/04/05 suben en conjunto ~40 KB) -- pero el total apenas se mueve."
+    },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13): el chunk ALPH (canal alfa, lossless por defecto en Pillow/cwebp) pesaba 45-84% del fichero en 9 de las 11 capas. Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). No se toca color: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=70, method=6, alpha_quality=80) -- mismos quality/method que ya publicaba este manifest, solo cambia alpha_quality (100 implicito -> 80). Calibracion previa (assets/features-celestial-orbital, ver su manifest): a igualdad de quality/method, el chunk VP8 sale BYTE A BYTE identico entre alpha_quality=100 y 80, asi que el color no lo toca esta operacion; el chunk ALPH si encoge.",
+        "scope": "Solo las 9 capas con ALPH > 30% del fichero (00-space-base es opaca sin ALPH; 03-stars-far y 07-geometry quedan bajo el 30% -- 24.1-29.4% -- y no se tocan).",
+        "results": "16 ficheros recomprimidos (las 9 capas x 2 anchos, salvo 03-stars-far y 07-geometry). Peso: 2397454 -> 2294216 B (-103238 B, -4.3%). PSNR minimo medido: alfa 56.54 dB (01-nebula.webp), compuesto RGB premultiplicado 54.82 dB (01-nebula.webp) -- ambos con margen sobre el umbral de aceptacion de 45 dB. Ninguna capa de esta escena se excluyo por PSNR insuficiente ni aumento de peso.",
+        "perFile": {
+            "01-nebula": {
+                "1280": "388192->354992 B, alfa 56.54dB, premult 54.82dB",
+                "1024": "249418->229344 B, alfa 56.56dB, premult 54.95dB"
+            },
+            "02-galaxy": {
+                "1280": "32148->27656 B, alfa 64.91dB, premult 65.50dB",
+                "1024": "21082->18384 B, alfa 64.95dB, premult 65.93dB"
+            },
+            "04-stars-mid": {
+                "1280": "77872->71500 B, alfa infdB, premult 72.16dB",
+                "1024": "58204->52722 B, alfa infdB, premult 71.93dB"
+            },
+            "05-stars-near": {
+                "1280": "42174->35210 B, alfa 68.08dB, premult 66.52dB",
+                "1024": "30942->25394 B, alfa 67.79dB, premult 67.01dB"
+            },
+            "06-orbs": {
+                "1280": "6128->5866 B, alfa 74.86dB, premult 74.09dB",
+                "1024": "4172->3924 B, alfa 74.90dB, premult 73.48dB"
+            },
+            "08-figure-aura": {
+                "1280": "85336->78118 B, alfa 61.81dB, premult 60.65dB",
+                "1024": "58160->55342 B, alfa infdB, premult 64.85dB"
+            },
+            "09-figure": {
+                "1280": "30080->27086 B, alfa 63.11dB, premult 58.39dB",
+                "1024": "20924->18996 B, alfa 63.12dB, premult 57.87dB"
+            },
+            "10-heart-core": {
+                "1280": "16832->15126 B, alfa 65.25dB, premult 63.24dB",
+                "1024": "11612->10378 B, alfa 65.33dB, premult 63.23dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
+    "colorRecompression20260811": {
+        "why": "Task 11 (plan premium F1-F5). 07-geometry y 01-nebula son, con diferencia, las 2 capas mas caras de la escena en bits por pixel (bpp = bytes*8/(ancho*alto)): medido sobre el estado ANTES de esta tarea, 07-geometry da 5.74 bpp a 1280 (661472 B, quedo fuera del pase de alfa de la Task 13 por su 24.1-29.4% de ALPH, bajo el umbral del 30%) y 01-nebula da 3.08 bpp a 1280 tras el pase de alfa (354992 B; el 3.37 bpp que cita el encargo es el peso ANTES de esa pasada, 388192 B -- confirmado recalculando: 388192*8/921600 = 3.370). A diferencia de la Task 13 (que solo tocaba alpha_quality), esta tarea barre la CALIDAD de color (el parametro `quality` de Pillow, que gobierna el chunk VP8) porque es la palanca que le falta a 07-geometry (excluida del pase de alfa) y complementa a 01-nebula (ya recomprimida en alfa pero aun cara en color).",
+        "method": "Barrido de `quality` en {70,65,60,55,50,45,40,35,30} con method=6 fijo (deployed.encoder de este manifest) y alpha_quality SIN TOCAR respecto al estado actual de cada fichero (01-nebula: 80, heredado de la Task 13; 07-geometry: por defecto, nunca se le aplico alpha_quality). Para cada candidato se recodifican las 2 pistas (1280 y 1024) y se mide: (a) el ahorro de peso de LA CAPA (suma de sus 2 pistas) frente a su peso actual; (b) el PSNR del COMPUESTO COMPLETO de las 11 capas (aditivo, plus-lighter, sobre --void #05010e), sustituyendo SOLO la capa bajo prueba por su version recodificada y dejando las otras 10 tal cual estan hoy en disco -- igual que el resto de esta tarea, la referencia es el estado ya desplegado (no hay master de 3344px versionado), asi que el PSNR mide la perdida ADICIONAL de este paso, no la perdida acumulada desde el arte original.",
+        "psnrThreshold": "El encargo cita >=48 dB 'como referencia de la pasada alfa' (Task 13); el valor que documentan esos manifests es en realidad 45 dB y sobre una metrica distinta (compuesto premultiplicado por CAPA, no el compuesto RGB de la escena completa) -- ver la nota completa en features-celestial-orbital/manifest.json, seccion midTrack20260811. En cualquier caso el margen aqui es tan amplio que la eleccion no la decide el umbral: el compuesto de 11 capas se mantiene entre 54.8 y 60.7 dB en TODO el barrido (30-70), muy por encima de cualquiera de las dos cifras (45 u 48 dB). El criterio de corte real es la regla explicita del encargo: >10% de ahorro en el peso de la capa, sin pasarse de calidad innecesariamente (cambio minimo que resuelve el problema) -- con un desempate a favor de cruzar el umbral de 2,5 bpp que declara PRE-LAUNCH-QA.md §4 cuando eso no cuesta margen de PSNR (ver 'bppTarget' abajo).",
+        "sweepNebula": "q70 (misma calidad actual, solo la 3a generacion de perdida por recompresion) 568124 B/2.77%/58.88dB, q65 558954B/4.34%/58.19dB, q60 545108B/6.71%/57.71dB, q55 525476B/10.07%/57.06dB (cruza el 10% con margen minimo), q50 506042B/13.40%/56.56dB, q45 487908B/16.50%/56.13dB, q40 460156B/21.25%/55.62dB, q35 415046B/28.97%/55.06dB, q30 388086B/33.59%/54.80dB. PSNR expresado sobre el compuesto a 1280; el compuesto a 1024 es casi identico en todo el barrido (diferencia <=0.3dB). Elegido: q40 (21.25% de ahorro, PSNR 55.62/55.65dB, y ademas cruza 2,5 bpp -- ver bppTarget). Se descarto q50 (13.40%, bpp 2.67, no cruza el umbral): sin coste de PSNR apreciable entre q50 y q40 (0.94dB, compuesto de 11 capas todavia en 55.6dB), q40 es estrictamente mejor.",
+        "sweepGeometry": "q70 1005366B/8.09%/60.14dB (AUN NO cruza el 10% a la calidad actual: la 3a generacion de perdida por si sola no basta), q65 977868B/10.60%/59.83dB (cruza el 10% con margen minimo), q60 949528B/13.19%/59.55dB, q55 926642B/15.29%/59.15dB, q50 903378B/17.41%/58.57dB, q45 878398B/19.70%/58.35dB, q40 857620B/21.60%/58.20dB, q35 826202B/24.47%/57.84dB, q30 788922B/27.88%/57.45dB. PSNR sobre el compuesto a 1280; a 1024 sistematicamente ~0.3-0.7dB mejor (menos detalle de alta frecuencia). Elegido: q55 (15.29% de ahorro, margen real sobre el 10%, PSNR 59.15/59.69dB). Ver bppTarget: NO se empuja mas bajo, aunque el umbral de 2,5 bpp de PRE-LAUNCH-QA.md sigue sin alcanzarse.",
+        "bppTarget": "PRE-LAUNCH-QA.md §4 declara un fallo separado ('Imagenes >2,5 bpp') para estas mismas 2 capas (07-geometry 5,74/5,87 bpp, 01-nebula 3,37 bpp -- cifra previa al pase de alfa de la Task 13; recalculada tras ese pase, 01-nebula ya estaba en ~3,08 bpp antes de esta tarea). No es el criterio de aceptacion de la Task 11 (que es el >10% de ahorro), pero es contexto util: 01-nebula SI cruza el umbral con la eleccion de esta tarea (q40: 2,422 bpp a 1280, 2,458 bpp a 1024). 07-geometry NO lo cruza ni de lejos: sondeado hasta q10 (fuera del barrido principal, solo para esta pregunta) su bpp es 3,01/3,13 -- el contenido (anillos, hexagonos, lineas HUD finas sobre fondo casi transparente) tiene una entropia por pixel visible que resiste la compresion incluso a calidad extrema, y bajar de q30 exige un salto de calidad que arriesga artefactos visibles en las lineas finas por una ganancia de bpp cada vez menor (q30->q10: de 4,11 a 3,01 bpp, -1,1 bpp por -20 puntos de calidad adicionales, la mayoria de ellos ya muy agresivos). Se declara el hallazgo, no se persigue el numero: el mecanismo de color no es capaz de bajar 07-geometry de 2,5 bpp sin un coste visual que esta tarea no esta autorizada a asumir por su cuenta (regla del encargo: minimizar el cambio, no maximizar la compresion).",
+        "results": "01-nebula: 1280 354992->278964 B (-21.42%), 1024 229344->181192 B (-21.00%); combinado -21.25%. 07-geometry: 1280 661472->554792 B (-16.13%), 1024 432382->371850 B (-14.00%); combinado -15.29%. Ahorro total de las 2 capas: (354992-278964)+(229344-181192)+(661472-554792)+(432382-371850) = 76028+48152+106680+60532 = 291392 B, sobre 2294216 B de la escena completa (alphaRecompression20260809): -12.7% adicional de peso de escena.",
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
+    "layers": [
+        {
+            "file": "00-space-base",
+            "z": 0,
+            "depth": 0.0,
+            "blend": "normal",
+            "desc": "Degradado profundo del espacio. Capa opaca, base del stack.",
+            "bytes": {
+                "1280": 2380,
+                "1024": 1612
+            }
+        },
+        {
+            "file": "01-nebula",
+            "z": 1,
+            "depth": 0.1,
+            "blend": "plus-lighter",
+            "desc": "Nubes de nebulosa purpura y magenta.",
+            "bytes": {
+                "1280": 388192,
+                "1024": 249418
+            }
+        },
+        {
+            "file": "02-galaxy",
+            "z": 2,
+            "depth": 0.12,
+            "blend": "plus-lighter",
+            "desc": "Galaxia espiral inferior y su halo.",
+            "bytes": {
+                "1280": 32148,
+                "1024": 21082
+            }
+        },
+        {
+            "file": "03-stars-far",
+            "z": 3,
+            "depth": 0.16,
+            "blend": "plus-lighter",
+            "desc": "Estrellas debiles.",
+            "bytes": {
+                "1280": 94088,
+                "1024": 72244
+            }
+        },
+        {
+            "file": "04-stars-mid",
+            "z": 4,
+            "depth": 0.24,
+            "blend": "plus-lighter",
+            "desc": "Estrellas de brillo medio.",
+            "bytes": {
+                "1280": 77872,
+                "1024": 58204
+            }
+        },
+        {
+            "file": "05-stars-near",
+            "z": 5,
+            "depth": 0.36,
+            "blend": "plus-lighter",
+            "desc": "Estrellas brillantes.",
+            "bytes": {
+                "1280": 42174,
+                "1024": 30942
+            }
+        },
+        {
+            "file": "06-orbs",
+            "z": 6,
+            "depth": 0.44,
+            "blend": "plus-lighter",
+            "desc": "Las dos esferas translucidas.",
+            "bytes": {
+                "1280": 6128,
+                "1024": 4172
+            }
+        },
+        {
+            "file": "07-geometry",
+            "z": 7,
+            "depth": 0.56,
+            "blend": "plus-lighter",
+            "desc": "Anillos orbitales, hexagonos, lineas punteadas y circulos HUD.",
+            "bytes": {
+                "1280": 661472,
+                "1024": 432382
+            }
+        },
+        {
+            "file": "08-figure-aura",
+            "z": 8,
+            "depth": 0.63,
+            "blend": "plus-lighter",
+            "desc": "Halo exterior de la figura, incluido el borde luminoso pegado al cuerpo. Contrapartida del recorte cenido de 09-figure: si las dos capas se separan mucho, ese resplandor viaja con el aura y no con el cuerpo. En el arte del 2026-08-03 el halo pegado a la piel es mas estrecho que en el anterior, de ahi que esta capa pese bastante menos.",
+            "bytes": {
+                "1280": 85336,
+                "1024": 58160
+            }
+        },
+        {
+            "file": "09-figure",
+            "z": 9,
+            "depth": 0.68,
+            "blend": "plus-lighter",
+            "desc": "Solo el cuerpo, sin contorno. La mascara sale del canal MINIMO de RGB (blancura), no de la luminancia: el cuerpo es casi blanco (canal minimo medio 0.780) y el halo es azul saturado (0.141), asi que por brillo se confunden y por blancura no. El halo pasa integro a 08-figure-aura y la suma de las once capas sigue reconstruyendo el original. En este arte la figura ya venia muy definida, asi que el criterio por blancura cae casi donde caeria uno por brillo -- se mantiene igualmente porque es el que garantiza que el borde no arrastre resplandor.",
+            "bboxPx": [2339, 170, 448, 1487],
+            "bytes": {
+                "1280": 30080,
+                "1024": 20924
+            }
+        },
+        {
+            "file": "10-heart-core",
+            "z": 10,
+            "depth": 0.72,
+            "blend": "plus-lighter",
+            "desc": "Destello del pecho.",
+            "bytes": {
+                "1280": 16832,
+                "1024": 11612
+            }
+        }
+    ],
+    "avif20260817": {
+        "why": "Palanca elegida por el dueno para el peso del tema oscuro (critica #9, Perf anclado en 2: la escena era el 58% de la carga oscura y competia por los 200 KB/s estrangulados con la imagen LCP del hero). El WebP q70 ya estaba en su optimo (ver deployed.rationale y el barrido de 07-geometry en la ola A.3): recomprimirlo salia mas grande. AVIF via <picture> + <source type=image/avif> con el WebP intacto como fallback.",
+        "provenance": "Los maestros PNG no estan en la maquina (solo en el zip de origen, no versionado). El AVIF se transcodifico desde el WebP q70 DESPLEGADO, y la referencia de calidad de las metricas de abajo ES ese WebP -- la verdad visual que la QA aprobo -- no el maestro. Transcodificacion lossy sobre lossy, declarada.",
+        "encoder": "Pillow 12.3.0 save AVIF quality=55 speed=2. Barrido previo de calidad (q45-q85, speed 4) sobre 07-geometry, 01-nebula y 03-stars-far: q55 da margen comodo sobre el umbral de 45 dB en las tres con la mayor ganancia; q45 dejaba el alfa de geometry en 45,85 dB, demasiado justo.",
+        "results": "Las 22 pistas ganan (guarda por capa: ambas pistas >=5% de ahorro; ninguna salto). Escena completa en disco: 2002824 -> 1111842 B (-44,5%). Pista nativa 1280 (la carga de escritorio): 1190786 -> 655523 B (-45,0%). PSNR minimo contra el WebP de referencia: 48,96 dB RGB premultiplicado (00-space-base-1024), 47,16 dB alfa (07-geometry-1024) -- ambos sobre el umbral de aceptacion de 45 dB de este manifest.",
+        "fallback": "Los WebP no se tocan ni se borran: son el fallback del <picture> para navegadores sin AVIF y siguen siendo la referencia de calidad. El candado de storyCosmicBeing.layers.test.ts comprueba con node:fs que cada .avif derivado existe en public/."
+    },
+    "premultiply20260904": {
+        "why": "Ola O, frente defensivo. El ancla tecnica de la critica externa (tema oscuro por debajo de 1,5 MB transferidos) no la garantizaba el repo sino el navegador: medido en Chrome sobre el build de f486570 (1440x900, tema oscuro, 3 s tras load, sin scroll), una visita oscura transferia 1.391.461 B, el 92,8 % del ancla, y 655.523 de esos bytes eran las once capas de esta escena -- que loading=lazy NO evita descargar, Chrome las pidio igual sin tocar el scroll. Con la pista ancha de la figura de Journey el peor caso subia a 1.467.569 B: 32.431 B de margen.",
+        "method": "Las diez capas aditivas se republican con el alfa multiplicado dentro del RGB y SIN canal alfa. No es una decision de calidad, es aritmetica: en plus-lighter la capa aporta alfa x color, asi que premultiplicar y publicar opaco da el mismo pixel; con el fallback screen sobre la base opaca tambien sale identico ((1-a)Cb + a(Cs+Cb-CsCb) = Cs2+Cb-Cs2Cb con Cs2 = a*Cs). 00-space-base queda fuera: es opaca, va en blend normal y nunca tuvo alfa.",
+        "encoder": "sharp 0.34 (libaom) desde el AVIF q55 desplegado: decodificar a RGBA, premultiplicar con redondeo a 8 bits, reencodear avif({quality: 85, effort: 6, chromaSubsampling: 4:4:4}) sin alfa. Guarda por pista heredada de este manifest: si el resultado no baja al menos un 5 %, se reintenta a quality 70 y, si tampoco, se conserva el fichero anterior. La unica pista que necesito quality 70 fue 09-figure (a 85 salia MAS grande que el original en las dos anchuras).",
+        "results": "Las 20 pistas aditivas: 1108805 -> 100388 B (-90,9 %). Escena completa AVIF: pista 1280 de 655523 -> 59696 B, pista 1024 de 456319 -> 43729 B. Caso extremo 07-geometry 1280: 309350 -> 18217 B (-94,1 %); su RGB era casi blanco y toda la forma vivia en el alfa, con una contribucion real de media 1,04/255. PSNR contra el objetivo exacto (el AVIF anterior premultiplicado en coma flotante): minimo 50,40 dB, muy por encima del umbral de 45 dB de este manifest.",
+        "browserVerification": "Verificado en Chrome real, no en jsdom: las once capas montadas con el CSS exacto de la escena (isolation isolate, ScVoid #05010e, mix-blend-mode plus-lighter, object-fit cover, scale 1.02, vineta), animacion congelada en la misma fase en los dos lados, servidas desde un servidor estatico local, capturas a 1440x900. Antes vs despues: PSNR 47,86 dB en la pista 1280 y 47,54 dB en la 1024, maximo error 18-20/255 sobre el 0,011 % de los subpixeles, 97,3 % de los subpixeles dentro de +-2. Campo de estrellas: los pixeles por encima de los umbrales de luminancia caen entre un 1,4 % y un 3,3 %, y las estrellas mas brillantes (>200) conservan el recuento exacto -- no se pierde ninguna capa ni estructura, la diferencia amplificada x12 es ruido sin forma.",
+        "fallback": "Los WebP NO se tocan: conservan su alfa, siguen siendo el fallback del <picture> para navegadores sin AVIF y siguen siendo la referencia de calidad de este manifest.",
+        "locks": "src/components/scenes/storyCosmicBeing/storyCosmicBeing.layers.test.ts comprueba que ninguna pista aditiva vuelve a llevar canal alfa (marca urn:mpeg:mpegB:cicp:systems:auxiliary:alpha en los bytes del fichero). Validado con bug inyectado real: restaurando 07-geometry.avif tal y como estaba en f486570, ese test se pone en rojo. El peso total del arte oscuro lo vigila aparte scripts/check-dark-art-weight.mjs, que suma desde disco el peor caso que descarga una visita oscura y falla si se pasa del presupuesto; scripts/check-dark-art-weight.test.mjs lo mete en pnpm run ci, y con el arte de f486570 restaurado tambien se pone en rojo.",
+        "tracks": [
+            {
+                "file": "01-nebula.avif",
+                "quality": 85,
+                "before": 129143,
+                "after": 9392,
+                "psnr": 50.44
+            },
+            {
+                "file": "01-nebula-1024.avif",
+                "quality": 85,
+                "before": 84605,
+                "after": 6737,
+                "psnr": 50.4
+            },
+            {
+                "file": "02-galaxy.avif",
+                "quality": 85,
+                "before": 13585,
+                "after": 2377,
+                "psnr": 61.91
+            },
+            {
+                "file": "02-galaxy-1024.avif",
+                "quality": 85,
+                "before": 9254,
+                "after": 1706,
+                "psnr": 61.29
+            },
+            {
+                "file": "03-stars-far.avif",
+                "quality": 85,
+                "before": 70277,
+                "after": 626,
+                "psnr": 87.55
+            },
+            {
+                "file": "03-stars-far-1024.avif",
+                "quality": 85,
+                "before": 55119,
+                "after": 530,
+                "psnr": 88.18
+            },
+            {
+                "file": "04-stars-mid.avif",
+                "quality": 85,
+                "before": 47872,
+                "after": 1471,
+                "psnr": 68
+            },
+            {
+                "file": "04-stars-mid-1024.avif",
+                "quality": 85,
+                "before": 35684,
+                "after": 1347,
+                "psnr": 67.15
+            },
+            {
+                "file": "05-stars-near.avif",
+                "quality": 85,
+                "before": 29760,
+                "after": 7368,
+                "psnr": 64.91
+            },
+            {
+                "file": "05-stars-near-1024.avif",
+                "quality": 85,
+                "before": 20988,
+                "after": 5470,
+                "psnr": 65.83
+            },
+            {
+                "file": "06-orbs.avif",
+                "quality": 85,
+                "before": 3006,
+                "after": 1103,
+                "psnr": 68.57
+            },
+            {
+                "file": "06-orbs-1024.avif",
+                "quality": 85,
+                "before": 2179,
+                "after": 897,
+                "psnr": 68.01
+            },
+            {
+                "file": "07-geometry.avif",
+                "quality": 85,
+                "before": 309350,
+                "after": 18217,
+                "psnr": 51.35
+            },
+            {
+                "file": "07-geometry-1024.avif",
+                "quality": 85,
+                "before": 210479,
+                "after": 12738,
+                "psnr": 51.17
+            },
+            {
+                "file": "08-figure-aura.avif",
+                "quality": 85,
+                "before": 36910,
+                "after": 7042,
+                "psnr": 58.34
+            },
+            {
+                "file": "08-figure-aura-1024.avif",
+                "quality": 85,
+                "before": 25816,
+                "after": 4918,
+                "psnr": 57.95
+            },
+            {
+                "file": "09-figure.avif",
+                "quality": 70,
+                "before": 8462,
+                "after": 7072,
+                "psnr": 54.38
+            },
+            {
+                "file": "09-figure-1024.avif",
+                "quality": 70,
+                "before": 6556,
+                "after": 5394,
+                "psnr": 53.42
+            },
+            {
+                "file": "10-heart-core.avif",
+                "quality": 85,
+                "before": 5479,
+                "after": 3349,
+                "psnr": 61.87
+            },
+            {
+                "file": "10-heart-core-1024.avif",
+                "quality": 85,
+                "before": 4281,
+                "after": 2634,
+                "psnr": 61.42
+            }
+        ]
+    }
+}

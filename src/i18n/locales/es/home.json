@@ -1,0 +1,179 @@
+{
+    "Home": {
+        "hero": {
+            "tagline": "Del vacío al infinito: un proyecto para aprender, imaginar y jugar.",
+            "subtitle": "Tu presente ya es tu futuro, solo falta que sigas definiéndolo."
+        },
+        "cta": {
+            "story": "Leer la historia"
+        },
+        "story": {
+            "kicker": "¿Por qué VoidToInfinite?",
+            "titleLead": "De la curiosidad",
+            "titleAccent": "a la creación.",
+            "body": "VoidToInfinite es un proyecto donde el aprendizaje se encuentra con la imaginación y el juego impulsa el progreso. Exploro ideas, construyo habilidades con sentido y transformo la curiosidad en experiencias que se pueden compartir.",
+            "support": "Aunque el infinito está en todas partes, es el conocimiento lo que lo trae a la realidad.",
+            "statement": {
+                "first": "Cada idea",
+                "second": "puede ser",
+                "third": "un nuevo comienzo"
+            },
+            "figureAlt": "Figura celestial ofreciendo la palma abierta",
+            "sceneAlt": "Figura celestial que sostiene un núcleo de luz a la altura del pecho, rodeada de anillos orbitales en una nebulosa violeta",
+            "railLabel": "Progreso de la historia",
+            "pillars": {
+                "learn": {
+                    "title": "Aprende con propósito",
+                    "body": "Conocimiento que inspira comprensión y abre nuevas posibilidades.",
+                    "inspiration": "Empieza por una pregunta que te incomode. Sigue el hilo aunque no lleve donde esperabas. Lo que aprendes así no se olvida. Se queda contigo y cambia cómo miras lo siguiente."
+                },
+                "create": {
+                    "title": "Crea con claridad",
+                    "body": "Las ideas cobran sentido cuando se pueden explorar, construir y compartir.",
+                    "inspiration": "Una idea vaga no se defiende sola. Ponla en pie, dale forma, enséñasela a alguien. En cuanto existe fuera de tu cabeza, empieza a mejorar. Y tú con ella."
+                },
+                "grow": {
+                    "title": "Crece en comunidad",
+                    "body": "El aprendizaje se vuelve infinito cuando el conocimiento circula entre personas.",
+                    "inspiration": "Nadie llega lejos explicándose solo a sí mismo. Cuenta lo que sabes, aunque te parezca poco. Alguien lo necesitaba hoy. Mañana serás tú quien lo necesite."
+                },
+                "practice": {
+                    "title": "La práctica lo hace real",
+                    "body": "El conocimiento se vuelve tuyo cuando lo pones a prueba: tropiezos incluidos.",
+                    "inspiration": "Lee menos, prueba más. Rompe algo a propósito y arréglalo. El error que entiendes vale más que el acierto que copiaste. Ahí es donde el conocimiento se vuelve tuyo."
+                }
+            },
+            "communityLink": "Únete a la comunidad en Discord"
+        },
+        "journey": {
+            "title": "Tu viaje no tiene un último paso.",
+            "body": "Cada descubrimiento crea una pregunta nueva. Cada habilidad abre otro camino. El viaje continúa mientras quede curiosidad.",
+            "quote": "El destino no es el infinito. El viaje lo es.",
+            "figureAlt": "Figura celestial señalando hacia arriba con el índice",
+            "sceneAlt": "Figura celestial de brazos abiertos al final de un sendero de luz que atraviesa una hilera de arcos",
+            "stepPosition": "Paso {{current}} de {{total}}",
+            "railLabel": "Progreso del viaje",
+            "steps": {
+                "discover": {
+                    "label": "Descubre",
+                    "body": "Explora ideas, hazte preguntas y observa el mundo de otra manera."
+                },
+                "learn": {
+                    "label": "Aprende",
+                    "body": "Construye conocimiento, desarrolla comprensión y da forma a tu perspectiva."
+                },
+                "imagine": {
+                    "label": "Imagina",
+                    "body": "Conecta ideas y descubre posibilidades que todavía no existen."
+                },
+                "create": {
+                    "label": "Crea",
+                    "body": "Transforma tu pensamiento en algo visible, útil o con significado."
+                },
+                "share": {
+                    "label": "Comparte",
+                    "body": "Abre tu trabajo a comentarios, colaboración y nuevas interpretaciones."
+                },
+                "evolve": {
+                    "label": "Evoluciona",
+                    "body": "Sigue aprendiendo, redefiniendo y ampliando lo posible."
+                }
+            }
+        },
+        "features": {
+            "kicker": "¿Por dónde empiezas?",
+            "title": "Tres formas de seguir avanzando.",
+            "intro": "Aprendizaje, imaginación y juego son la misma curiosidad vista desde tres ángulos. Cada uno te da una manera distinta de convertir lo que sabes en algo real.",
+            "learning": {
+                "title": "Aprende",
+                "body": "Todo experto fue antes principiante. Aprende a tu ritmo, sigue las preguntas que te importan y observa cómo los pasos pequeños se convierten en comprensión real.",
+                "bullets": {
+                    "one": "Seguir la pregunta antes que el temario",
+                    "two": "Construir algo, no solo leer sobre ello",
+                    "three": "Avanzar despacio y no perder el hilo",
+                    "four": "Parar cuando toca, sin deuda pendiente"
+                },
+                "cta": "Hablemos de aprender",
+                "figureAlt": "Figura celestial estudiando una tableta holográfica"
+            },
+            "imagination": {
+                "title": "Imagina",
+                "body": "Tus ideas merecen un lugar donde vivir. Convierte el «¿y si…?» en algo real que puedas compartir.",
+                "bullets": {
+                    "one": "Probar sin que el error cueste caro",
+                    "two": "Unir cosas que no venían juntas",
+                    "three": "Sacar la idea de la cabeza cuanto antes",
+                    "four": "Tomarse en serio las ideas pequeñas"
+                },
+                "cta": "Cuéntame tu idea",
+                "figureAlt": "Figura celestial pensando con un corazón radiante"
+            },
+            "gaming": {
+                "title": "Juega",
+                "body": "Jugando es como mejor aprendemos. Compite, colabora y celebra cada victoria, grande o pequeña.",
+                "bullets": {
+                    "one": "Buscar el reto que aún no sabes hacer",
+                    "two": "Competir sin que deje de ser un juego",
+                    "three": "Jugar acompañado siempre que se pueda",
+                    "four": "Celebrar lo conseguido, por pequeño que sea"
+                },
+                "cta": "Únete a la partida",
+                "figureAlt": "Figura celestial alzando un trofeo de estrella dorada"
+            },
+            "sceneAlt": "Figura celestial cubierta de estrellas que sostiene un punto de luz en la palma abierta, rodeada por una órbita de discos con los iconos de aprender, imaginar y jugar"
+        },
+        "about": {
+            "title": "¿Qué es VoidToInfinite?",
+            "what": "VoidToInfinite es un proyecto creativo personal de Daniel Mosquera. Parte de una idea sencilla: todo puede empezar desde una página en blanco.",
+            "approach": "Aquí se aprende y se experimenta con diseño y tecnología sin perseguir un resultado definitivo. Lo interesante es ver hasta dónde llega una idea cuando se trabaja en ella paso a paso.",
+            "sdk": "La pieza central es el System Design Kit, un sistema de diseño que se está construyendo desde cero. Los componentes son solo una parte. La otra es el proceso: decidir, probar, equivocarse y corregir hasta tener piezas que encajen y se puedan reutilizar. VoidToInfinite documenta ese recorrido, del vacío a lo que venga después.",
+            "status": "No es una empresa ni un producto terminado, y va a seguir cambiando mientras quede algo por aprender.",
+            "proof": "Esta web está hecha con el mismo criterio y respeta a quien la visita: no usa analítica, no hace seguimiento y no envía una sola petición a terceros."
+        },
+        "contact": {
+            "titleLead": "Construyamos algo",
+            "titleAccent": "infinito.",
+            "body": "¿Tienes una pregunta, una idea o una colaboración en mente?",
+            "bodySecond": "Escríbeme por correo: me encantará leerte.",
+            "figureAlt": "Figura celestial saludando",
+            "cards": {
+                "community": {
+                    "title": "Únete a la comunidad",
+                    "value": "discord.gg/CuGhqdG3g3"
+                },
+                "code": {
+                    "title": "Explora el código",
+                    "value": "github.com/voidtoinfinite"
+                },
+                "profile": {
+                    "title": "Conoce a quien está detrás",
+                    "value": "linkedin.com/in/demosquerag"
+                }
+            },
+            "form": {
+                "label": "Tu correo (opcional)",
+                "placeholder": "tu@correo.com",
+                "help": "Opcional: tu propia aplicación de correo ya envía tu dirección. Se abrirá con el mensaje preparado.",
+                "messageLabel": "Tu mensaje",
+                "messagePlaceholder": "Cuéntame qué tienes en mente.",
+                "noscript": "Este formulario necesita JavaScript para abrir tu aplicación de correo y sin él no funciona. Escríbeme directamente a",
+                "submit": "Escríbeme",
+                "submitAria": "Escríbeme: abre tu aplicación de correo con tu mensaje ya incluido",
+                "subject": "Hola VoidToInfinite",
+                "body": "Mi correo de contacto: {{email}}\n\n{{message}}",
+                "emailError": "Ese correo no tiene un formato válido. Puedes dejarlo vacío.",
+                "messageError": "Escribe tu mensaje antes de enviarlo.",
+                "counter": "{{used}} de {{max}} caracteres",
+                "counterWarn": "Te acercas al límite que admite un enlace de correo. Si lo superas, te daremos la dirección para pegar el mensaje entero.",
+                "counterOver": "Tu mensaje no cabe en un enlace de correo. Al enviarlo no se abrirá tu aplicación: te daremos la dirección para pegarlo entero, sin perder nada.",
+                "fallbackLead": "Si no se ha abierto tu aplicación de correo, escríbeme a",
+                "fallbackLeadTooLong": "Tu mensaje es demasiado largo para abrirlo en tu aplicación de correo, así que no lo hemos intentado. Cópialo entero y escríbeme a",
+                "copyAddress": "Copiar dirección",
+                "copied": "Copiada",
+                "copyError": "No se pudo copiar automáticamente. Selecciona la dirección de arriba."
+            },
+            "privacyNote": "Navegar por esta web no envía ningún dato tuyo a terceros: no hay analítica ni rastreo. Escribirme abre tu propio cliente de correo. El envío lo haces tú, no un servidor mío.",
+            "sceneAlt": "Figura celestial cubierta de estrellas, de frente y con la palma alzada en señal de saludo, sobre un cielo casi negro con polvo de estrellas y estelas violetas"
+        }
+    }
+}

@@ -1,0 +1,64 @@
+{
+    "name": "vti",
+    "version": "1.0.0",
+    "private": true,
+    "contributors": [
+        "VoidToInfinite <VoidToInfinite/vti>",
+        "Daniel Mosquera"
+    ],
+    "repository": "VoidToInfinite/vti",
+    "bugs": {
+        "url": "https://github.com/VoidToInfinite/vti/issues"
+    },
+    "packageManager": "pnpm@11.10.0",
+    "engines": {
+        "node": ">=22.4"
+    },
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "npx serve out",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "typecheck": "tsc --noEmit",
+        "format": "prettier . --write",
+        "check-format": "prettier . --list-different",
+        "check-spelling": "cspell --config=.cspell.json \"**/*.{md,mdx,ts,mts,cts,js,cjs,mjs,tsx,jsx}\"",
+        "check": "pnpm typecheck && pnpm lint && pnpm check-format",
+        "detect-anti-patterns": "node scripts/detect-anti-patterns.mjs",
+        "measure:js": "node scripts/measure-home-js.mjs",
+        "check:site-surfaces": "node scripts/check-site-surfaces.mjs",
+        "check:text-contrast": "node scripts/check-text-contrast.mjs",
+        "serve:watchdog": "node scripts/serve-watchdog.mjs",
+        "ci": "pnpm typecheck && pnpm lint && pnpm check-format && pnpm detect-anti-patterns && pnpm check:text-contrast && pnpm test",
+        "test": "vitest run",
+        "test:watch": "vitest"
+    },
+    "dependencies": {
+        "i18next": "^25.0.0",
+        "next": "^16.2.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "react-i18next": "^15.0.0",
+        "styled-components": "^6.4.0"
+    },
+    "devDependencies": {
+        "@cspell/dict-es-es": "^3.0.8",
+        "@testing-library/dom": "^10.4.0",
+        "@testing-library/jest-dom": "^6.6.0",
+        "@testing-library/react": "^16.1.0",
+        "@types/node": "^22.0.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@vitejs/plugin-react": "^4.3.0",
+        "cspell": "^8.16.0",
+        "eslint": "^9.17.0",
+        "eslint-config-next": "^16.2.0",
+        "eslint-config-prettier": "^9.1.0",
+        "jsdom": "^25.0.0",
+        "prettier": "^3.4.0",
+        "typescript": "^5.7.0",
+        "typescript-eslint": "^8.18.0",
+        "vitest": "^3.0.0"
+    }
+}

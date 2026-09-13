@@ -1,0 +1,284 @@
+{
+    "medido": "2026-09-13",
+    "origen": "out/ (9 páginas)",
+    "presupuestoBytes": 290000,
+    "compresion": {
+        "calidad": 4,
+        "umbral": 1024,
+        "origen": "compression@1.8.1 (serve@14.2.6)"
+    },
+    "totalDescargadoBrotli": 272815,
+    "polyfillNomoduleBrotli": 40495,
+    "duplicacionCrudaBytes": 3266,
+    "modulosDuplicados": 3,
+    "chunks": [
+        {
+            "firma": "2e66fe0db941",
+            "modulos": 25,
+            "brotli": 70789,
+            "crudo": 227539,
+            "pistas": []
+        },
+        {
+            "firma": "333a7f81dc9c",
+            "modulos": 3,
+            "brotli": 49413,
+            "crudo": 208688,
+            "pistas": [
+                "Sol",
+                "aura.parts",
+                "eye.parts",
+                "Wormhole",
+                "HeroBackdrop",
+                "Hero"
+            ]
+        },
+        {
+            "firma": "132de64d6694",
+            "modulos": 68,
+            "brotli": 38723,
+            "crudo": 141196,
+            "pistas": []
+        },
+        {
+            "firma": "c4417bbdf228",
+            "modulos": 5,
+            "brotli": 22337,
+            "crudo": 64019,
+            "pistas": ["default", "getI18nInstance", "initI18n"]
+        },
+        {
+            "firma": "a4654fc98bda",
+            "modulos": 3,
+            "brotli": 21376,
+            "crudo": 65197,
+            "pistas": ["legalPage.parts", "LegalDocument"]
+        },
+        {
+            "firma": "470e98acb6dc",
+            "modulos": 1,
+            "brotli": 20280,
+            "crudo": 73020,
+            "pistas": [
+                "SkipLink",
+                "IconButton",
+                "BackToTop",
+                "LanguageSelector",
+                "ThemeToggle",
+                "NavSheet"
+            ]
+        },
+        {
+            "firma": "8ba7e9785a5e",
+            "modulos": 5,
+            "brotli": 15554,
+            "crudo": 37335,
+            "pistas": [
+                "DEFAULT_LOCALE",
+                "EN_ROUTES",
+                "LEGAL_ROUTE_KEYS",
+                "LOCALES",
+                "ROUTES",
+                "SITE"
+            ]
+        },
+        {
+            "firma": "8ba7e9785a5e",
+            "modulos": 5,
+            "brotli": 15546,
+            "crudo": 37335,
+            "pistas": [
+                "initReactI18next",
+                "useTranslation",
+                "I18nextProvider",
+                "DEFAULT_LOCALE",
+                "EN_ROUTES",
+                "LEGAL_ROUTE_KEYS"
+            ]
+        },
+        {
+            "firma": "6a6990fa6bb9",
+            "modulos": 31,
+            "brotli": 13106,
+            "crudo": 54636,
+            "pistas": []
+        },
+        {
+            "firma": "611dfe14edeb",
+            "modulos": 32,
+            "brotli": 9603,
+            "crudo": 32569,
+            "pistas": []
+        },
+        {
+            "firma": "025e4670ad80",
+            "modulos": 15,
+            "brotli": 9548,
+            "crudo": 25372,
+            "pistas": [
+                "VisuallyHidden",
+                "Button",
+                "BrandName",
+                "Typography",
+                "STORAGE_KEYS",
+                "STORAGE_REGISTRY"
+            ]
+        },
+        {
+            "firma": "10f11335ef8d",
+            "modulos": 25,
+            "brotli": 9369,
+            "crudo": 44418,
+            "pistas": []
+        },
+        {
+            "firma": "d84922921894",
+            "modulos": 9,
+            "brotli": 7856,
+            "crudo": 23681,
+            "pistas": [
+                "Logo",
+                "sectionBeam.parts",
+                "StarField",
+                "THEME_ATTRIBUTE",
+                "THEME_COLORS",
+                "readResolvedTheme"
+            ]
+        },
+        {
+            "firma": "26a9e9d2d245",
+            "modulos": 6,
+            "brotli": 6148,
+            "crudo": 16727,
+            "pistas": [
+                "Button",
+                "Typography",
+                "BrandName",
+                "NotFoundContent",
+                "forcedColorsButtonShape",
+                "ctaGradient"
+            ]
+        },
+        {
+            "firma": "b9cb2bb1da57",
+            "modulos": 13,
+            "brotli": 5081,
+            "crudo": 12879,
+            "pistas": [
+                "VisuallyHidden",
+                "NAV_GROUPS",
+                "navBarMoreGroupsFor",
+                "navBarSectionsFor",
+                "navBarWideSectionsFor",
+                "navGroupsFor"
+            ]
+        },
+        {
+            "firma": "sin-modulos",
+            "modulos": 0,
+            "brotli": 4226,
+            "crudo": 10580,
+            "pistas": ["default"]
+        },
+        {
+            "firma": "2def7dc1d5c6",
+            "modulos": 3,
+            "brotli": 1740,
+            "crudo": 3693,
+            "pistas": ["NotFoundContent", "useDocumentMeta", "DocumentMeta"]
+        },
+        {
+            "firma": "7e2d90d23593",
+            "modulos": 3,
+            "brotli": 1439,
+            "crudo": 3377,
+            "pistas": []
+        },
+        {
+            "firma": "89549a39ed92",
+            "modulos": 2,
+            "brotli": 575,
+            "crudo": 1053,
+            "pistas": ["useDocumentMeta", "PrivacyDocument"]
+        },
+        {
+            "firma": "d209e951feff",
+            "modulos": 2,
+            "brotli": 572,
+            "crudo": 1109,
+            "pistas": ["useDocumentMeta", "DocumentMeta"]
+        },
+        {
+            "firma": "1f7f51d2314f",
+            "modulos": 2,
+            "brotli": 571,
+            "crudo": 1061,
+            "pistas": ["useDocumentMeta", "LegalNoticeDocument"]
+        }
+    ],
+    "paginas": [
+        {
+            "ruta": "404.html",
+            "chunksDescargados": 13,
+            "descargadoBrotli": 224503,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 5, 7, 8, 9, 11, 12, 13, 14, 15, 17]
+        },
+        {
+            "ruta": "_not-found.html",
+            "chunksDescargados": 13,
+            "descargadoBrotli": 224503,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 5, 7, 8, 9, 11, 12, 13, 14, 15, 17]
+        },
+        {
+            "ruta": "aviso-legal.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 244777,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 15, 17, 20]
+        },
+        {
+            "ruta": "en.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 272815,
+            "polyfillBrotli": 40495,
+            "refs": [0, 1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 15, 17, 19]
+        },
+        {
+            "ruta": "en/404.html",
+            "chunksDescargados": 13,
+            "descargadoBrotli": 224570,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 5, 6, 8, 9, 10, 11, 12, 15, 16, 17]
+        },
+        {
+            "ruta": "en/legal-notice.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 244777,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 15, 17, 20]
+        },
+        {
+            "ruta": "en/privacy.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 244781,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 15, 17, 18]
+        },
+        {
+            "ruta": "index.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 272815,
+            "polyfillBrotli": 40495,
+            "refs": [0, 1, 2, 3, 5, 6, 8, 9, 10, 11, 12, 15, 17, 19]
+        },
+        {
+            "ruta": "privacidad.html",
+            "chunksDescargados": 14,
+            "descargadoBrotli": 244781,
+            "polyfillBrotli": 40495,
+            "refs": [0, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 15, 17, 18]
+        }
+    ]
+}

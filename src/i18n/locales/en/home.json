@@ -1,0 +1,179 @@
+{
+    "Home": {
+        "hero": {
+            "tagline": "From the void to infinity: a project for learning, imagining and playing.",
+            "subtitle": "Your present is already your future: you just have to keep defining it."
+        },
+        "cta": {
+            "story": "Read the story"
+        },
+        "story": {
+            "kicker": "Why VoidToInfinite?",
+            "titleLead": "From curiosity",
+            "titleAccent": "to creation.",
+            "body": "VoidToInfinite is a project where learning meets imagination and play drives progress. I explore ideas, build meaningful skills and turn curiosity into experiences that can be shared with others.",
+            "support": "Infinity is everywhere, but it is knowledge that brings it into reality.",
+            "statement": {
+                "first": "Every idea",
+                "second": "can become",
+                "third": "a new beginning"
+            },
+            "figureAlt": "Celestial figure offering an open palm",
+            "sceneAlt": "Celestial figure holding a core of light at chest height, ringed by orbital arcs inside a violet nebula",
+            "railLabel": "Story progress",
+            "pillars": {
+                "learn": {
+                    "title": "Learn with purpose",
+                    "body": "Knowledge that inspires understanding and opens new possibilities.",
+                    "inspiration": "Start with a question that unsettles you. Follow it even when it leads somewhere else. What you learn this way does not fade. It stays, and it changes how you see the next thing."
+                },
+                "create": {
+                    "title": "Create with clarity",
+                    "body": "Ideas become meaningful when they can be explored, built and shared.",
+                    "inspiration": "A vague idea cannot defend itself. Build it, shape it, show it to someone. The moment it exists outside your head, it starts getting better. So do you."
+                },
+                "grow": {
+                    "title": "Grow together",
+                    "body": "Learning becomes infinite when knowledge moves between people.",
+                    "inspiration": "Nobody gets far explaining things only to themselves. Say what you know, even if it feels small. Someone needed it today. Tomorrow you will be the one who needs it."
+                },
+                "practice": {
+                    "title": "Practice makes it real",
+                    "body": "Knowledge only becomes yours once you try it: stumbles, redos and all.",
+                    "inspiration": "Read less, try more. Break something on purpose and fix it. A mistake you understand beats an answer you copied. That is where knowledge becomes yours."
+                }
+            },
+            "communityLink": "Join the community on Discord"
+        },
+        "journey": {
+            "title": "Your journey has no final step.",
+            "body": "Every discovery creates a new question. Every skill opens another path. The journey continues as long as curiosity remains.",
+            "quote": "The destination is not infinity. The journey is.",
+            "figureAlt": "Celestial figure pointing upward with an index finger",
+            "sceneAlt": "Celestial figure with open arms at the end of a winding trail of light that passes through a row of arches",
+            "stepPosition": "Step {{current}} of {{total}}",
+            "railLabel": "Journey progress",
+            "steps": {
+                "discover": {
+                    "label": "Discover",
+                    "body": "Explore ideas, ask questions and observe the world differently."
+                },
+                "learn": {
+                    "label": "Learn",
+                    "body": "Build knowledge, develop understanding and shape your perspective."
+                },
+                "imagine": {
+                    "label": "Imagine",
+                    "body": "Connect ideas and discover possibilities that do not exist yet."
+                },
+                "create": {
+                    "label": "Create",
+                    "body": "Transform your thinking into something visible, useful or meaningful."
+                },
+                "share": {
+                    "label": "Share",
+                    "body": "Open your work to feedback, collaboration and new interpretations."
+                },
+                "evolve": {
+                    "label": "Evolve",
+                    "body": "Keep learning, redefining and expanding what is possible."
+                }
+            }
+        },
+        "features": {
+            "kicker": "Where do you begin?",
+            "title": "Three ways to keep moving.",
+            "intro": "Learning, imagination and gaming are the same curiosity seen from three angles. Each one gives you a different way to turn what you know into something real.",
+            "learning": {
+                "title": "Learning",
+                "body": "Every expert was once a beginner. Learn at your own pace, follow the questions that matter to you, and watch small steps become real understanding.",
+                "bullets": {
+                    "one": "Follow the question, not the syllabus",
+                    "two": "Build something, don't just read about it",
+                    "three": "Move slowly and keep hold of the thread",
+                    "four": "Stop when you need to, owing nothing"
+                },
+                "cta": "Let's talk about learning",
+                "figureAlt": "Celestial figure studying a holographic tablet"
+            },
+            "imagination": {
+                "title": "Imagination",
+                "body": "Your ideas deserve a place to live. Turn “what if” into something real you can share.",
+                "bullets": {
+                    "one": "Try things where mistakes stay cheap",
+                    "two": "Put together what didn't arrive together",
+                    "three": "Get the idea out of your head early",
+                    "four": "Take the small ideas seriously"
+                },
+                "cta": "Tell me your idea",
+                "figureAlt": "Celestial figure thinking with a radiant heart"
+            },
+            "gaming": {
+                "title": "Gaming",
+                "body": "Play is how we learn best. Compete, collaborate and celebrate every win, big or small.",
+                "bullets": {
+                    "one": "Look for what you can't do yet",
+                    "two": "Compete without it stopping being play",
+                    "three": "Play with company whenever you can",
+                    "four": "Celebrate what you managed, however small"
+                },
+                "cta": "Join the game",
+                "figureAlt": "Celestial figure raising a golden star trophy"
+            },
+            "sceneAlt": "Star-filled celestial figure holding a point of light in an open palm, ringed by an orbit of discs bearing the learn, imagine and play icons"
+        },
+        "about": {
+            "title": "What is VoidToInfinite?",
+            "what": "VoidToInfinite is a personal creative project by Daniel Mosquera. It starts from a simple idea: anything can begin with a blank page.",
+            "approach": "It is about learning and experimenting with design and technology without chasing a finished result. The interesting part is seeing how far an idea can go when you work on it step by step.",
+            "sdk": "Its centrepiece is the System Design Kit, a design system being built from scratch. The components are only one part. The other is the process: deciding, testing, getting it wrong and fixing it until the pieces fit together and can be reused. VoidToInfinite documents that journey, from the void to whatever comes next.",
+            "status": "It is not a company or a finished product, and it will keep changing for as long as there is something left to learn.",
+            "proof": "This website is built on the same principle and respects the people who visit it: no analytics, no tracking, and not a single request to a third party."
+        },
+        "contact": {
+            "titleLead": "Let’s build something",
+            "titleAccent": "infinite.",
+            "body": "Have a question, idea, or collaboration in mind?",
+            "bodySecond": "Reach out via email: I’d love to hear from you.",
+            "figureAlt": "Celestial figure waving hello",
+            "cards": {
+                "community": {
+                    "title": "Join the community",
+                    "value": "discord.gg/CuGhqdG3g3"
+                },
+                "code": {
+                    "title": "Explore the code",
+                    "value": "github.com/voidtoinfinite"
+                },
+                "profile": {
+                    "title": "Meet the person behind it",
+                    "value": "linkedin.com/in/demosquerag"
+                }
+            },
+            "form": {
+                "label": "Your email (optional)",
+                "placeholder": "you@email.com",
+                "help": "Optional: your own email app already sends your address. It will open with the message ready.",
+                "messageLabel": "Your message",
+                "messagePlaceholder": "Tell me what you have in mind.",
+                "noscript": "This form needs JavaScript to open your email app and does not work without it. Write to me directly at",
+                "submit": "Write to me",
+                "submitAria": "Write to me: opens your email app with your message already included",
+                "subject": "Hello VoidToInfinite",
+                "body": "My contact email: {{email}}\n\n{{message}}",
+                "emailError": "That email is not in a valid format. You can leave it empty.",
+                "messageError": "Write your message before sending it.",
+                "counter": "{{used}} of {{max}} characters",
+                "counterWarn": "You are close to the limit an email link accepts. If you go over it, we will hand you the address so you can paste the whole message.",
+                "counterOver": "Your message does not fit in an email link. Sending it will not open your email app: we will hand you the address so you can paste it whole, losing nothing.",
+                "fallbackLead": "If your email app didn’t open, write to me at",
+                "fallbackLeadTooLong": "Your message is too long to open in your email app, so we did not try. Copy it whole and write to me at",
+                "copyAddress": "Copy address",
+                "copied": "Copied",
+                "copyError": "Couldn't copy automatically. Select the address above."
+            },
+            "privacyNote": "Browsing this site sends none of your data to third parties: no analytics, no tracking. Writing to me opens your own email client. You send it, not a server of mine.",
+            "sceneAlt": "Star-filled celestial figure facing forward with one palm raised in greeting, against a near-black sky of stardust and violet trails"
+        }
+    }
+}

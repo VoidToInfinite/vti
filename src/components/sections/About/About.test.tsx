@@ -1,0 +1,376 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderWithProviders, screen, waitFor } from "@/test/test-utils";
+import i18n from "@/i18n/config";
+import esHome from "@/i18n/locales/es/home.json";
+import enHome from "@/i18n/locales/en/home.json";
+import { links } from "@/config/links";
+import { Footer } from "@/components/layout/Footer/Footer";
+import {
+  FOOTER_DARK_BG,
+  FOOTER_STARS,
+} from "@/components/layout/Footer/footer.layers";
+import { themes } from "@/theme/themes";
+import { About } from "./About";
+
+/*
+ * `About` usa `useReveal`, que monta un IntersectionObserver. Mismo stub
+ * mínimo que el resto de secciones: jsdom no lo implementa y sin él el render
+ * lanza.
+ */
+function stubIntersectionObserver(): void {
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe(): void {}
+      unobserve(): void {}
+      disconnect(): void {}
+    },
+  );
+}
+
+beforeEach(() => {
+  stubIntersectionObserver();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+/** Los párrafos del bloque, en el orden del JSON: todas las claves de
+ *  `Home.about` salvo `title`. Derivados del JSON y no de una lista escrita
+ *  aquí, para que un párrafo nuevo entre solo en los candados de veracidad. */
+function paragraphsOf(copy: Record<string, string>): string[] {
+  return Object.entries(copy)
+    .filter(([clave]) => clave !== "title")
+    .map(([, texto]) => texto);
+}
+
+describe("About", () => {
+  it("es una region con nombre accesible, anclada en #about", () => {
+    const { container } = renderWithProviders(<About />);
+
+    const section = container.querySelector("section");
+    expect(section).toHaveAttribute("id", "about");
+    expect(screen.getByRole("region", { name: esHome.Home.about.title })).toBe(
+      section,
+    );
+  });
+
+  /*
+   * NO ESCRIBE `data-inview`, Y ESO ES UNA PREMISA DE OTRO MÓDULO (regla 41;
+   * decisión del dueño D2, 2026-09-02, que mete `about` en el scrollspy).
+   *
+   * Esa señal la escribe `useSectionProgress`, y esta sección no lo monta:
+   * es plana a propósito -- sin escena, sin deck y sin parallax cuyo progreso
+   * describir (ver su docblock). `useActiveSection` depende de ello en las
+   * DOS direcciones, así que el día que alguien le dé un parallax a esta
+   * sección tiene que leer esto antes:
+   *
+   * - En la rama CLARA, `about` es la única sección que no declara la señal,
+   *   y por eso entra al camino normal por geometría.
+   * - En la OSCURA no la declara NADIE, y de eso depende que el módulo entero
+   *   caiga al camino por geometría. Si esta sección empezara a escribirla,
+   *   sería la única del árbol oscuro que lo hace: el camino normal se
+   *   activaría con una sola candidata posible y el resaltado se apagaría en
+   *   las otras cuatro secciones.
+   *
+   * Se afirma sobre el elemento con `id="about"` -- el que `useActiveSection`
+   * consulta por `getElementById` -- y no sobre "el componente no importa el
+   * hook": lo que el otro módulo lee es el atributo, no el import.
+   */
+  it("no declara data-inview: el scrollspy la resuelve por geometría en las dos ramas", () => {
+    const { container } = renderWithProviders(<About />);
+
+    const section = container.querySelector("#about") as HTMLElement;
+    expect(section).not.toBeNull();
+    expect(
+      section.dataset.inview,
+      "About empezó a escribir data-inview: en la rama oscura sería la única, y apagaría el resaltado de las otras cuatro secciones",
+    ).toBeUndefined();
+  });
+
+  /* El encabezado es `h2` REAL, no un párrafo con aspecto de título: es lo que
+     permite que un buscador o un asistente cite el bloque como respuesta a
+     "¿qué es VoidToInfinite?". Un `div` estilado se vería igual y no serviría
+     para nada de eso. */
+  it("el título es un h2 de verdad", () => {
+    renderWithProviders(<About />);
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: esHome.Home.about.title }),
+    ).toBeInTheDocument();
+  });
+
+  /* Igualdad exacta y en orden, no `toContain`: así una clave del JSON que el
+     componente no pinta, un párrafo pintado dos veces o dos párrafos
+     cambiados de sitio se ponen en rojo. Se comprueba en los dos idiomas
+     porque el orden de claves de cada JSON es independiente. */
+  it.each([
+    ["es", esHome.Home.about],
+    ["en", enHome.Home.about],
+  ] as const)(
+    "pinta en %s cada párrafo del JSON, en su orden y sin sobrantes",
+    async (idioma, copy) => {
+      await i18n.changeLanguage(idioma);
+      try {
+        const { container } = renderWithProviders(<About />);
+
+        const pintados = Array.from(container.querySelectorAll("p"), (p) =>
+          p.textContent?.trim(),
+        );
+        expect(pintados).toEqual(paragraphsOf(copy));
+      } finally {
+        // Un fallo no puede dejar el resto del fichero en inglés.
+        await i18n.changeLanguage("es");
+      }
+    },
+  );
+
+  /*
+   * CANDADOS DE VERACIDAD. El resto de este fichero no comprueba que el
+   * componente funcione: comprueba que no MIENTA. Son las tres afirmaciones
+   * que el dueño respondió en la Fase 0 (`PRODUCT.md` §10, puntos 12, 15 y
+   * 21) y que un copy futuro podría deshacer sin que ningún test de render lo
+   * notara.
+   */
+  describe("veracidad del bloque de hechos", () => {
+    /* Punto 15: `dev.voidtoinfinite.com` se verificó el 2026-08-13 y es un
+       placeholder sin contenido. Enlazarlo como prueba llevaría al visitante a
+       una página vacía, que es peor que no enseñar nada. */
+    it("no enlaza el SDK como prueba: su destino es hoy un placeholder", () => {
+      const { container } = renderWithProviders(<About />);
+
+      expect(container.querySelectorAll("a")).toHaveLength(0);
+      expect(container.textContent).not.toContain(links.sdk);
+      expect(container.textContent).not.toContain("dev.voidtoinfinite.com");
+    });
+
+    /* Punto 21: no hay métricas reales y no se inventa ninguna. La ausencia de
+       prueba social fabricada es de lo poco que las tres auditorías del
+       2026-08-08 elogian sin reservas, así que se protege con un candado en
+       vez de con buena voluntad.
+
+       El año declarado (2020, punto 17) es el ÚNICO número admitido: es un
+       hecho del dueño, no una métrica. Desde el texto del 2026-09-13 el
+       bloque ya no lo nombra, así que se admite sin exigirse. Cualquier otra
+       cifra sería una afirmación cuantitativa que nadie puede sostener. */
+    it("no contiene ninguna cifra salvo el año declarado", () => {
+      for (const [idioma, copy] of [
+        ["es", esHome.Home.about],
+        ["en", enHome.Home.about],
+      ] as const) {
+        const texto = paragraphsOf(copy).join(" ");
+        const cifras = (texto.match(/\d+/g) ?? []).filter((n) => n !== "2020");
+
+        expect(cifras, `${idioma}: cifras encontradas`).toEqual([]);
+      }
+    });
+
+    /* Punto 12: no existe una plataforma detrás de las menciones de Features.
+       El bloque describe un proyecto y un recorrido; declararlo "plataforma",
+       "producto" o "servicio" en positivo lo convertiría en la misma promesa
+       vacía que esta entrega vino a retirar. */
+    it("no se presenta como plataforma, producto ni servicio", () => {
+      const prohibidas = {
+        es: ["nuestra plataforma", "el producto", "nuestro servicio"],
+        en: ["our platform", "the product", "our service"],
+      };
+
+      for (const [idioma, copy] of [
+        ["es", esHome.Home.about],
+        ["en", enHome.Home.about],
+      ] as const) {
+        const texto = paragraphsOf(copy).join(" ").toLowerCase();
+        for (const frase of prohibidas[idioma]) {
+          expect(texto, `${idioma}: "${frase}"`).not.toContain(frase);
+        }
+      }
+    });
+  });
+
+  it("el bloque existe completo en los dos idiomas", async () => {
+    const claves = Object.keys(esHome.Home.about) as Array<
+      keyof typeof esHome.Home.about
+    >;
+    expect(Object.keys(enHome.Home.about)).toEqual(claves);
+
+    for (const clave of claves) {
+      expect(esHome.Home.about[clave].trim()).not.toBe("");
+      expect(enHome.Home.about[clave].trim()).not.toBe("");
+      // Traducido de verdad, no copiado: si coincidieran, o falta la
+      // traduccion o alguien duplico el español.
+      expect(enHome.Home.about[clave]).not.toBe(esHome.Home.about[clave]);
+    }
+
+    await i18n.changeLanguage("en");
+    renderWithProviders(<About />);
+    expect(
+      screen.getByRole("heading", { level: 2, name: enHome.Home.about.title }),
+    ).toBeInTheDocument();
+    await i18n.changeLanguage("es");
+  });
+});
+
+/*
+ * Critica externa #13 (2026-08-19), P0 de la ronda: WCAG 2.1 SC 1.4.4 (AA).
+ * Ver el docblock equivalente en `Story.test.tsx` para el mecanismo completo.
+ * Medido en Chrome real a 390x844 con la raiz a 32px: sin `grid-template-
+ * columns` propio, esta seccion creaba una pista IMPLICITA de tamano `auto`
+ * cuyo minimo es el min-content de su contenido -- el termino de marca del h2
+ * aportaba 412px dentro de una caja de 294px y el bloque entero terminaba en
+ * x=460.3 sobre un viewport de 390, sin scroll horizontal que lo recuperase
+ * (`html` declara `overflow-x: clip`, regla 21). Las dos declaraciones son
+ * necesarias y ninguna sustituye a la otra: la pista acota la CAJA, el
+ * overflow-wrap permite que la palabra larga quepa DENTRO de esa caja.
+ *
+ * Candado de CSSOM, no de geometria: jsdom no hace layout.
+ */
+describe("About: critica #13 -- ampliar la fuente no recorta texto (SC 1.4.4)", () => {
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  /* El valor sube de `break-word` a `anywhere` en la critica externa #19
+     (2026-09-04) y el candado sube con el: `break-word` queda prohibido aqui
+     porque es la forma que dejaba vivo el defecto -- parte la linea sin tocar el
+     `min-content`, asi que la caja sigue inflandose. Ver el docblock de
+     `ScStory` (`Story.tsx`) para la medicion. */
+  it("ScAbout declara su pista (minmax(0, 1fr)) y overflow-wrap: anywhere", () => {
+    renderWithProviders(<About />);
+    const section = document.getElementById("about") as HTMLElement;
+    const css = cssRuleTextFor(section);
+    const base = css
+      .split("\n")
+      .find((line) => !line.includes("@media") && line.includes("display"));
+
+    expect(base).toMatch(
+      /grid-template-columns:\s*minmax\(\s*0\s*,\s*1fr\s*\)/,
+    );
+    expect(base).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(base).not.toMatch(/overflow-wrap:\s*break-word/);
+  });
+});
+
+/*
+ * Encargo del dueño del 2026-09-13: el fondo de About es el MISMO que el del
+ * pie -- su color por tema y su campo de estrellas titilantes. Estos candados
+ * atan la igualdad contra el propio `Footer` renderizado, no contra una copia
+ * de sus valores: si alguien cambia el fondo del pie y no el de About (o al
+ * revés), el test de igualdad se pone en rojo (regla 13 de `RULES.md`).
+ *
+ * Candados de CSSOM y de DOM: jsdom no pinta ni hace layout, así que el orden
+ * de pintado (texto por encima de las estrellas) se ata por sus dos causas
+ * observables -- el contenido está posicionado y va DESPUÉS del campo en el
+ * marcado -- y se verifica a ojo en el navegador real.
+ */
+describe("About: fondo de estrellas animadas igual que el del pie (2026-09-13)", () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  function cssRuleTextFor(el: HTMLElement): string {
+    const classes = Array.from(el.classList);
+    return Array.from(document.styleSheets)
+      .flatMap((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => rule.cssText);
+        } catch {
+          return [];
+        }
+      })
+      .filter((text) => classes.some((cls) => text.includes(`.${cls}`)))
+      .join("\n");
+  }
+
+  /** Valor de la ÚNICA declaración `background-color` de las reglas de un
+   *  elemento; falla si hay cero o más de una (una segunda escondería cuál
+   *  gana). */
+  function backgroundColorOf(el: HTMLElement): string {
+    const valores = Array.from(
+      cssRuleTextFor(el).matchAll(/background-color:\s*([^;]+);/g),
+      (m) => m[1].trim(),
+    );
+    expect(valores, "declaraciones de background-color").toHaveLength(1);
+    return valores[0];
+  }
+
+  /** El campo de estrellas es el contenedor `aria-hidden` con
+   *  `FOOTER_STARS.length` hijos (mismo criterio que `Footer.test.tsx`). */
+  function findStarsContainer(root: HTMLElement): HTMLElement | undefined {
+    return Array.from(root.querySelectorAll('[aria-hidden="true"]')).find(
+      (el) => el.children.length === FOOTER_STARS.length,
+    ) as HTMLElement | undefined;
+  }
+
+  const ESPERADO = {
+    light: themes.light.semantic.surfaceSunken,
+    dark: FOOTER_DARK_BG,
+  } as const;
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s el fondo de About es el mismo background-color que el del pie",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(
+        <>
+          <About />
+          <Footer />
+        </>,
+      );
+      const about = container.querySelector("#about") as HTMLElement;
+      const footer = container.querySelector("footer") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      expect(backgroundColorOf(about)).toBe(ESPERADO[theme]);
+      expect(backgroundColorOf(about)).toBe(backgroundColorOf(footer));
+    },
+  );
+
+  it.each([["light"], ["dark"]] as const)(
+    "en tema %s monta el campo de 24 estrellas titilantes dentro de #about",
+    async (theme) => {
+      window.localStorage.setItem("vti-theme", theme);
+      const { container } = renderWithProviders(<About />);
+      const about = container.querySelector("#about") as HTMLElement;
+
+      await waitFor(() => {
+        expect(cssRuleTextFor(about)).toContain(ESPERADO[theme]);
+      });
+
+      const stars = findStarsContainer(about);
+      expect(stars, "campo de estrellas dentro de #about").toBeDefined();
+      expect((stars as HTMLElement).children).toHaveLength(FOOTER_STARS.length);
+    },
+  );
+
+  it("las estrellas quedan por debajo del texto: la sección las ancla y el contenido está posicionado después en el marcado", () => {
+    const { container } = renderWithProviders(<About />);
+    const about = container.querySelector("#about") as HTMLElement;
+    const stars = findStarsContainer(about) as HTMLElement;
+    const content = about.querySelector("[data-revealed]") as HTMLElement;
+
+    // La sección es el ancestro posicionado del campo (inset: 0 sobre ella).
+    expect(cssRuleTextFor(about)).toContain("position: relative");
+    // El contenido está posicionado: sin esto se pintaría ANTES que las
+    // estrellas, vaya donde vaya en el DOM.
+    expect(cssRuleTextFor(content)).toContain("position: relative");
+    // Y va después del campo en el marcado, que es lo que desempata.
+    expect(
+      stars.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(content.contains(stars)).toBe(false);
+  });
+});

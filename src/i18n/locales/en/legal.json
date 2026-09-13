@@ -1,0 +1,519 @@
+{
+    "Legal": {
+        "common": {
+            "tocLabel": "Contents",
+            "updatedLabel": "Last updated",
+            "versionLabel": "Version",
+            "backToHome": "Back to home",
+            "placeholderTitle": "Detail still to be completed by the site owner",
+            "entity": {
+                "name": "Name",
+                "legalForm": "Legal form",
+                "taxId": "Tax ID (NIF/CIF)",
+                "address": "Registered address",
+                "registry": "Registry information",
+                "contactEmail": "Contact email",
+                "dpo": "Data Protection Officer"
+            },
+            "dpoNotAppointed": "No Data Protection Officer (DPO) has been appointed.",
+            "notApplicable": "Not applicable.",
+            "legalForm": {
+                "naturalPerson": "Natural person"
+            },
+            "storageTable": {
+                "id": "Identifier",
+                "purpose": "Purpose",
+                "kind": "Type",
+                "duration": "Duration",
+                "provider": "Owner",
+                "persistent": "Persistent until you delete it",
+                "session": "Until you close this tab",
+                "days": "{{count}} days",
+                "regionLabel": "Storage table, horizontally scrollable"
+            },
+            "storage": {
+                "vti-theme": {
+                    "name": "Theme (light / dark)",
+                    "purpose": "Remembers whether you chose the light or the dark theme, so you are not asked again on every visit."
+                },
+                "vti-reading-position": {
+                    "name": "Reading position (this tab only)",
+                    "purpose": "Notes which section of the home page you were reading, so a reload, or returning to it with Back or Forward, takes you back to it. It lives only in this tab and is erased when you close it."
+                }
+            }
+        },
+        "privacy": {
+            "title": "Privacy policy",
+            "description": "VoidToInfinite privacy policy: this website uses no analytics, tracking or advertising. What is stored on your device, what happens if you email us, and how to exercise your rights.",
+            "intro": "This policy follows the two-layer model allowed by article 11.1 LOPDGDD: first a short summary and then the article 13 GDPR detail, section by section. It is deliberately short, because the processing it describes is short too.",
+            "sections": [
+                {
+                    "id": "resumen",
+                    "heading": "Summary (first layer)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "If you only have a minute: browsing this website gives us no data about you. There is no analytics, no tracking, no advertising and no profiling. Only two things are stored on your device: the theme you choose yourself and, for as long as the tab stays open, where you were reading."
+                        },
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Controller",
+                                    "description": "Daniel Mosquera, a natural person (see the «Who is the controller» section)."
+                                },
+                                {
+                                    "term": "Purpose",
+                                    "description": "Remembering the theme you choose, and replying to you if you decide to email us."
+                                },
+                                {
+                                    "term": "Legal basis",
+                                    "description": "Your own choice when using the interface and, only if you write to us, handling your message."
+                                },
+                                {
+                                    "term": "Recipients",
+                                    "description": "Netlify (hosting), plus Cloudflare and Google if you write to us by email. We do not disclose or sell data to third parties."
+                                },
+                                {
+                                    "term": "Your rights",
+                                    "description": "Access, rectification, erasure, restriction, objection and portability. See the «Your rights» section."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "responsable",
+                    "heading": "Who is the controller (art. 13.1.a GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The controller of your personal data is:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "These identifying details are still pending from the site owner. While they are missing, this page does not meet article 13.1.a GDPR and must not be considered a publishable privacy policy."
+                        }
+                    ]
+                },
+                {
+                    "id": "delegado",
+                    "heading": "Data Protection Officer (art. 13.1.b GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "No Data Protection Officer (DPO) has been appointed."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Appointing one is not mandatory here: none of the cases in article 37 GDPR applies (we are not a public authority, our activity does not involve regular and systematic monitoring of people on a large scale, and we do not process special categories of data on a large scale), nor any of the additional cases in article 34 LOPDGDD."
+                        }
+                    ]
+                },
+                {
+                    "id": "navegacion",
+                    "heading": "What we do NOT do while you browse",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This website is a presentation page. During ordinary browsing we do not collect personal data about you, and specifically:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "We use no analytics or audience measurement tools.",
+                                "We use no tracking technologies, advertising pixels or third-party identifiers.",
+                                "We build no profiles and take no automated decisions affecting you (art. 13.2.f and art. 22 GDPR).",
+                                "We show no advertising and do no behavioural advertising.",
+                                "We load no social media widgets, feeds or SDKs: links to external platforms are plain anchors, and they do not contact those platforms until you click them.",
+                                "We do not sell, rent or disclose data for commercial purposes.",
+                                "There is no form that sends data to a server of ours: this website is a static export and has no application server to send it to."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "finalidades",
+                    "heading": "Purposes and legal basis (art. 13.1.c GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Remembering the theme you choose",
+                                    "description": "Legal basis: the legitimate interest in giving you the interface you asked for yourself when you pressed the theme switch (art. 6.1.f GDPR). This storage is exempt from consent under article 22.2 LSSI-CE, see the «What we store on your device» section."
+                                },
+                                {
+                                    "term": "Replying to your message if you write to us",
+                                    "description": "Only if you decide to send us an email. Legal basis: either your consent for a general enquiry (art. 6.1.a GDPR), or steps taken at your request prior to entering into a contract when you write about a collaboration or a commission (art. 6.1.b GDPR), depending on why you write. We do not claim a single basis for every case, because not every message is the same."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "interes-legitimo",
+                    "heading": "Legitimate interest pursued (art. 13.1.d GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The only processing based on legitimate interest (art. 6.1.f GDPR) is remembering the theme, and that interest is simply to give you the preference you chose yourself. No other processing is based on the controller's legitimate interest."
+                        }
+                    ]
+                },
+                {
+                    "id": "almacenamiento",
+                    "heading": "What we store on your device (technical storage)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This is the complete and only list of everything this website writes on your device, and not all of it is of the same kind: there is a preference you choose yourself, the theme, and a technical state of the browsing session itself, where you were reading, which nobody chooses. They are stored using your own browser's localStorage and sessionStorage, and the second one is cleared on its own when you close the tab. There are no HTTP cookies, no analytics and no third-party scripts."
+                        },
+                        {
+                            "kind": "storage"
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Each entry serves only the purpose its own row declares: remembering the theme you chose and taking you back to where you were reading. They are not used for analytics, advertising, tracking, identification, profiling or to relate your visits to any other purpose."
+                        },
+                        {
+                            "kind": "note",
+                            "text": "This is why the site shows no cookie notice: article 22.2 LSSI-CE exempts from consent the storage strictly necessary to provide the service expressly requested by the user, and the Spanish Data Protection Agency's cookie guidance lists interface personalisation chosen by the person themselves among those cases. Asking permission for what the law exempts would be friction without legal grounding. Should a non-exempt technology ever be added, consent would be requested before enabling it."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "You can delete these entries at any time from your browser settings (clear site data or browsing data). The site will keep working: it will simply go back to its default values."
+                        }
+                    ]
+                },
+                {
+                    "id": "contacto",
+                    "heading": "If you email us",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Contact on this website works with a mail link: when you click it, your browser opens your own email application with the message already started. The website receives nothing, sends nothing and stores nothing of that; you send it yourself, from your own account, and you are free not to."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "If you do decide to send it, that email reaches our inbox like any other, and from then on we do process the data you included. Depending on what you write, that may cover:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "your email address;",
+                                "your name;",
+                                "the company or organisation you represent, if you mention it;",
+                                "the content of the message;",
+                                "any other detail you decide to include, including any files you attach."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "We use them only to read your message, reply to you and keep the communications related to that enquiry, including handling it as a commercial or pre-contractual request when that is why you are writing. We do not use them to send you unsolicited commercial communications and we do not add them to any mailing list."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Providing this data is entirely voluntary (art. 13.2.e GDPR): you decide what you write and whether you send the email. If you do not write to us, the only consequence is that we cannot reply."
+                        }
+                    ]
+                },
+                {
+                    "id": "destinatarios",
+                    "heading": "Who receives your data (art. 13.1.e GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site is a static export (with no application server of our own) hosted on Netlify, which acts as processor for technical hosting and processes the technical data of requests (IP addresses in its access logs, for example) under its own privacy policy."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, as processor, for the technical hosting of the site.",
+                                "Cloudflare, which routes email sent to the contact address. It does not store it: it forwards it to a destination mailbox.",
+                                "Google, the provider of that destination mailbox, where the message is stored. It is a personal Gmail account, not a service engaged as a data processor: this is stated plainly rather than claiming a contractual relationship that does not exist."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "There is no other recipient. We do not disclose your data to third parties for commercial purposes and we do not sell it."
+                        }
+                    ]
+                },
+                {
+                    "id": "transferencias",
+                    "heading": "International data transfers (art. 13.1.f GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site is hosted on Netlify's infrastructure and contact email is routed through Cloudflare. Both are US companies, so transfers of technical data outside the European Economic Area may occur."
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Netlify, Inc.: European Commission standard contractual clauses, set out in its data processing agreement, plus certified adherence to the EU-U.S. Data Privacy Framework.",
+                                "Cloudflare, Inc.: standard contractual clauses (module two, controller to processor) in section 6.2 of its data processing addendum, plus adherence to the Data Privacy Framework confirmed in its section 6.4."
+                            ]
+                        },
+                        {
+                            "kind": "note",
+                            "text": "The final mailbox behind the contact address is a personal Gmail account. Google adheres to the Data Privacy Framework, but a consumer account is not covered by a data processing agreement: no contractual safeguard that has not been signed is claimed here. If you would rather not send your data to a US provider, do not use email to get in touch."
+                        }
+                    ]
+                },
+                {
+                    "id": "conservacion",
+                    "heading": "How long we keep your data (art. 13.2.a GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "dl",
+                            "items": [
+                                {
+                                    "term": "Chosen theme",
+                                    "description": "It stays on your own device, not on a server of ours, and it does not expire on its own: it remains until you clear this site's data in your browser."
+                                },
+                                {
+                                    "term": "Your email and its content",
+                                    "description": "Kept until your enquiry has been resolved and, at most, three months from that point. After that it is deleted."
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "derechos",
+                    "heading": "Your rights (art. 13.2.b and 13.2.c GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "You can exercise these rights over your data at any time:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Access: to know what data we process about you.",
+                                "Rectification: to correct inaccurate data.",
+                                "Erasure: to ask us to delete your data.",
+                                "Restriction: to ask us to restrict its processing.",
+                                "Objection: to object to a specific processing operation.",
+                                "Portability: to receive your data in a structured, commonly used format."
+                            ]
+                        },
+                        {
+                            "kind": "p",
+                            "text": "To exercise them, write to hello@voidtoinfinite.com stating which right you want to exercise."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Where processing is based on your consent, you may withdraw it at any time without affecting the lawfulness of processing carried out before the withdrawal."
+                        }
+                    ]
+                },
+                {
+                    "id": "reclamacion",
+                    "heading": "How to complain to the supervisory authority (art. 13.2.d GDPR)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "If you believe the processing of your data breaches the rules, you can lodge a complaint with the Spanish Data Protection Agency (AEPD), www.aepd.es, calle Jorge Juan 6, 28001 Madrid."
+                        }
+                    ]
+                },
+                {
+                    "id": "cambios",
+                    "heading": "Changes to this policy",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We will update this policy when the way we process your data changes, and in particular if any technology that does not exist on the site today is ever added. The date and version of the last substantive revision appear at the top of this document."
+                        }
+                    ]
+                }
+            ]
+        },
+        "legalNotice": {
+            "title": "Legal notice",
+            "description": "VoidToInfinite legal notice under article 10 LSSI-CE: owner identification, registry information, site terms of use, intellectual property and liability.",
+            "intro": "This legal notice contains the information required by article 10 of Spanish Law 34/2002 on Information Society Services and Electronic Commerce (LSSI-CE), in its seven paragraphs a) to g), and adds the general conditions governing the use of this website.",
+            "sections": [
+                {
+                    "id": "titular",
+                    "heading": "Site owner (paragraphs a and e)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Identifying information about the site owner, following article 10.a) (name, address and email) and article 10.e) (tax ID) LSSI-CE:"
+                        },
+                        {
+                            "kind": "entity"
+                        },
+                        {
+                            "kind": "note",
+                            "text": "On the address and tax ID: they are not published. The LSSI-CE governs information society services provided as an economic activity, and this site has none. It does not sell, advertise, earn revenue or collect data from visitors, so that identification duty is understood not to apply to it. This is a reasoned interpretation, not a certainty confirmed by a professional, and it is stated as such rather than left unaddressed. The owner is identified by name and reachable at the email address given, which is monitored. Should the project ever take on economic activity, this decision would be revisited."
+                        }
+                    ]
+                },
+                {
+                    "id": "actividad",
+                    "heading": "Activity and purpose of the site",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This website presents the VoidToInfinite project and its work. It is an informational site: it does not sell products or services, it does not allow purchases or bookings, it offers no registration or user accounts, it hosts no visitor-published content and it provides no service that can be contracted online."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "For that reason neither the electronic contracting regime (arts. 23 to 29 LSSI-CE) nor the pre-contractual information regime for consumers (arts. 97 and 98 of the consolidated text of the General Law for the Defence of Consumers and Users) is triggered."
+                        }
+                    ]
+                },
+                {
+                    "id": "registro",
+                    "heading": "Registry information (paragraph b)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable: the controller is a natural person, not a company, so there is no entry in any public registry to report."
+                        }
+                    ]
+                },
+                {
+                    "id": "autorizacion",
+                    "heading": "Administrative authorisation (paragraph c)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. The activity of this site (presenting a team and its work) is not subject to any prior administrative authorisation regime."
+                        }
+                    ]
+                },
+                {
+                    "id": "profesion-regulada",
+                    "heading": "Professional body (paragraph d)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. The activity of this site does not correspond to a regulated profession subject to membership of a professional body."
+                        }
+                    ]
+                },
+                {
+                    "id": "precios",
+                    "heading": "Prices (paragraph f)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "Not applicable. This site does not market products or services, so there are no prices to report."
+                        }
+                    ]
+                },
+                {
+                    "id": "codigos-conducta",
+                    "heading": "Codes of conduct (paragraph g)",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site does not adhere to any code of conduct of those referred to in article 10.g) LSSI-CE."
+                        }
+                    ]
+                },
+                {
+                    "id": "uso-del-sitio",
+                    "heading": "Conditions of use",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "You may freely browse and read the site's content for your personal use. You may not:"
+                        },
+                        {
+                            "kind": "ul",
+                            "items": [
+                                "Use the site for unlawful purposes or in ways that harm others.",
+                                "Attempt to access areas or systems not intended for the public.",
+                                "Extract or reuse the site's content on a large scale without authorisation.",
+                                "Interfere with the normal operation of the site."
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "propiedad-intelectual",
+                    "heading": "Intellectual and industrial property",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The texts, graphics, logos and other content of this site are protected under Royal Legislative Decree 1/1996 of 12 April, approving the consolidated text of the Spanish Intellectual Property Act, and belong to the site owner or are used with the corresponding authorisation. No licence is granted over them beyond what is needed to browse the site; their reproduction without authorisation is prohibited, except as permitted by law."
+                        }
+                    ]
+                },
+                {
+                    "id": "enlaces-externos",
+                    "heading": "Links to third-party sites",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The site links to third-party platforms such as GitHub and Discord, over which we have no control. They are plain links: they load no scripts, widgets or content from those platforms inside this website, and they do not contact them until you choose to click."
+                        },
+                        {
+                            "kind": "p",
+                            "text": "Once you leave this site, the terms and privacy policy of the platform you reach apply, not ours. We are not responsible for their content or their practices; we recommend you review them."
+                        }
+                    ]
+                },
+                {
+                    "id": "disponibilidad",
+                    "heading": "Availability",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We make reasonable efforts to keep the site available, but we do not guarantee continuous, uninterrupted or error-free access. We may suspend access temporarily for maintenance or for reasons beyond our control."
+                        }
+                    ]
+                },
+                {
+                    "id": "responsabilidad",
+                    "heading": "Liability",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We aim to keep the published information correct and up to date, without this amounting to an absolute guarantee of accuracy. To the extent permitted by law, we are not liable for damages arising from use of the site, except in those cases where the law does not allow such exclusion."
+                        }
+                    ]
+                },
+                {
+                    "id": "modificaciones",
+                    "heading": "Changes",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "We may amend this legal notice at any time, for example if the site's activity changes. The version and date of the last substantive revision appear at the top of this document."
+                        }
+                    ]
+                },
+                {
+                    "id": "legislacion",
+                    "heading": "Applicable law and jurisdiction",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "This legal notice is governed by Spanish law, in particular by the LSSI-CE. Where the other party is a consumer, the courts that the law reserves for their protection shall have jurisdiction; we impose no court other than that one, because article 90 of the consolidated text of the General Law for the Defence of Consumers and Users declares unfair and void any clause submitting the consumer to a jurisdiction other than that of their own domicile."
+                        }
+                    ]
+                },
+                {
+                    "id": "privacidad",
+                    "heading": "Data protection",
+                    "blocks": [
+                        {
+                            "kind": "p",
+                            "text": "The processing of personal data, what this site stores on your device and what happens if you email us are explained in the Privacy policy, linked in the footer of every page."
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}

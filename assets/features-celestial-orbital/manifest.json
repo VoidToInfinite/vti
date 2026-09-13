@@ -1,0 +1,144 @@
+{
+    "name": "features-celestial-orbital-layers",
+    "description": "Figura celestial sobre una plataforma holografica, rodeada de un anillo orbital con 6 burbujas de icono (libro, bombilla, birrete, cerebro, mando de juego, cohete) y con un orbe de luz en la palma, separada en 7 planos de profundidad para parallax 2.5D en el fondo de Features (tema oscuro). SUSTITUYE por completo a la escena anterior de esta seccion (features-celestial-guide, 10 capas): es otro arte y otro modelo de composicion. Como la escena de Journey y AL CONTRARIO que la saliente, esta NO es una particion de energia aditiva: la capa 01-fondo es OPACA (RGB) y las otras seis llevan alpha RECTA, pensadas para componerse con alpha NORMAL. Aplicarles plus-lighter las lavaria.",
+    "source": "Features_Dark_Theme_2_celestial_parallax_capas_3_FIXED.zip (Downloads), entregado por el usuario 2026-08-02. Los maestros PNG (16,7 MB) NO se versionan: quedan solo en el zip de origen, mismo criterio que story-cosmic-being (2026-07-31) y journey-cosmic-portal (2026-08-01). La escena saliente (features-celestial-guide) SI versionaba sus 10 WebP maestros de 3344px (4,8 MiB); era la excepcion y se retira con ella.",
+    "canvas": {
+        "width": 3344,
+        "height": 1882
+    },
+    "compositing": {
+        "css": "alpha normal (sin mix-blend-mode) sobre --void:#150b2e; 01-fondo es opaca y hace de suelo del stack",
+        "void": "#150b2e, declarado por el paquete en demo/index.html :root --bg. Se conserva el literal del paquete en vez de derivar uno propio (mismo criterio que JOURNEY_PORTAL_VOID). Solo se ve como color de pintado antes de que cargue la capa opaca. Es un color DISTINTO del #02040e de la escena saliente porque es otro paquete y otra generacion de arte.",
+        "order": "Orden de pintado = el del demo del paquete (demo/index.html), que pinta 40_plataforma DEBAJO de 30_iconos; el README del paquete los lista al reves. MEDIDO, no supuesto: compuestos los 7 PNG maestros en los dos ordenes, la diferencia es 0.0/255 de media por canal y el bounding box de la diferencia es None (solo 18 pixeles tienen alfa en las dos capas a la vez). Son equivalentes en fidelidad, asi que se elige el orden coherente con el parallax: la plataforma tiene menos profundidad que los iconos y pintarla encima leeria como un plano cercano moviendose mas despacio que uno lejano."
+    },
+    "fidelity": {
+        "recomposicion": "El README del paquete declara un error medio de recomposicion de 2.23/255 frente al original y 0.117 % de pixeles >30. NO se reproduce aqui esa cifra: el zip no incluye la imagen original compuesta, solo las 7 capas, asi que no hay contra que medirla. Lo que SI se ha medido es la perdida del encoder (ver deployed.rationale), que es la unica parte del error que esta entrega introduce."
+    },
+    "deployed": {
+        "quality": 85,
+        "widths": [1024, 2560],
+        "encoder": "Pillow: Image.resize(LANCZOS) -> save WEBP quality=85 method=6. El filtro y el method NO son supuestos: se probaron contra un activo que no cambia (leccion del repo, task/lessons.md 2026-08-01) recodificando los 10 WebP maestros de assets/features-celestial-guide/ a las dos pistas y comparando sha256 contra los 20 ficheros desplegados en public/features/celestial-guide/. Con q=85 el resultado era 0/20; con q=90 method=6 y LANCZOS, 20/20 byte a byte. Queda demostrado que el filtro y el method son los correctos; la CALIDAD es la unica variable que se elige por escena.",
+        "rationale": "Medido sobre la escena COMPUESTA a 2560px (que es lo que ve el usuario, no una capa suelta), comparando el compuesto de las 7 capas recodificadas contra el compuesto de los 7 maestros: q70 41.87 dB / 1576.8 KiB, q80 42.65 / 1732.0, q85 43.22 / 1868.8, q88 43.63 / 1991.6, q90 43.84 / 2093.1, q93 44.12 / 2305.5. La rodilla esta en q85: de q70 a q85 se pagan 292 KiB por +1.35 dB, y de q85 a q90 otros 224 KiB por solo +0.62 dB. Se elige q85, misma conclusion y misma metrica que la escena de Journey. La escena saliente iba a q90; bajar a q85 aqui recorta 273 KiB del total.",
+        "weightBytes": 2286682,
+        "weightNote": "2,18 MiB en las 14 imagenes, frente a 1,30 MiB de las 20 de la escena saliente. El aumento no es del encoder sino del arte: 02-ondas (771 KB en la pista de 2560) y 06-figura (463 KB) son mallas de particulas y un cuerpo con textura estrellada, mucho mas dificiles de comprimir que los orbes planos de la escena anterior. Deuda conocida declarada en la spec."
+    },
+    "alphaRecompression20260809": {
+        "why": "Auditoria premium (Task 13): esta es la escena que disparo el hallazgo -- 02-ondas.webp median 415125 B de ALPH sobre 771418 B totales (53.8%), el chunk ALPH lossless por defecto. Herramienta: Python 3.13.14 + Pillow 12.3.0 (no hay cwebp en la maquina). El color NO se recomprime a proposito: se decodifica el WebP ya desplegado y se reguarda con Pillow save(quality=85, method=6, alpha_quality=80), mismos quality/method que ya usaba este manifest.",
+        "pillowCalibration": "Verificado sobre 02-ondas.webp ANTES de tocar ningun fichero real: se reguardo dos veces con quality=85/method=6, una con alpha_quality=100 (control) y otra con alpha_quality=80 (candidato). El chunk VP8 (color) salio BYTE A BYTE IDENTICO entre las dos (324524 B ambas), confirmando que alpha_quality no toca el color. El chunk ALPH si bajo: 415125 (control, igual al original) -> 344668 B (candidato, -17.0%). Aparte, se detecto y declara un efecto ORTOGONAL: decodificar+reguardar con Pillow (el roundtrip en si, no alpha_quality) SI introduce perdida de color medible frente al original -- RGB PSNR 35.37 dB crudo -- pero es indistinguible entre control y candidato (mismo chunk VP8), y en el compuesto premultiplicado por alfa (lo que realmente se ve en pantalla) sube a 55.63 dB porque la perdida de color se concentra en zonas de alfa bajo/cero. Se acepta: el umbral de aceptacion de esta tarea (compuesto premultiplicado >=45 dB) es precisamente la metrica disenada para esto.",
+        "scope": "Solo las 6 capas con ALPH > 30% (01-fondo es opaca -- 0% ALPH -- y 07-particulas queda en 27.6-28.7%, bajo el umbral; ninguna se toca).",
+        "results": "10 ficheros recomprimidos (las 5 capas 02-06 x 2 anchos). Peso: 2286682 -> 2022094 B (-264588 B, -11.6%, la mayor reduccion porcentual de las 4 escenas oscuras). PSNR minimo: alfa 56.61 dB (02-ondas-1024.webp), compuesto premultiplicado 48.70 dB (06-figura-1024.webp, el mas ajustado de las 4 escenas pero con 3.7 dB de margen sobre el umbral de 45 dB). Ningun fichero excluido por PSNR ni por aumento de peso.",
+        "perFile": {
+            "02-ondas": {
+                "2560": "771418->669238 B, alfa 56.71dB, premult 55.63dB",
+                "1024": "144076->128056 B, alfa 56.61dB, premult 54.84dB"
+            },
+            "03-orbita": {
+                "2560": "74704->70786 B, alfa 68.77dB, premult 70.79dB",
+                "1024": "16504->15100 B, alfa 68.47dB, premult 70.08dB"
+            },
+            "04-plataforma": {
+                "2560": "294954->251638 B, alfa 59.56dB, premult 58.06dB",
+                "1024": "53286->46880 B, alfa 59.55dB, premult 57.10dB"
+            },
+            "05-iconos": {
+                "2560": "274476->247880 B, alfa 61.50dB, premult 56.62dB",
+                "1024": "53486->49412 B, alfa 61.36dB, premult 54.83dB"
+            },
+            "06-figura": {
+                "2560": "462986->411024 B, alfa 58.26dB, premult 53.31dB",
+                "1024": "96198->87486 B, alfa 58.10dB, premult 48.70dB"
+            }
+        },
+        "pendingVisualQA": "Sin verificacion visual humana: jsdom no pinta. Casilla de calidad visual queda pendiente (PRE-LAUNCH-QA, Task 14)."
+    },
+    "midTrack20260811": {
+        "why": "Task 11 (plan premium F1-F5). Objetivo: que un movil a DPR3 (slot efectivo ~1125px con sizes=100vw) deje de pedir la pista de 2560px. Sin master de 3344px versionado (ver source, arriba), la pista de 1600 se genera desde la de 2560 YA DESPLEGADA (unica fuente de mayor resolucion disponible en el repo): Image.resize(LANCZOS) a 1600x900 (misma proporcion 3344:1882 que las demas pistas) + save WEBP quality=85 method=6, igual que el resto del pipeline de esta escena.",
+        "reproducibilityCheck": "Antes de generar nada se intento reproducir BYTE A BYTE el fichero ya desplegado (mismo tamano, sin resize, quality=85/method=6/alpha_quality=80 o el que documenta este manifest por capa): NINGUNA de las 7 capas reprodujo, ni siquiera barriendo quality 85-100 con y sin exact=True. Diagnostico: no es un parametro equivocado -- un experimento de control (misma imagen, mismos parametros, aplicados dos veces seguidas) demuestra que el propio pipeline NO es idempotente sobre una entrada que ya paso por una compresion con perdida (gen3 613408B != gen4 595704B en 02-ondas.webp, parametros identicos): cada pasada adicional de recompresion encoge el fichero un poco mas, independientemente de si los parametros son 'correctos'. El activo desplegado ya es 2 generaciones de perdida desde el master (encode inicial + resave de alpha_quality de la Task 13); un tercer paso de recompresion no puede reproducirlo byte a byte por construccion. Sin master disponible (los zips de origen ya no existen en Downloads ni se versionaron en assets/), la validacion aplicable -- y la que exige este mismo encargo -- es PSNR sobre el compuesto, no igualdad de bytes.",
+        "psnrMethod": "Referencia = compuesto de las 7 capas reescaladas a 1600x900 con LANCZOS pero SIN recomprimir (pixeles en memoria, perdida cero adicional sobre la pista de 2560). Candidato = compuesto de los 7 WebP de 1600 realmente guardados y releidos. Ambos compuestos se pintan sobre --void con el mismo alpha normal de produccion. Este metodo aisla la perdida de ESTE paso de recodificacion (resize + encode), replicando la metodologia de 'deployed.rationale' de este mismo manifest pero usando la pista de 2560 como mejor fuente disponible en vez del master ausente.",
+        "psnrThreshold": "El encargo cita >=48 dB 'como referencia de la pasada alfa' (Task 13), pero el valor que documentan de verdad los manifests de esa pasada es 45 dB, y sobre una metrica DISTINTA (compuesto PREMULTIPLICADO por capa, que aisla solo la contribucion de la capa, no el compuesto RGB completo de la escena). Ninguna de las dos cifras es directamente comparable a un PSNR de compuesto RGB completo de una recodificacion de resolucion+color nueva. El criterio adoptado aqui: el compuesto a 1600 no debe ser peor que el propio precedente de esta escena a 2560 (mismo metodo de medicion: compuesto RGB reescalado con LANCZOS desde la mejor fuente disponible, sin recomprimir, vs recodificado) -- 'deployed.rationale' documenta q85/2560 en 43.22 dB contra el master. Medido: 44.59 dB a 1600, POR ENCIMA del propio precedente (resolucion menor = menos detalle de alta frecuencia = mejor PSNR a igual calidad, como cabe esperar fisicamente). Pasa con margen en las dos lecturas.",
+        "alphaQualityPolicy": "Por capa: se prueba alpha_quality=80 y el valor por defecto (100/lossless), y se conserva el que pese menos -- misma regla ya establecida en alphaRecompression20260809. Las 6 capas alfa de esta escena mejoran con 80 (igual que a 2560/1024).",
+        "results": "16 ficheros -1600.webp generados (7 capas x este manifest documenta las 7; el total de la escena en los 3 anchos es 7x3=21 ficheros). Peso de la pista de 1600: 751938 B (0.72 MiB). Compuesto PSNR: 44.59 dB.",
+        "perFile": {
+            "01-fondo": "4744 B (opaca, sin alpha_quality)",
+            "02-ondas": "300394 B (aq=80 vs 325246 B default), alfa 57.04dB, premult 51.29dB",
+            "03-orbita": "29794 B (aq=80 vs 32034 B default), alfa 70.07dB, premult 68.03dB",
+            "04-plataforma": "111306 B (aq=80 vs 123708 B default), alfa 60.75dB, premult 54.16dB",
+            "05-iconos": "107960 B (aq=80 vs 115652 B default), alfa 61.88dB, premult 52.29dB",
+            "06-figura": "185328 B (aq=80 vs 203926 B default), alfa 58.76dB, premult 47.79dB",
+            "07-particulas": "12412 B (aq=80 vs 13274 B default), alfa 76.83dB, premult 71.92dB"
+        },
+        "pendingVisualQA": "Verificacion visual en navegador real pendiente de completar en esta misma tarea (playwright-cli / panel de navegador embebido) -- ver informe de la Task 11."
+    },
+    "motion": {
+        "packageHints": {
+            "pointerDepth": [0.05, 0.14, 0.22, 0.18, 0.3, 0.38, 0.55],
+            "scrollDepth": [0.04, 0.1, 0.16, 0.26, 0.2, 0.3, 0.42],
+            "pointerAmpPx": 32,
+            "scrollAmpPx": 240,
+            "overscan": 1.1,
+            "lerp": 0.055
+        },
+        "adopted": "Se adoptan las PROPORCIONES del paquete (la columna de puntero, normalizada a 1.0 en las particulas: 0.091 / 0.255 / 0.400 / 0.327 / 0.545 / 0.691 / 1.0) pero NO sus amplitudes, calibradas para un hero a viewport completo. La amplitud se fija para conservar el recorrido que ya tenia esta seccion con la escena saliente: aquella usaba pointerAmp {x:22,y:13} y scrollAmp 70 con profundidad maxima 0.46, o sea 10.1/6.0 px de puntero y 32.2 px de scroll; con el ancla en 1.0, pointerAmp {x:10,y:6} y scrollAmp 32 reproducen 10.0/6.0 y 32.0. Actualizar el fondo no debe retunear el movimiento de la seccion. El overscan tambien se queda en el 1.06 que ya tenia la seccion, no en el 1.10 del paquete: la unica capa OPACA es 01-fondo, a profundidad 0.091, cuyo desplazamiento vertical maximo es 6*0.091 + 32*0.091 = 3.5 px frente a los ~27 px de sobreancho que da 1.06 sobre una pantalla de 900 px; las otras seis son transparentes y desplazarlas no descubre ningun borde. useSceneParallax colapsa ademas puntero y scroll en UNA sola profundidad por capa, asi que la columna de scroll del paquete (que ordena plataforma e iconos al reves que la de puntero) no se puede reproducir exactamente: se adopta la de puntero, que es la que gobierna el gesto continuo.",
+        "packageOrderNote": "El zip declara la columna scrollDepth en el orden del README (fondo, ondas, orbita, iconos, plataforma, figura, particulas). Aqui esta reordenada al orden de pintado adoptado (plataforma antes que iconos) para que las dos columnas de este manifest se lean en el mismo orden que el array layers de abajo."
+    },
+    "layers": [
+        {
+            "file": "01-fondo",
+            "z": 0,
+            "depth": 0.091,
+            "alpha": "opaca (RGB)",
+            "desc": "Degradado violeta reconstruido con grano fino y dithering, sin ningun elemento del arte. Es el suelo opaco del stack.",
+            "bytes": { "2560": 11604, "1024": 1970 }
+        },
+        {
+            "file": "02-ondas",
+            "z": 1,
+            "depth": 0.255,
+            "alpha": "recta (RGBA)",
+            "desc": "Malla de particulas azul/magenta de la esquina inferior derecha. Es la capa mas pesada con diferencia.",
+            "bytes": { "2560": 771418, "1024": 144076 }
+        },
+        {
+            "file": "03-orbita",
+            "z": 2,
+            "depth": 0.4,
+            "alpha": "recta (RGBA)",
+            "desc": "Anillo orbital y sus nodos, con el tramo oculto tras la figura completado sinteticamente (elipse ajustada a los 6 iconos) para que al separarse los planos no aparezcan huecos.",
+            "bytes": { "2560": 74704, "1024": 16504 }
+        },
+        {
+            "file": "04-plataforma",
+            "z": 3,
+            "depth": 0.327,
+            "alpha": "recta (RGBA)",
+            "desc": "Plataforma circular holografica de la base, rellenada bajo los pies por inpainting y con crossfade eliptico hacia las ondas (reparacion v3.1 del paquete).",
+            "bytes": { "2560": 294954, "1024": 53286 }
+        },
+        {
+            "file": "05-iconos",
+            "z": 4,
+            "depth": 0.545,
+            "alpha": "recta (RGBA)",
+            "desc": "Las 6 burbujas de icono del anillo (libro, bombilla, birrete, cerebro, mando, cohete).",
+            "bytes": { "2560": 274476, "1024": 53486 }
+        },
+        {
+            "file": "06-figura",
+            "z": 5,
+            "depth": 0.691,
+            "alpha": "recta (RGBA)",
+            "desc": "La figura, el orbe de luz de la palma y su halo. La reparacion v3.1 del paquete trasvaso a esta capa el glow casi blanco de la cabeza que vivia en 60_particulas, para que viaje con la figura en el parallax.",
+            "bytes": { "2560": 462986, "1024": 96198 }
+        },
+        {
+            "file": "07-particulas",
+            "z": 6,
+            "depth": 1.0,
+            "alpha": "recta (RGBA)",
+            "desc": "Estrellas y polvo estelar sueltos. Es el plano mas cercano (ancla de profundidad 1.0): al moverse mas que ninguno crea la sensacion de polvo en primer plano.",
+            "bytes": { "2560": 23504, "1024": 7516 }
+        }
+    ],
+    "layout": "figura, anillo y burbujas a la IZQUIERDA del encuadre, vacio a la DERECHA (igual que la escena saliente, al contrario que Story/Journey) -- el contenido de texto se posiciona en consecuencia, a la derecha, y la vinneta corre 'to left'.",
+    "notImplemented": "El paquete propone ademas un pulso aditivo del orbe de la mano (.orb-glow en su demo) y una flotacion lenta de iconos y particulas. No se implementan: el encargo era la transicion, el arte y la caja, y anadir dos animaciones nuevas es un cambio de movimiento aparte (la escena saliente tampoco tenia pulso propio en ninguna capa). Mismo criterio que la entrega de journey-cosmic-portal."
+}

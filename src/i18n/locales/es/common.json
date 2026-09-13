@@ -1,0 +1,84 @@
+{
+    "Common": {
+        "Navigation": {
+            "home": "Inicio",
+            "history": "Historia",
+            "framework": "Framework",
+            "games": "Juegos",
+            "projects": "Proyectos",
+            "learning": "Estudio",
+            "imagination": "Imaginacion",
+            "reflection": "Reflexion",
+            "story": "Historia",
+            "journey": "Viaje",
+            "features": "Características",
+            "contact": "Contacto",
+            "about": "Qué es VoidToInfinite"
+        },
+        "Nav": {
+            "landmark": "Navegación del sitio",
+            "onSite": "En el sitio",
+            "discover": "Descubre",
+            "resources": "Recursos",
+            "community": "Comunidad",
+            "more": "Más",
+            "moreHint": "destinos del sitio",
+            "sdk": "VTI - SDK",
+            "discord": "Discord",
+            "github": "GitHub",
+            "linkedin": "LinkedIn",
+            "newTab": "se abre en una pestaña nueva",
+            "openMenu": "Abrir el menú de navegación",
+            "closeMenu": "Cerrar el menú de navegación",
+            "closeSheet": "Cerrar navegación",
+            "sheetTitle": "Menú de navegación"
+        },
+        "Lang": {
+            "title": "Idioma",
+            "en": {
+                "label": "en",
+                "name": "Inglés",
+                "title": "Seleccionar idioma Inglés"
+            },
+            "es": {
+                "label": "es",
+                "name": "Español",
+                "title": "Seleccionar idioma Español"
+            }
+        },
+        "Footer": {
+            "copyright": "© {{year}} VoidToInfinite. Todos los derechos reservados.",
+            "tagline": "Sigue siempre adelante.",
+            "privacy": "Política de privacidad",
+            "legalNotice": "Aviso legal"
+        },
+        "ThemeToggle": {
+            "switchToLight": "Tema oscuro activo: cambiar a tema claro, que recompone la página entera con las secciones en tarjetas y un recorrido más corto",
+            "switchToDark": "Tema claro activo: cambiar a tema oscuro, que recompone la página entera con las secciones en diapositivas y un recorrido más largo"
+        },
+        "SkipLink": {
+            "label": "Saltar al contenido"
+        },
+        "BackToTop": {
+            "label": "Volver arriba"
+        },
+        "Deck": {
+            "scrollHint": "Desplázate para continuar"
+        },
+        "Meta": {
+            "home": {
+                "title": "Aprendizaje, imaginación y juego",
+                "description": "VoidToInfinite es un proyecto creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar."
+            }
+        }
+    },
+    "notFound": {
+        "title": "Página no encontrada",
+        "message": "La página que buscas no existe.",
+        "backToHome": "Volver al inicio"
+    },
+    "language": {
+        "es": "Español",
+        "en": "English"
+    }
+}

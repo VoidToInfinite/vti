@@ -1,0 +1,52 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/build/
+
+# scratch del flujo de tareas: se versiona solo lessons.md (lecciones medidas
+# del repo), el resto es scratch de sesion. "task/*" y no "task/" -- ese patron
+# con barra bloquea el descenso al directorio y la excepcion de abajo no
+# llegaria a aplicarse.
+task/*
+!task/lessons.md
+
+# cache local de graphify — se regenera, no se versiona
+graphify-out/cache/
+
+# Artefactos de herramientas de auditoria/verificacion (sesiones del agente):
+.impeccable/
+.playwright-cli/
+# Capturas de QA visual para el juicio del dueno: se regeneran desde el build
+# de produccion cuando hagan falta, y su veredicto ya vive en PRE-LAUNCH-QA.md.
+qa-capturas/
