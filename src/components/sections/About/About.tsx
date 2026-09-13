@@ -139,7 +139,7 @@ const ScInner = styled.div`
   flex-direction: column;
   gap: ${({ theme }) => theme.data.space[5]};
   width: 100%;
-  max-width: ${({ theme }) => theme.data.grid.prose};
+  max-width: 66ch;
 
   /* Entrada por opacidad y desplazamiento, las dos únicas propiedades que el
      sistema anima. El estado base es el VISIBLE: si el JavaScript no llega a
