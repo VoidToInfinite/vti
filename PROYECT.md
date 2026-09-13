@@ -7,7 +7,7 @@
 - **Nombre:** VoidToInfinite (VTI).
 - **Dominio:** `voidtoinfinite.com` (`SITE.url`, `src/config/site.ts`).
 - **Repositorio:** GitHub, `VoidToInfinite/vti` (remoto `origin`, `https://github.com/VoidToInfinite/vti.git`).
-- **Deploy:** Netlify, configurado vía `netlify.toml`. Comando de build `pnpm build`, directorio publicado `out/` (exportación estática de Next.js). No requiere el plugin `@netlify/plugin-nextjs`, precisamente porque no hay nada del lado servidor que ese plugin tenga que adaptar.
+- **Deploy:** Vercel, integración de GitHub con el preset de Next.js (producción desde `main`), sirviendo la exportación estática de Next.js. Reglas de servidor en `vercel.json`. Hasta el 2026-09-13 aquí decía Netlify vía `netlify.toml`, pero producción ya se servía desde Vercel y no aplicaba ese fichero, que se retiró.
 - **Rama de trabajo actual:** `feature/general-refactoring`.
 
 ## 2. Stack y restricciones
@@ -22,7 +22,7 @@
 
 **Qué NO puede hacer este proyecto**, por ser una exportación estática:
 
-- **Sin servidor propio.** No hay proceso Node sirviendo la app en producción; Netlify sirve ficheros estáticos de `out/`.
+- **Sin servidor propio.** No hay proceso Node sirviendo la app en producción; Vercel sirve los ficheros estáticos del export.
 - **Sin API routes.** No existe ningún `route.ts` bajo `app/`; cualquier lógica de servidor (envío de formularios, por ejemplo) queda fuera de alcance mientras se mantenga `output: "export"`.
 - **Sin middleware.** No hay `middleware.ts` en la raíz; no hay forma de interceptar peticiones antes de que lleguen al HTML estático.
 
@@ -73,7 +73,7 @@ Resumen de lo aplicado en esta ola:
 
 - **Tests heredados** actualizados a la intención real del commit `7a2d2ac`, con ciclo rojo/verde por aserción (min-height y centrado de Contact en tema claro, ausencia de borde/fondo en reposo de las tarjetas de Features, hover unificado con Story, bullets a una columna en ambas ramas).
 - **SEO:** `ScHeroBrand` pasa a ser el `<h1>` real de la página; la 404 se convierte en Server Component con metadata propia (`noindex`, sin canónica heredada); JSON-LD `Organization` gana `description` y `email`; `theme-color` pasa a depender del esquema; se borran claves i18n muertas. La tagline descriptiva que se añadió dentro del `<h1>` (`Home.hero.kicker`) **se retiró el mismo día por decisión del usuario**: el encabezado vuelve a ser solo la marca, y la clave sigue en los locales sin consumidor. El hallazgo SEO de fondo —un `<h1>` que no describe de qué trata el sitio— queda abierto en el roadmap, pendiente de la forma que el usuario quiera darle.
-- **Rendimiento:** cabeceras de caché en `netlify.toml`; gate de deploy `pnpm run ci && pnpm build`; `fetchPriority="high"` limitado a la capa candidata a LCP del Aura; fuente `JetBrains_Mono` sin precarga; `usePointer` convertido en singleton de módulo (un solo listener y un solo rAF para toda la app); el namespace `legal` de i18next sale del bundle de la home.
+- **Rendimiento:** cabeceras de caché en `vercel.json`; gate en CI (`pnpm run ci`, `pnpm build`, `pnpm measure:js`) y Deployment Checks de Vercel antes de promover producción (activación por confirmar por el dueño); `fetchPriority="high"` limitado a la capa candidata a LCP del Aura; fuente `JetBrains_Mono` sin precarga; `usePointer` convertido en singleton de módulo (un solo listener y un solo rAF para toda la app); el namespace `legal` de i18next sale del bundle de la home.
 - **Arquitectura:** `STORAGE_KEYS` centralizado en `src/config/storage.ts` y consumido por todos los providers que tocan `localStorage`, con un candado que impide literales `"vti-` sueltos fuera de ese registro; `src/motion/timings.ts` deja de forzar `"use client"` innecesario; `BackOrbs` (componente muerto) se borra; se añade `task/*` con excepción de `task/lessons.md` al control de versiones; se añade el script `"ci"` y `.github/workflows/ci.yml`.
 - **Estructura:** las 7 escenas se mueven a `src/components/scenes/` (ver §3).
 

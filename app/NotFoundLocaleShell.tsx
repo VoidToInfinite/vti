@@ -91,11 +91,12 @@ function getServerSnapshot(): Locale {
  * —resuelve sus ficheros en el segmento raíz de `app/`, fuera de los grupos de
  * idioma—, pero desde el 2026-09-10 (P2 de la crítica externa #21) la 404 SÍ
  * se duplica por otra vía: `app/en/404/page.tsx` hornea `out/en/404.html` con
- * `lang="en"`, y en producción (Netlify) la regla `from = "/en/*"` de
- * `netlify.toml` la sirve con estado 404 a todo camino roto bajo `/en/`. Ahí
+ * `lang="en"`, y en producción (Vercel) la regla `routes` de `vercel.json`
+ * (`src: "/en/(.*)"`, detrás de la fase `filesystem`) la sirve con estado 404 a
+ * todo camino roto bajo `/en/`. Ahí
  * esta cáscara ni se monta en esas URLs, y desde `bf925ec` tampoco en el
- * servidor local de medición: `scripts/serve-measure.mjs` reproduce la 404 por
- * prefijo de Netlify, y la excepción de idioma horneado que la familia 19 de
+ * servidor local de medición: `scripts/serve-measure.mjs` reproduce esa 404 por
+ * prefijo, y la excepción de idioma horneado que la familia 19 de
  * `scripts/check-site-surfaces.mjs` tuvo para esto ya no existe. Donde SIGUE
  * haciendo el trabajo es en cualquier servidor que sirva `out/404.html`
  * también bajo `/en/` (un `serve out` a secas; ver el docblock de

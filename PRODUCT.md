@@ -4,7 +4,7 @@
 
 ## 1. Qué es
 
-Una landing estática de una sola página, construida con Next.js 16 y exportada a Netlify, que presenta la marca VoidToInfinite. No es un producto con funcionalidad propia: el Aviso legal (`Legal.legalNotice.sections[actividad]`) la define explícitamente como
+Una landing estática de una sola página, construida con Next.js 16 como exportación estática y desplegada en Vercel, que presenta la marca VoidToInfinite. No es un producto con funcionalidad propia: el Aviso legal (`Legal.legalNotice.sections[actividad]`) la define explícitamente como
 
 > «una web informativa: no vende productos ni servicios, no permite realizar compras ni reservas, no ofrece registro ni cuentas de usuario, no aloja contenido publicado por visitantes y no presta ningún servicio contratable en línea».
 

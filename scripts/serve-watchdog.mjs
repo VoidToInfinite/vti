@@ -38,8 +38,8 @@
  * (`scripts/serve-measure.mjs`, commit `403bd29`). Monta el `serve-handler` y
  * la `compression` de la MISMA instalación de `serve`, con la configuración
  * del CLI, y solo cambia `sendError` para reproducir la 404 por prefijo de
- * `netlify.toml` (commit `06cdda8`: `/en/*` sirve `out/en/404.html` con estado
- * 404). Medido al crearlo: bytes y cabeceras idénticos a `serve` en seis
+ * producción (commit `06cdda8`: `/en/*` sirve `out/en/404.html` con estado
+ * 404; la regla vive en `vercel.json` desde el 2026-09-13). Medido al crearlo: bytes y cabeceras idénticos a `serve` en seis
  * rutas, y `/en/no-existe` con `lang="en"`. Con `serve` a secas el
  * instrumento veía una 404 castellana en `/en/*` que producción ya no sirve.
  * `serve` sigue disponible con `--servidor=serve`. El candado de todo esto
@@ -62,7 +62,7 @@
  *   node scripts/serve-watchdog.mjs --dir=out --port=4321 --servidor=serve
  *
  * `--servidor` elige el hijo: `medicion` (por defecto,
- * `scripts/serve-measure.mjs`, la 404 por prefijo de Netlify con el handler y
+ * `scripts/serve-measure.mjs`, la 404 por prefijo de `vercel.json` con el handler y
  * la compresión de la misma instalación de `serve`) o `serve` (el CLI tal
  * cual, sin esa 404). Ver `SERVIDORES`.
  *
@@ -326,7 +326,7 @@ export function resolveServeMain({
  * defecto desde el 2026-09-10: `scripts/serve-measure.mjs`, que monta el
  * `serve-handler` y la `compression` de ESA MISMA instalación de `serve` con
  * su misma configuración y solo cambia `sendError`, para reproducir la 404 por
- * prefijo de `netlify.toml` (`/en/*` sirve `out/en/404.html` con estado 404).
+ * prefijo de `vercel.json` (`/en/*` sirve `out/en/404.html` con estado 404).
  * Fuera de esa 404 responde lo mismo que `serve`, así que las cifras siguen
  * siendo comparables con las críticas #11 en adelante. `serve` es el CLI tal
  * cual y sigue disponible con `--servidor=serve`.

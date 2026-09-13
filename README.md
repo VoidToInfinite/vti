@@ -27,4 +27,4 @@ pnpm test         # tests (Vitest)
 
 ## Despliegue
 
-Configurado para [Netlify](https://www.netlify.com/) vía `netlify.toml`: comando de build `pnpm build`, directorio publicado `out/`. Al ser una exportación estática no requiere el plugin `@netlify/plugin-nextjs`.
+Desplegado en [Vercel](https://vercel.com/) con la integración de GitHub y el preset de Next.js (producción desde `main`), que sirve la exportación estática. Las reglas de servidor (redirecciones 301, cabeceras y la 404 inglesa) viven en `vercel.json`.
