@@ -1163,8 +1163,9 @@ describe("Navbar", () => {
      *
      * Una consulta de contenedor que nombra un contenedor que nadie declara no
      * falla: simplemente NO SE APLICA NUNCA, en silencio -- el quinto destino
-     * y el rótulo del conmutador quedarían invisibles a cualquier ancho sin
-     * que nada avisara.
+     * quedaría invisible a cualquier ancho sin que nada avisara (y lo mismo
+     * los estilos del régimen ancho del conmutador; su rótulo se retiró el
+     * 2026-09-13).
      *
      * Y DÓNDE SE DECLARA IMPORTA TANTO COMO QUE SE DECLARE. Mientras vivió en
      * `ScBar` -- la caja cuyo `max-width` anima al despegarse la barra -- el

@@ -2,6 +2,12 @@
  * LA BARRA SE PREGUNTA POR SU PROPIO ANCHO, NO POR EL DE LA VENTANA (crítica
  * externa #18, hallazgos O-3 y O-4).
  *
+ * ENMIENDA 2026-09-13: el dueño retiró el rótulo del conmutador de tema. Queda
+ * una sola pieza real, el quinto destino (`NAVBAR_WIDE_QUERY`);
+ * `NAVBAR_LABEL_QUERY` ya solo la lee el bloque de estilos que se quedó en
+ * `ThemeToggle.tsx` (ver su docblock, pendiente de decisión). Las mediciones de
+ * abajo son las de la entrega original, con las dos piezas.
+ *
  * Las dos piezas que la barra estrena en esa crítica -- el quinto destino de
  * sección y el rótulo del conmutador de tema -- solo caben a partir de cierto
  * ancho, y hasta aquí eso sería un `@media (min-width: ...)` corriente. Lo que
@@ -97,11 +103,13 @@ export const NAVBAR_CONTAINER_RAIL_PX = 24;
 /** Ancho del contenedor desde el que la barra pinta el quinto destino (`lg`). */
 export const NAVBAR_WIDE_EM = 59;
 
-/** Ancho del contenedor desde el que el conmutador rotula (`xl`). */
+/** Ancho del contenedor desde el que el conmutador se rotulaba (`xl`) hasta el
+ *  2026-09-13; hoy solo lo usa el bloque de estilos que quedó en `ThemeToggle.tsx`. */
 export const NAVBAR_LABEL_EM = 72;
 
 /** Consulta del régimen ancho de la barra: el quinto destino de sección. */
 export const NAVBAR_WIDE_QUERY = `${NAVBAR_CONTAINER} (min-width: ${NAVBAR_WIDE_EM}em)`;
 
-/** Consulta del régimen rotulado: el conmutador de tema con su rótulo. */
+/** Consulta del antiguo régimen rotulado del conmutador de tema (rótulo retirado
+ *  el 2026-09-13; ver el docblock de `ScThemeToggleButton`). */
 export const NAVBAR_LABEL_QUERY = `${NAVBAR_CONTAINER} (min-width: ${NAVBAR_LABEL_EM}em)`;
