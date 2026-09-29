@@ -396,14 +396,21 @@ export const CHUNK_GROWTH_LIMIT_BYTES = 1_000;
  * (`duplicacionCrudaBytes`, `modulosDuplicados`) y `auditBaseline` las compara
  * contra estas constantes sin necesitar `out/`: si una de las dos se mueve sin
  * la otra, el gate lo canta.
+ *
+ * A CERO EL 2026-09-29 (Dependabot, next 16.2.11 -> 16.3.6): los tres módulos
+ * del runtime de Next que viajaban en dos chunks dejan de repetirse con el
+ * reparto nuevo del framework. La deuda desaparece por la subida de versión, no
+ * por un cambio del sitio. Como la cota solo puede subir con una enmienda, una
+ * duplicación que vuelva a aparecer sale en rojo.
  */
-export const DECLARED_DUPLICATE_RAW_BYTES = 3_266;
+export const DECLARED_DUPLICATE_RAW_BYTES = 0;
 
 /**
  * Módulos distintos que hoy aparecen en más de un chunk de la misma página:
- * los tres del runtime de Next. Eran 5 en las portadas hasta el 2026-09-06.
+ * ninguno desde el 2026-09-29. Hasta esa fecha eran los tres del runtime de
+ * Next, y 5 en las portadas hasta el 2026-09-06.
  */
-export const DECLARED_DUPLICATE_MODULES = 3;
+export const DECLARED_DUPLICATE_MODULES = 0;
 
 /**
  * COTA POR PÁGINA. Deuda de chunks gemelos DENTRO de una misma página, que es
@@ -550,8 +557,16 @@ export const DECLARED_UNION_TWIN_GROUPS = 1;
  * "DEFECTO 2" del docblock. El delta por chunk se evalúa recorriendo esta
  * tabla, y una comprobación que recorre una lista se puede dejar en verde
  * ENCOGIENDO la lista.
+ *
+ * ENMIENDA 2026-09-29 (Dependabot, next 16.2.11 -> 16.3.6): 21 -> 19. La
+ * subida de Next reparte de nuevo el runtime del framework: el chunk grande
+ * pasa de 70.789 a 71.515 B, desaparecen seis chunks de la línea base y
+ * aparecen siete nuevos; las nueve páginas bajan entre 12.828 y 13.385 B
+ * brotli (hogar 272.815 -> 259.430 B) y la duplicación de módulos entre chunks
+ * pasa de 3 módulos (3.263 B) a ninguno. Nada de esto sale de código del sitio:
+ * el árbol de `src/` y `app/` no cambia en esta entrega.
  */
-export const BASELINE_CHUNKS = 21;
+export const BASELINE_CHUNKS = 19;
 
 /**
  * Páginas HTML que el build emite y que el censo declara. La segunda atadura de
@@ -586,8 +601,8 @@ export const BASELINE_PAGES = 9;
  * también en el diff de este fichero.
  */
 export const BASELINE_DIGESTS = Object.freeze({
-    win32: "58683fd65edcb99c",
-    linux: "1e0cffd699bc3001",
+    win32: "4583fdabaa12ac92",
+    linux: "4e60be4efbf5bee1",
 });
 
 /** La página cuyo total es el que cita el presupuesto de la crítica externa. */
