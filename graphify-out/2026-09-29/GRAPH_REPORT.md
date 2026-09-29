@@ -1,16 +1,16 @@
 # Graph Report - vti  (2026-09-29)
 
 ## Corpus Check
-- 518 files · ~4,762,419 words
+- 518 files · ~4,762,120 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5395 nodes · 7762 edges · 388 communities (310 shown, 78 thin omitted)
+- 5395 nodes · 7760 edges · 387 communities (309 shown, 78 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cee7c666`
+- Built from commit: `39b59194`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -329,7 +329,6 @@
 - [[_COMMUNITY_BackToTop.tsx|BackToTop.tsx]]
 - [[_COMMUNITY_basicLightTheme|basicLightTheme]]
 - [[_COMMUNITY_HomeSections.test.tsx|HomeSections.test.tsx]]
-- [[_COMMUNITY_hero.transition.ts|hero.transition.ts]]
 - [[_COMMUNITY_useActiveSection.test.tsx|useActiveSection.test.tsx]]
 - [[_COMMUNITY_Hero.test.tsx|Hero.test.tsx]]
 - [[_COMMUNITY_jsonLd.ts|jsonLd.ts]]
@@ -415,10 +414,10 @@
 10. `VTI — Framework de interacción 3D · design spec` - 22 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `HomeRouteProps` --references--> `Locale`  [EXTRACTED]
-  app/HomeRoute.tsx → src/config/site.ts
 - `renderHomePage()` --calls--> `renderWithProviders()`  [EXTRACTED]
   app/(es)/home-page.flujo.test.tsx → src/test/test-utils.tsx
+- `HomeRouteProps` --references--> `Locale`  [EXTRACTED]
+  app/HomeRoute.tsx → src/config/site.ts
 - `renderEnNotFound()` --calls--> `renderWithProviders()`  [EXTRACTED]
   app/en/404/page.test.tsx → src/test/test-utils.tsx
 - `renderEn()` --calls--> `renderWithProviders()`  [EXTRACTED]
@@ -429,7 +428,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (388 total, 78 thin omitted)
+## Communities (387 total, 78 thin omitted)
 
 ### Community 0 - "themes.ts"
 Cohesion: 0.16
@@ -945,7 +944,7 @@ Nodes (13): 10. Pendiente / declarado, 1. Inventario completo de `srcset` (canda
 
 ### Community 159 - "Aura.tsx"
 Cohesion: 0.10
-Nodes (26): fontBody, fontMono, RootDocument(), LEGAL_AUTO_LINKS, LegalAutoLink, LegalTextPiece, DOS, JUGUETE (+18 more)
+Nodes (27): fontBody, fontMono, RootDocument(), LEGAL_AUTO_LINKS, LegalAutoLink, LegalTextPiece, DOS, JUGUETE (+19 more)
 
 ### Community 160 - "useSlideDeck.ts"
 Cohesion: 0.10
@@ -1168,8 +1167,8 @@ Cohesion: 0.13
 Nodes (14): 1. Causa raíz (ya documentada por Task 9, ahora con su consecuencia medida), 2. El fix, 3.1 El script está inline en `<head>`, no como chunk, 3.2 CLS re-medido: los 5 caminos de la tabla del diagnóstico, 3.3 LCP re-medido: los 3 escenarios de Task 10, sin regresión, 3.4 Toggle de tema + StrictMode intactos, 3.5 Consola sin warnings de hidratación, 3. Verificación en navegador real (`pnpm build` + `npx serve out -l 3200` + `playwright-cli`) (+6 more)
 
 ### Community 224 - "Footer.test.tsx"
-Cohesion: 0.16
-Nodes (19): robots(), pageLastModified(), sitemap(), SITEMAP_ROUTE_KEYS, absoluteUrl(), alternateUrls(), LegalRouteKey, Locale (+11 more)
+Cohesion: 0.17
+Nodes (18): robots(), pageLastModified(), sitemap(), SITEMAP_ROUTE_KEYS, absoluteUrl(), alternateUrls(), LegalRouteKey, Locale (+10 more)
 
 ### Community 225 - "color.ts"
 Cohesion: 0.17
@@ -1224,8 +1223,8 @@ Cohesion: 0.40
 Nodes (5): alphaRecompression20260809, pendingVisualQA, results, scope, why
 
 ### Community 245 - "Journey.test.tsx"
-Cohesion: 0.13
-Nodes (21): Footer(), Navbar(), barGroupItemsFor(), barSectionsByLocale, barWideSectionsByLocale, groupsByLocale, localizedHref(), moreGroupsByLocale (+13 more)
+Cohesion: 0.09
+Nodes (24): Footer(), Navbar(), prefijoDeAncla(), renderPagina(), rutaSimulada, barGroupItemsFor(), barSectionsByLocale, barWideSectionsByLocale (+16 more)
 
 ### Community 246 - "Task 11 — Dieta de ornamento A: kickers — Informe"
 Cohesion: 0.18
@@ -1300,8 +1299,8 @@ Cohesion: 0.25
 Nodes (8): ALLOWED_HOSTS, appRoot, collectScanFiles(), repoRoot, SCAN_EXTENSIONS, srcRoot, RFC-2606, walk()
 
 ### Community 273 - "locales.test.ts"
-Cohesion: 0.07
-Nodes (24): paginasLegales, renderEn(), EnLegalNoticePage(), metadata, EnHomePage(), metadata, EnPrivacyPage(), metadata (+16 more)
+Cohesion: 0.09
+Nodes (23): paginasLegales, renderEn(), EnLegalNoticePage(), metadata, EnHomePage(), metadata, EnPrivacyPage(), metadata (+15 more)
 
 ### Community 274 - "Typography.tsx"
 Cohesion: 0.13
@@ -1434,10 +1433,6 @@ Nodes (14): HistoryScrollRestoration(), ReadingPositionSnapshot, historyEntryKey
 ### Community 314 - "basicLightTheme"
 Cohesion: 0.17
 Nodes (11): 0. Fix de revisión (2026-08-12, ronda 2), 1. Vía elegida: detector propio, no vendorizar `detect.mjs`, 2. Familias cubiertas, 3. Familias descartadas (con motivo), 4. Allowlist (las 10 excepciones que el repo ya sancionaba), 5. Verificación (las tres pedidas, salidas literales), 6. Gate — resultado literal (ronda 2, `--no-file-parallelism`), 7. Ficheros tocados (+3 more)
-
-### Community 316 - "hero.transition.ts"
-Cohesion: 0.17
-Nodes (7): EnNotFoundPage(), metadata, renderEnNotFound(), NotFoundContent(), ScBackHome, ScMain, ScMessage
 
 ### Community 317 - "useActiveSection.test.tsx"
 Cohesion: 0.53
@@ -1584,8 +1579,8 @@ Cohesion: 0.16
 Nodes (8): JourneyLight(), clamp01(), resolveOptions(), SectionProgressOptions, mockInstances, MockIntersectionObserver, ThemeBranchHarness(), useSectionProgress()
 
 ### Community 367 - "NotFoundContent.tsx"
-Cohesion: 0.15
-Nodes (9): LegalDocument(), renderBlock(), DocumentMeta(), DocumentMetaProps, CLAVES, pageTitle(), DocumentMetaInput, Probe() (+1 more)
+Cohesion: 0.09
+Nodes (14): EnNotFoundPage(), metadata, renderEnNotFound(), NotFoundContent(), ScBackHome, ScMain, ScMessage, DocumentMeta() (+6 more)
 
 ### Community 368 - "IconButton.tsx"
 Cohesion: 0.12
@@ -1664,22 +1659,22 @@ Cohesion: 0.67
 Nodes (3): 1024, 1280, 09-figure
 
 ## Knowledge Gaps
-- **2997 isolated node(s):** `LegalForm`, `LegalEntity`, `LegalVersion`, `LegalRouteKey`, `ALL_ROUTE_KEYS` (+2992 more)
+- **2997 isolated node(s):** `name`, `version`, `private`, `contributors`, `repository` (+2992 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **78 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `renderWithProviders()` connect `About.tsx` to `Logo.tsx`, `Button.tsx`, `locales.test.ts`, `renderWithProviders`, `page.tsx`, `Typography.tsx`, `story.deck.tsx`, `layout.tsx`, `config.ts`, `scripts`, `PrivacyDocument.test.tsx`, `Input.tsx`, `Typography.tsx`, `not-found.test.tsx`, `hero.transition.ts`, `VisuallyHidden.tsx`, `Hero.test.tsx`, `jsonLd.ts`, `hero.transition.ts`, `useParallaxLayers.test.tsx`, `useParallaxLayers.test.tsx`, `BrandName.tsx`, `Button.test.tsx`, `Eye.tsx`, `Typography.tsx`, `Input.test.tsx`, `useActiveSection.test.tsx`, `BrandName.contrast.test.ts`, `NotFoundContent.tsx`, `IconButton.tsx`, `locales.test.ts`, `HeroBackdrop.test.tsx`, `Logo.tsx`, `Journey.test.tsx`, `home-page.flujo.test.tsx`, `PrivacyDocument.test.tsx`, `useNavDetach.ts`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `captureReadingAnchor()` connect `StoryCosmicBeing.tsx` to `themes.ts`, `BackToTop.tsx`, `useReloadLanding.ts`, `jsonLd.ts`?**
-  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Why does `renderWithProviders()` connect `About.tsx` to `Logo.tsx`, `Button.tsx`, `locales.test.ts`, `renderWithProviders`, `page.tsx`, `Typography.tsx`, `story.deck.tsx`, `layout.tsx`, `config.ts`, `scripts`, `PrivacyDocument.test.tsx`, `Input.tsx`, `Typography.tsx`, `not-found.test.tsx`, `VisuallyHidden.tsx`, `Hero.test.tsx`, `jsonLd.ts`, `hero.transition.ts`, `useParallaxLayers.test.tsx`, `useParallaxLayers.test.tsx`, `BrandName.tsx`, `Button.test.tsx`, `Eye.tsx`, `Typography.tsx`, `Input.test.tsx`, `useActiveSection.test.tsx`, `BrandName.contrast.test.ts`, `NotFoundContent.tsx`, `IconButton.tsx`, `locales.test.ts`, `HeroBackdrop.test.tsx`, `Logo.tsx`, `Journey.test.tsx`, `home-page.flujo.test.tsx`, `PrivacyDocument.test.tsx`, `useNavDetach.ts`?**
+  _High betweenness centrality (0.011) - this node is a cross-community bridge._
+- **Why does `routePath()` connect `Footer.test.tsx` to `themes.ts`, `Eye.tsx`, `Journey.tsx`, `scripts`, `NotFoundContent.tsx`, `Button.tsx`, `locales.test.ts`, `Journey.test.tsx`, `Button.test.tsx`, `VisuallyHidden.tsx`, `useNavDetach.ts`, `Aura.tsx`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
 - **Why does `useTheme()` connect `hero.transition.ts` to `themes.ts`, `useParallaxLayers.test.tsx`, `Typography.tsx`, `Features.tsx`, `Hero.tsx`, `layout.tsx`, `Journey.tsx`, `Typography.tsx`, `useSolTiltSpin.ts`, `Story.tsx`, `Contact.tsx`, `config.ts`, `Logo.tsx`, `Journey.test.tsx`, `not-found.test.tsx`, `useNavDetach.ts`, `jsonLd.ts`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
 - **Are the 22 inferred relationships involving `auditarSuperficie()` (e.g. with `apagaLaTintaDeLaCabecera()` and `fijaUmbralesDeCabecera()`) actually correct?**
   _`auditarSuperficie()` has 22 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `LegalForm`, `LegalEntity`, `LegalVersion` to the rest of the system?**
+- **What connects `name`, `version`, `private` to the rest of the system?**
   _2997 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `VTI — Sistema de interfaz de lujo · design spec` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._

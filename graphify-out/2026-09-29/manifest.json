@@ -30,8 +30,8 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790670721.6337419,
-    "ast_hash": "c25eacc97518cf12aa62f621dc6212ea",
+    "mtime": 1790666833.7075934,
+    "ast_hash": "3307fb31f33bcd01133fdc3430bcdfa5",
     "semantic_hash": ""
   },
   "src/components/layout/Brand/BrandName.tsx": {
@@ -755,8 +755,8 @@
     "semantic_hash": ""
   },
   "pnpm-workspace.yaml": {
-    "mtime": 1790670721.6357765,
-    "ast_hash": "23f6ed04dc6246e6a1ac33d4a062f430",
+    "mtime": 1790667736.105541,
+    "ast_hash": "6c57f316ed22a01de29489c10fcea150",
     "semantic_hash": ""
   },
   "app/icon.svg": {
@@ -1715,8 +1715,8 @@
     "semantic_hash": ""
   },
   "src/config/legal.ts": {
-    "mtime": 1790671040.8978834,
-    "ast_hash": "1dc98fbd0ce057bb8b9ba821e4dce605",
+    "mtime": 1789304273.57657,
+    "ast_hash": "4043273d2b4fc63aff25649d929d3e8f",
     "semantic_hash": ""
   },
   "src/config/site.test.ts": {
@@ -1725,8 +1725,8 @@
     "semantic_hash": ""
   },
   "src/config/site.ts": {
-    "mtime": 1790671040.070215,
-    "ast_hash": "d424226e74e07c09767f65a784ef0cca",
+    "mtime": 1790665793.3995833,
+    "ast_hash": "2c654006e33475db7df99cc4a44cc9e9",
     "semantic_hash": ""
   },
   "src/i18n/I18nProvider.test.tsx": {
@@ -1760,13 +1760,13 @@
     "semantic_hash": ""
   },
   "src/seo/metadata.test.ts": {
-    "mtime": 1790671056.1931212,
-    "ast_hash": "566bfca14a01a38ca062e4ca248a8d8b",
+    "mtime": 1789293960.4136326,
+    "ast_hash": "7f8680f9dbc6d8db2a51dc1d7db48d5e",
     "semantic_hash": ""
   },
   "src/seo/metadata.ts": {
-    "mtime": 1790671055.7886503,
-    "ast_hash": "68bfe73fcc67b5848a65b45bb281a12c",
+    "mtime": 1789293960.4146328,
+    "ast_hash": "100e556355fc67dc9fd49b0ec82dcd3b",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-04-legal-seo-consentimiento.md": {
@@ -3595,8 +3595,8 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1790670721.6387413,
-    "ast_hash": "96bfbec3f8745f19ae41cdd0bd940064",
+    "mtime": 1790667465.231328,
+    "ast_hash": "7eb503081dd82744c8d57003672f5e00",
     "semantic_hash": ""
   },
   "src/theme/tokens/focus.test.ts": {
@@ -3830,13 +3830,13 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.linux.json": {
-    "mtime": 1790670721.6367412,
-    "ast_hash": "ef6f52eb002d6565072c611eb527b023",
+    "mtime": 1790667465.1957316,
+    "ast_hash": "aa674e6e1b3c4739e10c42847f34df0b",
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.win32.json": {
-    "mtime": 1790670721.637748,
-    "ast_hash": "9125783c2dd64ec0181048fd50525a35",
+    "mtime": 1790667152.8104968,
+    "ast_hash": "40b1a4b8bd3364c8af0d44adfd838849",
     "semantic_hash": ""
   },
   "src/components/scenes/starField/StarField.test.tsx": {
