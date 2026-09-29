@@ -57,6 +57,14 @@ export const OG_LOCALES = {
 export const SITE = {
   url: "https://voidtoinfinite.com",
   name: "VoidToInfinite",
+  /* La marca escrita como tres palabras, la forma en que se teclea al
+     buscarla. Viaja como `alternateName` de `WebSite` y de `Organization` en
+     el JSON-LD (2026-09-28, estrategia SEO "marca primero" decidida por el
+     dueño): Google lo lee en `WebSite` de la portada para elegir el nombre del
+     sitio (https://developers.google.com/search/docs/appearance/site-names).
+     Sin "VTI" a propósito: esas siglas son de otras marcas en buscadores y
+     Google puede usar un `alternateName` como nombre visible del sitio. */
+  alternateName: "Void to Infinite",
   /* Se conserva como atajo del locale OG de la rama CASTELLANA. El valor por
      ruta sale de `OG_LOCALES[locale]` (ver `buildMetadata`): desde que existen
      rutas `/en/`, `og:locale` ya no es una constante del sitio. */

@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { ROUTES, SITE, absoluteUrl, routePath } from "@/config/site";
+import { LOCALES, ROUTES, SITE, absoluteUrl, routePath } from "@/config/site";
 import { links } from "@/config/links";
-import { organizationJsonLd, webSiteJsonLd, webPageJsonLd } from "./jsonLd";
+import { LEGAL_ENTITY } from "@/config/legal";
+import {
+  founderJsonLd,
+  organizationJsonLd,
+  webSiteJsonLd,
+  webPageJsonLd,
+} from "./jsonLd";
 
 /** Recorre cualquier valor JSON-LD y recoge todas las cadenas que contiene. */
 function collectStrings(value: unknown, out: string[] = []): string[] {
@@ -40,12 +46,30 @@ describe("organizationJsonLd", () => {
     expect(organizationJsonLd().email).toContain("@");
   });
 
-  it("sameAs contiene EXACTAMENTE los destinos externos reales confirmados", () => {
-    expect(organizationJsonLd().sameAs).toEqual([
-      links.github,
-      links.discord,
-      links.linkedin,
-    ]);
+  it("sameAs contiene EXACTAMENTE los perfiles del proyecto en otras plataformas", () => {
+    expect(organizationJsonLd().sameAs).toEqual([links.github, links.discord]);
+  });
+
+  /*
+   * EL PERFIL PERSONAL NO ES EL PROYECTO (2026-09-28). `sameAs` declara URLs
+   * de la MISMA entidad; el LinkedIn del titular estuvo aquí del 2026-08-13 a
+   * esta fecha y decía a un buscador que el proyecto y la persona eran una sola
+   * cosa. Ahora la persona es su propio nodo y el proyecto la cita como
+   * `founder`.
+   */
+  it("sameAs NO incluye el perfil personal: la persona se enlaza como founder", () => {
+    expect(organizationJsonLd().sameAs).not.toContain(links.linkedin);
+    expect(organizationJsonLd().founder).toEqual({
+      "@id": founderJsonLd()["@id"],
+    });
+  });
+
+  it("alternateName es la marca escrita en palabras, no otro nombre", () => {
+    expect(organizationJsonLd().alternateName).toBe(SITE.alternateName);
+    expect(SITE.alternateName).not.toBe(SITE.name);
+    expect(SITE.alternateName.replace(/\s+/g, "").toLowerCase()).toBe(
+      SITE.name.toLowerCase(),
+    );
   });
 
   it("sameAs NO incluye el subdominio propio de desarrollo (no es un perfil externo)", () => {
@@ -68,8 +92,31 @@ describe("webSiteJsonLd", () => {
     });
   });
 
-  it("usa el idioma del sitio", () => {
-    expect(webSiteJsonLd().inLanguage).toBe(SITE.lang);
+  /*
+   * Hasta el 2026-09-28 declaraba solo `SITE.lang` ("es"), y este nodo se
+   * emite igual en las rutas inglesas: `/en` le decía a un buscador que el
+   * sitio entero estaba en castellano.
+   */
+  it("declara los dos idiomas del sitio: el mismo nodo viaja en todas las rutas", () => {
+    expect(webSiteJsonLd().inLanguage).toEqual(LOCALES);
+  });
+
+  it("lleva la marca en palabras como alternateName (nombre del sitio en Google)", () => {
+    expect(webSiteJsonLd().alternateName).toBe(SITE.alternateName);
+  });
+});
+
+describe("founderJsonLd", () => {
+  it("expone un @id estable con el patrón esperado", () => {
+    expect(founderJsonLd()["@id"]).toBe(`${SITE.url}#founder`);
+  });
+
+  it("el nombre sale de la ficha legal, no de un literal propio", () => {
+    expect(founderJsonLd().name).toBe(LEGAL_ENTITY.name);
+  });
+
+  it("sameAs lleva EXACTAMENTE el perfil personal del titular", () => {
+    expect(founderJsonLd().sameAs).toEqual([links.linkedin]);
   });
 });
 
@@ -172,10 +219,11 @@ describe("webPageJsonLd", () => {
   });
 });
 
-describe("veracidad y serialización — los tres constructores", () => {
+describe("veracidad y serialización — los cuatro constructores", () => {
   const nodes = [
     organizationJsonLd(),
     webSiteJsonLd(),
+    founderJsonLd(),
     webPageJsonLd({
       routeKey: "legalNotice",
       locale: "es",
@@ -198,7 +246,7 @@ describe("veracidad y serialización — los tres constructores", () => {
     }
   });
 
-  it("un array de los tres nodos también es serializable (uso real: <JsonLd data={[...]} />)", () => {
+  it("un array de los nodos también es serializable (uso real: <JsonLd data={[...]} />)", () => {
     expect(() => JSON.parse(JSON.stringify(nodes))).not.toThrow();
     expect(JSON.parse(JSON.stringify(nodes))).toEqual(nodes);
   });
