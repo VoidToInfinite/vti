@@ -55,6 +55,7 @@
  */
 
 import { EMAIL_ADDRESS } from "@/config/links";
+import { SITE } from "@/config/site";
 
 /**
  * Marcador de dato aún no aportado. Se renderiza visible, nunca se sustituye
@@ -104,7 +105,10 @@ export interface LegalEntity {
 }
 
 export const LEGAL_ENTITY: LegalEntity = {
-  name: "Daniel Mosquera",
+  /* Derivado de `SITE.author` desde el 2026-09-29, para que el titular del
+     aviso legal y el `<meta name="author">` no puedan divergir (ver el
+     comentario de `SITE.author`). */
+  name: SITE.author,
   legalForm: "naturalPerson",
   taxId: null,
   address: null,
