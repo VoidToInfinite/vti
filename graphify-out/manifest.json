@@ -30,7 +30,7 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1789293960.1974812,
+    "mtime": 1790670721.6337419,
     "ast_hash": "c25eacc97518cf12aa62f621dc6212ea",
     "semantic_hash": ""
   },
@@ -195,7 +195,7 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/en/common.json": {
-    "mtime": 1790662140.575688,
+    "mtime": 1790665793.4005876,
     "ast_hash": "dffd80ed70d79319b9236570b6e4bf86",
     "semantic_hash": ""
   },
@@ -205,7 +205,7 @@
     "semantic_hash": ""
   },
   "src/i18n/locales/es/common.json": {
-    "mtime": 1790662140.1301982,
+    "mtime": 1790665793.4015846,
     "ast_hash": "b62b97d12690e3c69175af3c483a8f03",
     "semantic_hash": ""
   },
@@ -755,7 +755,7 @@
     "semantic_hash": ""
   },
   "pnpm-workspace.yaml": {
-    "mtime": 1786874358.8023853,
+    "mtime": 1790670721.6357765,
     "ast_hash": "23f6ed04dc6246e6a1ac33d4a062f430",
     "semantic_hash": ""
   },
@@ -1715,18 +1715,18 @@
     "semantic_hash": ""
   },
   "src/config/legal.ts": {
-    "mtime": 1789304273.57657,
-    "ast_hash": "4043273d2b4fc63aff25649d929d3e8f",
+    "mtime": 1790671040.8978834,
+    "ast_hash": "1dc98fbd0ce057bb8b9ba821e4dce605",
     "semantic_hash": ""
   },
   "src/config/site.test.ts": {
-    "mtime": 1790662151.7726948,
+    "mtime": 1790665793.3995833,
     "ast_hash": "0e9ed3c60dbdc7b2d14405733714e005",
     "semantic_hash": ""
   },
   "src/config/site.ts": {
-    "mtime": 1790662218.1317947,
-    "ast_hash": "2c654006e33475db7df99cc4a44cc9e9",
+    "mtime": 1790671040.070215,
+    "ast_hash": "d424226e74e07c09767f65a784ef0cca",
     "semantic_hash": ""
   },
   "src/i18n/I18nProvider.test.tsx": {
@@ -1750,23 +1750,23 @@
     "semantic_hash": ""
   },
   "src/seo/jsonLd.test.ts": {
-    "mtime": 1790623185.4904828,
+    "mtime": 1790665793.4025853,
     "ast_hash": "9f238609267308189c57f20cf58d4a44",
     "semantic_hash": ""
   },
   "src/seo/jsonLd.ts": {
-    "mtime": 1790623223.7704945,
+    "mtime": 1790665793.4025853,
     "ast_hash": "af0513b10a11030a4afafe16961d09b2",
     "semantic_hash": ""
   },
   "src/seo/metadata.test.ts": {
-    "mtime": 1789293960.4136326,
-    "ast_hash": "7f8680f9dbc6d8db2a51dc1d7db48d5e",
+    "mtime": 1790671056.1931212,
+    "ast_hash": "566bfca14a01a38ca062e4ca248a8d8b",
     "semantic_hash": ""
   },
   "src/seo/metadata.ts": {
-    "mtime": 1789293960.4146328,
-    "ast_hash": "100e556355fc67dc9fd49b0ec82dcd3b",
+    "mtime": 1790671055.7886503,
+    "ast_hash": "68bfe73fcc67b5848a65b45bb281a12c",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-04-legal-seo-consentimiento.md": {
@@ -1850,7 +1850,7 @@
     "semantic_hash": ""
   },
   "task/lessons.md": {
-    "mtime": 1790623458.709208,
+    "mtime": 1790665793.4045856,
     "ast_hash": "31e11bc511fe067254015c93aab596cb",
     "semantic_hash": ""
   },
@@ -2080,7 +2080,7 @@
     "semantic_hash": ""
   },
   "PRODUCT.md": {
-    "mtime": 1790662232.3351092,
+    "mtime": 1790665793.356576,
     "ast_hash": "915f686014d629e236635a8b20f735c6",
     "semantic_hash": ""
   },
@@ -3595,7 +3595,7 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1789304273.3994057,
+    "mtime": 1790670721.6387413,
     "ast_hash": "96bfbec3f8745f19ae41cdd0bd940064",
     "semantic_hash": ""
   },
@@ -3685,7 +3685,7 @@
     "semantic_hash": ""
   },
   "scripts/build-pipeline.test.mjs": {
-    "mtime": 1790623290.2569997,
+    "mtime": 1790665793.398584,
     "ast_hash": "46837e9d927d2c29bd693d04cafdb451",
     "semantic_hash": ""
   },
@@ -3750,7 +3750,7 @@
     "semantic_hash": ""
   },
   "app/RootDocument.tsx": {
-    "mtime": 1790623290.1964142,
+    "mtime": 1790665793.3575757,
     "ast_hash": "cb4d99d3f6f45075db79d5165456643e",
     "semantic_hash": ""
   },
@@ -3830,12 +3830,12 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.linux.json": {
-    "mtime": 1789293960.278458,
+    "mtime": 1790670721.6367412,
     "ast_hash": "ef6f52eb002d6565072c611eb527b023",
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.win32.json": {
-    "mtime": 1789293960.2794974,
+    "mtime": 1790670721.637748,
     "ast_hash": "9125783c2dd64ec0181048fd50525a35",
     "semantic_hash": ""
   },
@@ -3855,7 +3855,7 @@
     "semantic_hash": ""
   },
   "vercel.json": {
-    "mtime": 1790623067.369368,
+    "mtime": 1790665793.4055848,
     "ast_hash": "7021ff9d8f5cf283f91d026eaa3dab71",
     "semantic_hash": ""
   }
