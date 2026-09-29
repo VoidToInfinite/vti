@@ -1,16 +1,16 @@
 # Graph Report - vti  (2026-09-29)
 
 ## Corpus Check
-- 518 files · ~4,762,025 words
+- 518 files · ~4,762,120 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 5395 nodes · 7760 edges · 388 communities (310 shown, 78 thin omitted)
+- 5395 nodes · 7760 edges · 387 communities (309 shown, 78 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 64 edges (avg confidence: 0.53)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ad917654`
+- Built from commit: `39b59194`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -329,7 +329,6 @@
 - [[_COMMUNITY_BackToTop.tsx|BackToTop.tsx]]
 - [[_COMMUNITY_basicLightTheme|basicLightTheme]]
 - [[_COMMUNITY_HomeSections.test.tsx|HomeSections.test.tsx]]
-- [[_COMMUNITY_hero.transition.ts|hero.transition.ts]]
 - [[_COMMUNITY_useActiveSection.test.tsx|useActiveSection.test.tsx]]
 - [[_COMMUNITY_Hero.test.tsx|Hero.test.tsx]]
 - [[_COMMUNITY_jsonLd.ts|jsonLd.ts]]
@@ -429,7 +428,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (388 total, 78 thin omitted)
+## Communities (387 total, 78 thin omitted)
 
 ### Community 0 - "themes.ts"
 Cohesion: 0.16
@@ -1004,8 +1003,8 @@ Cohesion: 0.25
 Nodes (7): Contratos comunes a todos los subagentes, Fase 1 — piezas independientes (3 subagentes en paralelo), Fase 2 — consumidores (2 subagentes en paralelo), Fase 3 — revisión, verificación y cierre (hilo principal, Opus), Fases, Plan — Contacto (transición + presentación) y Footer oscuro, Riesgos y mitigaciones
 
 ### Community 174 - "config.ts"
-Cohesion: 0.12
-Nodes (23): alphaToPercent(), DARK_STAR_LCH, DARK_STAR_POINT, darkStarColor(), FOOTER_STARS, FooterStar, footerStarGlow(), footerStarGlowTintLight() (+15 more)
+Cohesion: 0.11
+Nodes (24): alphaToPercent(), DARK_STAR_LCH, DARK_STAR_POINT, darkStarColor(), FOOTER_STARS, FooterStar, footerStarGlow(), footerStarGlowTintLight() (+16 more)
 
 ### Community 175 - "JourneyCosmicPortal.tsx"
 Cohesion: 0.11
@@ -1176,8 +1175,8 @@ Cohesion: 0.17
 Nodes (11): 1.1 Feedback de «Copiar» (`src/components/sections/Contact/Contact.tsx`), 1.2 h1 de la 404 (`src/components/sections/NotFound/NotFoundContent.tsx`), 1.3 CTA de tarjeta de Features (`src/components/sections/Features/Features.tsx`), 1. Qué se implementó, 2. Hallazgo NO corregido en esta tarea (declarado, no escondido), 3. Tests, 4. Gate completo, 5. Verificación visual (regla 44/47, `pnpm build` + `npx serve out -l 3200` + playwright-cli, frames reales) (+3 more)
 
 ### Community 226 - "Typography.tsx"
-Cohesion: 0.10
-Nodes (22): BreakPoints, ThemeDefinition, breakPoint, shared, themes, elevation, focusRing, Glass (+14 more)
+Cohesion: 0.09
+Nodes (23): renderPage(), Story(), BreakPoints, ThemeDefinition, breakPoint, shared, elevation, focusRing (+15 more)
 
 ### Community 227 - "LegalHeader.tsx"
 Cohesion: 0.20
@@ -1435,10 +1434,6 @@ Nodes (14): HistoryScrollRestoration(), ReadingPositionSnapshot, historyEntryKey
 Cohesion: 0.17
 Nodes (11): 0. Fix de revisión (2026-08-12, ronda 2), 1. Vía elegida: detector propio, no vendorizar `detect.mjs`, 2. Familias cubiertas, 3. Familias descartadas (con motivo), 4. Allowlist (las 10 excepciones que el repo ya sancionaba), 5. Verificación (las tres pedidas, salidas literales), 6. Gate — resultado literal (ronda 2, `--no-file-parallelism`), 7. Ficheros tocados (+3 more)
 
-### Community 316 - "hero.transition.ts"
-Cohesion: 0.21
-Nodes (6): reglasConSelectorDe(), reglasDe(), reglasDelVelo(), renderHero(), sinEspacios(), todasLasReglas()
-
 ### Community 317 - "useActiveSection.test.tsx"
 Cohesion: 0.53
 Nodes (6): all, B, G, R, meanAbsDiff255, meanAbsDiff255
@@ -1552,8 +1547,8 @@ Cohesion: 0.22
 Nodes (9): Field(), FieldControlProps, FieldProps, Input(), InputProps, mergeDescribedBy(), ScInput, ScLabel (+1 more)
 
 ### Community 359 - "useActiveSection.test.tsx"
-Cohesion: 0.09
-Nodes (18): languageAccent(), footElement(), luminanceOf(), reglasDe(), todasLasReglas(), renderPage(), Story(), CMUL (+10 more)
+Cohesion: 0.08
+Nodes (22): languageAccent(), footElement(), luminanceOf(), reglasDe(), todasLasReglas(), reglasConSelectorDe(), reglasDe(), reglasDelVelo() (+14 more)
 
 ### Community 360 - "midePuntoDeLectura"
 Cohesion: 0.29
@@ -1664,22 +1659,22 @@ Cohesion: 0.67
 Nodes (3): 1024, 1280, 09-figure
 
 ## Knowledge Gaps
-- **2997 isolated node(s):** `paginas`, `metadata`, `AQUI`, `fontBody`, `fontMono` (+2992 more)
+- **2997 isolated node(s):** `name`, `version`, `private`, `contributors`, `repository` (+2992 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **78 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `renderWithProviders()` connect `About.tsx` to `Logo.tsx`, `Button.tsx`, `locales.test.ts`, `renderWithProviders`, `page.tsx`, `Typography.tsx`, `story.deck.tsx`, `layout.tsx`, `config.ts`, `scripts`, `PrivacyDocument.test.tsx`, `Input.tsx`, `Typography.tsx`, `not-found.test.tsx`, `hero.transition.ts`, `VisuallyHidden.tsx`, `Hero.test.tsx`, `jsonLd.ts`, `hero.transition.ts`, `useParallaxLayers.test.tsx`, `useParallaxLayers.test.tsx`, `BrandName.tsx`, `Button.test.tsx`, `Eye.tsx`, `Input.test.tsx`, `useActiveSection.test.tsx`, `BrandName.contrast.test.ts`, `NotFoundContent.tsx`, `IconButton.tsx`, `locales.test.ts`, `HeroBackdrop.test.tsx`, `Logo.tsx`, `Journey.test.tsx`, `home-page.flujo.test.tsx`, `PrivacyDocument.test.tsx`, `useNavDetach.ts`?**
-  _High betweenness centrality (0.012) - this node is a cross-community bridge._
-- **Why does `useTheme()` connect `hero.transition.ts` to `themes.ts`, `useParallaxLayers.test.tsx`, `Features.tsx`, `Hero.tsx`, `layout.tsx`, `useActiveSection.test.tsx`, `Journey.tsx`, `Typography.tsx`, `useSolTiltSpin.ts`, `Story.tsx`, `Contact.tsx`, `config.ts`, `Logo.tsx`, `Journey.test.tsx`, `not-found.test.tsx`, `useNavDetach.ts`, `jsonLd.ts`?**
+- **Why does `renderWithProviders()` connect `About.tsx` to `Logo.tsx`, `Button.tsx`, `locales.test.ts`, `renderWithProviders`, `page.tsx`, `Typography.tsx`, `story.deck.tsx`, `layout.tsx`, `config.ts`, `scripts`, `PrivacyDocument.test.tsx`, `Input.tsx`, `Typography.tsx`, `not-found.test.tsx`, `VisuallyHidden.tsx`, `Hero.test.tsx`, `jsonLd.ts`, `hero.transition.ts`, `useParallaxLayers.test.tsx`, `useParallaxLayers.test.tsx`, `BrandName.tsx`, `Button.test.tsx`, `Eye.tsx`, `Typography.tsx`, `Input.test.tsx`, `useActiveSection.test.tsx`, `BrandName.contrast.test.ts`, `NotFoundContent.tsx`, `IconButton.tsx`, `locales.test.ts`, `HeroBackdrop.test.tsx`, `Logo.tsx`, `Journey.test.tsx`, `home-page.flujo.test.tsx`, `PrivacyDocument.test.tsx`, `useNavDetach.ts`?**
+  _High betweenness centrality (0.011) - this node is a cross-community bridge._
+- **Why does `routePath()` connect `Footer.test.tsx` to `themes.ts`, `Eye.tsx`, `Journey.tsx`, `scripts`, `NotFoundContent.tsx`, `Button.tsx`, `locales.test.ts`, `Journey.test.tsx`, `Button.test.tsx`, `VisuallyHidden.tsx`, `useNavDetach.ts`, `Aura.tsx`?**
+  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+- **Why does `useTheme()` connect `hero.transition.ts` to `themes.ts`, `useParallaxLayers.test.tsx`, `Typography.tsx`, `Features.tsx`, `Hero.tsx`, `layout.tsx`, `Journey.tsx`, `Typography.tsx`, `useSolTiltSpin.ts`, `Story.tsx`, `Contact.tsx`, `config.ts`, `Logo.tsx`, `Journey.test.tsx`, `not-found.test.tsx`, `useNavDetach.ts`, `jsonLd.ts`?**
   _High betweenness centrality (0.005) - this node is a cross-community bridge._
-- **Why does `ROUTES` connect `Aura.tsx` to `Footer.test.tsx`, `locales.test.ts`, `FeaturesCelestialGuide.tsx`, `Footer.tsx`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **Are the 22 inferred relationships involving `auditarSuperficie()` (e.g. with `apagaLaTintaDeLaCabecera()` and `fijaUmbralesDeCabecera()`) actually correct?**
   _`auditarSuperficie()` has 22 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `paginas`, `metadata`, `AQUI` to the rest of the system?**
+- **What connects `name`, `version`, `private` to the rest of the system?**
   _2997 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `VTI — Sistema de interfaz de lujo · design spec` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
