@@ -2,3 +2,35 @@ allowBuilds:
     esbuild: true
     sharp: true
     unrs-resolver: true
+
+# --- Overrides de seguridad (pnpm audit sobre main, 2026-09-29) ---
+# Solo para dependencias TRANSITIVAS vulnerables que ninguna subida directa
+# corrige: next se subió a 16.3.6 en vez de forzar su postcss o su sharp, y
+# vitest (3 -> 4, versión mayor) queda para una tarea aparte.
+#
+# Cómo casa pnpm 11.10.0 un selector `pkg@<rango>`: reescribe TODA arista cuyo
+# rango DECLARADO se solape con el del selector (`semver.intersects`), no la
+# versión resuelta. Por eso cada selector lleva límite inferior por línea mayor
+# y ninguno se solapa con otro del mismo paquete: un `brace-expansion@<5.0.9`
+# abierto reescribiría también el `^1.1.7` de `minimatch@3` a una 5.x. Lección
+# medida en vti-sdk el 2026-09-15 (vault:
+# 2026-09-15-selector-de-override-pnpm-casa-por-interseccion).
+#
+#   - brace-expansion 1.x y 5.x (vía eslint / typescript-eslint): GHSA-mh99-v99m-4gvg
+#     y GHSA-rgw5-rvv9-x895, bloqueo por memoria en expansiones sin límite.
+#   - js-yaml 4.x (vía @eslint/eslintrc): GHSA-5p4m-2wfm-xmqj y GHSA-2883-xcg3-v3hh,
+#     consumo cuadrático de CPU.
+#   - nanoid 3.x (vía postcss): GHSA-2v37-7h3g-55p8, bucle con tamaño cero.
+#   - postcss 8.x (vía vite): GHSA-fxqj-rqcc-2cmp, lectura de .map con
+#     sourceMappingURL. El postcss de next ya llega en 8.5.23 y no casa con el
+#     selector.
+#
+# Todas son herramientas de desarrollo o de build: ninguna viaja al bundle.
+# Cuando la dependencia que las arrastra publique la versión corregida, el
+# override sobra y se retira.
+overrides:
+    "brace-expansion@<1.1.18": "1.1.18"
+    "brace-expansion@>=4.0.0 <5.0.9": "5.0.9"
+    "js-yaml@>=4.0.0 <4.3.2": "4.3.2"
+    "nanoid@>=3.0.0 <3.3.18": "3.3.18"
+    "postcss@>=8.0.0 <8.5.23": "8.5.23"
