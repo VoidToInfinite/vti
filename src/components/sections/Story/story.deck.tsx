@@ -1,6 +1,7 @@
 "use client";
 import styled, { css, type RuleSet } from "styled-components";
 import { gradientTextClip } from "@/components/layout/Brand/BrandName";
+import { STORY_COSMIC_BEING_VOID } from "@/components/scenes/storyCosmicBeing/storyCosmicBeing.layers";
 import { DECK_DOES_NOT_FIT, DECK_FIT_ATTRIBUTE } from "@/hooks/useDeckFit";
 import { DECK } from "@/motion/vocabulary";
 import {
@@ -192,6 +193,19 @@ export const ScTrack = styled.div`
  * igual que ya lo conservaba bajo `reduce`: con el alto siguiendo al
  * contenido no recorta nada, y quitarlo devolvería el overscan de la escena
  * por encima de la sección.
+ *
+ * `background-color` DEL BLOQUE ESTÁTICO: el void de la escena, no
+ * `semantic.bg` (reporte del dueño, 2026-09-29: "los textos se desacoplan" con
+ * los efectos visuales de Windows desactivados). La escena mide una pantalla
+ * y queda anclada arriba (`ScSceneWrap`, más abajo), así que en el documento
+ * apilado todo lo que pasa de esa pantalla se pinta con el fondo de este
+ * escenario. Con `semantic.bg` era un morado distinto del negro en el que
+ * termina el arte (`STORY_COSMIC_BEING_VOID`, el tope de la viñeta inferior de
+ * la escena): medido en producción a 1920x1080, 464 px de franja plana con la
+ * costura cruzando la cuarta diapositiva. Con el void, el arte se funde con el
+ * fondo por el mismo color con el que ya se desvanecía. Fuera del bloque el
+ * valor no se ve -- la escena cubre el escenario entero -- y por eso no se
+ * toca.
  */
 export const ScStage = styled.div`
   position: sticky;
@@ -212,6 +226,7 @@ export const ScStage = styled.div`
     position: static;
     height: auto;
     transform: none;
+    background-color: ${STORY_COSMIC_BEING_VOID};
   `)}
 `;
 
@@ -653,6 +668,25 @@ export const ScDeck = styled.div`
  * diapositivas nunca salen del árbol. La excepción de `reduce` del ENLACE del
  * cierre vive con el enlace (`ScDeckNoteLink`, `Story.tsx`) y no cambia con
  * esta ola: ese enlace ya no lleva compuerta ninguna.
+ *
+ * `margin-block` DEL BLOQUE ESTÁTICO: el ritmo del documento apilado (reporte
+ * del dueño, 2026-09-29). Fijada, cada diapositiva ocupa una pantalla y nunca
+ * convive con otra; apilada, nadie declaraba separación y medían 0 px entre sí
+ * en producción, con `padding-block: 0`: el título de cada pilar arrancaba
+ * pegado al cuerpo del anterior y el enlace de comunidad quedaba a ras del
+ * borde de Journey. `space[9]` separa bloques con claridad frente a los
+ * huecos internos de la diapositiva (`space[2]`-`space[6]`), y es el mismo
+ * peldaño que usa `ScJourneySlide` (`journey.deck.tsx`): los dos decks son
+ * gemelos y se apilan con el mismo ritmo, candado en `Journey.test.tsx`.
+ *
+ * MARGEN Y NO RELLENO, a propósito: `useDeckFit` decide si el deck vuelve a
+ * fijarse midiendo el `scrollHeight` de cada diapositiva, que incluye el
+ * relleno y no el margen. Con relleno, una diapositiva linealizada por no caber
+ * mediría más que fijada y el deck no volvería a fijarse al agrandar la
+ * ventana hasta ganar esos píxeles de más. Los márgenes de dos diapositivas
+ * vecinas colapsan (`ScDeck` pasa a `display: block`), así que el hueco entre
+ * ellas es un peldaño y no dos; el primero y el último quedan dentro del
+ * escenario, que con su `overflow: hidden` no deja escapar el margen.
  */
 export const ScSlide = styled.div`
   grid-area: 1 / 1;
@@ -681,6 +715,7 @@ export const ScSlide = styled.div`
     opacity: 1;
     transform: none;
     pointer-events: auto;
+    margin-block: ${({ theme }) => theme.data.space[9]};
   `)}
 `;
 
