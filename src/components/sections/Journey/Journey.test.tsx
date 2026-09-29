@@ -24,6 +24,7 @@ import {
 } from "./journey.layers";
 import { JOURNEY_QUOTE_DESCENT_RESERVE } from "./journey.deck";
 import * as journeyDeck from "./journey.deck";
+import * as storyDeck from "@/components/sections/Story/story.deck";
 import {
   DECK_DOES_NOT_FIT,
   DECK_FITS,
@@ -3933,5 +3934,112 @@ describe("Journey: critica #19 -- el escenario solo pina cuando cada diapositiva
       window.innerHeight = altoOriginal;
       window.localStorage.clear();
     }
+  });
+});
+
+/*
+ * MODO APILADO: RITMO ENTRE DIAPOSITIVAS Y FONDO DEL ARTE (2026-09-29, reporte
+ * del dueño: con los efectos visuales de Windows desactivados, "los textos de
+ * Story y Journey se desacoplan").
+ *
+ * ## El defecto
+ *
+ * Medido en producción (`74003f6`, Chrome, tema oscuro, `prefers-reduced-motion:
+ * reduce` emulado, 1920x1080 y 390x844, coordenadas de documento): en el
+ * documento apilado (D12), las ocho diapositivas median 0 px de separación
+ * entre sí, con `padding-block: 0`. El icono de cada paso quedaba a unos 15 px
+ * del subtítulo del paso ANTERIOR y a unos 60 px de su propia palabra: se leía
+ * como cola del paso de arriba. Y la escena (una pantalla, anclada arriba)
+ * terminaba en su void (`JOURNEY_PORTAL_VOID`) mientras el resto de la sección
+ * pintaba `semantic.bg`, un morado: 1.175 px de franja plana a 1920x1080 bajo
+ * Crear, Compartir, Evolucionar y la cita.
+ *
+ * ## Qué ata este bloque
+ *
+ * La declaración bajo `reduce` (la gemela del estado "no cabe" la exige el
+ * candado de la crítica #19, más arriba) y que los dos decks se apilen con el
+ * MISMO ritmo: son gemelos declarados, y la invariante cruza dos ficheros
+ * (regla 41 de RULES.md). La geometría real se midió en Chrome sobre el build
+ * de esta rama: 96 px entre diapositivas a 1920x1080 y a 390x844 (192 px con
+ * la raíz a 32), el icono de cada paso a 16 px de su palabra y a 96 px del
+ * subtítulo anterior, y el escenario en `rgb(11, 6, 32)`.
+ *
+ * ## Validado con el bug inyectado a propósito (regla 34 de RULES.md)
+ *
+ * Las líneas rojas van copiadas de la salida, no predichas.
+ *
+ * SABOTAJE 1 -- los gemelos divergen: `space[9]` pasa a `space[8]` en el
+ * bloque estático de `ScSlide` (`story.deck.tsx`). Rojo en el candado de
+ * gemelos:
+ *
+ *   × ... > los dos decks se apilan con el MISMO ritmo
+ *   AssertionError: expected '6rem' to be '4rem' // Object.is equality
+ *
+ * SABOTAJE 2 -- el escenario vuelve a su fondo: se retira el
+ * `background-color` del bloque estático de `ScJourneyStage`. `Tests  1 failed
+ * | 105 passed (106)`:
+ *
+ *   AssertionError: expected '' to be '#0b0620' // Object.is equality
+ */
+describe("Journey: modo apilado -- ritmo entre diapositivas y fondo del arte", () => {
+  /**
+   * El bloque de `reduce` cuyo selector es EXACTAMENTE el componente (`&`), no
+   * un pseudo-elemento ni un descendiente suyo. jsdom no evalúa `@media`, así
+   * que se lee del CSSOM (regla 36 de RULES.md).
+   */
+  function bloqueDeReduce(componente: unknown): CSSStyleDeclaration {
+    const Componente = componente as ComponentType<Record<string, unknown>>;
+    const { unmount } = renderWithProviders(
+      createElement(Componente, { "data-probe": "apilado" }),
+    );
+    const el = document.querySelector('[data-probe="apilado"]');
+    if (!el) throw new Error("el componente no llego a renderizarse");
+    const selectoresPropios = Array.from(el.classList).map((c) => `.${c}`);
+    unmount();
+    for (const hoja of Array.from(document.styleSheets)) {
+      for (const regla of Array.from(hoja.cssRules)) {
+        if (!(regla instanceof CSSMediaRule)) continue;
+        if (!regla.media.mediaText.includes("prefers-reduced-motion: reduce")) {
+          continue;
+        }
+        for (const anidada of Array.from(regla.cssRules)) {
+          if (
+            anidada instanceof CSSStyleRule &&
+            selectoresPropios.includes(anidada.selectorText.trim())
+          ) {
+            return anidada.style;
+          }
+        }
+      }
+    }
+    throw new Error("el componente no declara bloque de reduce");
+  }
+
+  it("cada diapositiva apilada se separa de la siguiente con un peldaño de la escala, no con 0", () => {
+    // jsdom no expande la abreviatura lógica en sus dos longhands: se lee la
+    // abreviatura tal y como se declara, con UN solo valor para los dos lados.
+    expect(
+      bloqueDeReduce(journeyDeck.ScJourneySlide).getPropertyValue(
+        "margin-block",
+      ),
+    ).toBe(themes.dark.space[9]);
+  });
+
+  it("los dos decks se apilan con el MISMO ritmo", () => {
+    expect(
+      bloqueDeReduce(journeyDeck.ScJourneySlide).getPropertyValue(
+        "margin-block",
+      ),
+    ).toBe(bloqueDeReduce(storyDeck.ScSlide).getPropertyValue("margin-block"));
+  });
+
+  it("el escenario apilado pinta el void de su escena, no el fondo de la sección", () => {
+    // El CSSOM conserva el valor tal y como se declara: se compara contra la
+    // constante importada, nunca contra un literal (regla 38 de RULES.md).
+    expect(
+      bloqueDeReduce(journeyDeck.ScJourneyStage).getPropertyValue(
+        "background-color",
+      ),
+    ).toBe(JOURNEY_PORTAL_VOID);
   });
 });

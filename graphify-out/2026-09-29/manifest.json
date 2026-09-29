@@ -30,7 +30,7 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1790666833.7075934,
+    "mtime": 1790673152.1762385,
     "ast_hash": "3307fb31f33bcd01133fdc3430bcdfa5",
     "semantic_hash": ""
   },
@@ -755,7 +755,7 @@
     "semantic_hash": ""
   },
   "pnpm-workspace.yaml": {
-    "mtime": 1790667736.105541,
+    "mtime": 1790673152.1782334,
     "ast_hash": "6c57f316ed22a01de29489c10fcea150",
     "semantic_hash": ""
   },
@@ -1715,8 +1715,8 @@
     "semantic_hash": ""
   },
   "src/config/legal.ts": {
-    "mtime": 1789304273.57657,
-    "ast_hash": "4043273d2b4fc63aff25649d929d3e8f",
+    "mtime": 1790673152.183235,
+    "ast_hash": "1dc98fbd0ce057bb8b9ba821e4dce605",
     "semantic_hash": ""
   },
   "src/config/site.test.ts": {
@@ -1725,8 +1725,8 @@
     "semantic_hash": ""
   },
   "src/config/site.ts": {
-    "mtime": 1790665793.3995833,
-    "ast_hash": "2c654006e33475db7df99cc4a44cc9e9",
+    "mtime": 1790673152.1842346,
+    "ast_hash": "d424226e74e07c09767f65a784ef0cca",
     "semantic_hash": ""
   },
   "src/i18n/I18nProvider.test.tsx": {
@@ -1760,13 +1760,13 @@
     "semantic_hash": ""
   },
   "src/seo/metadata.test.ts": {
-    "mtime": 1789293960.4136326,
-    "ast_hash": "7f8680f9dbc6d8db2a51dc1d7db48d5e",
+    "mtime": 1790673152.1852345,
+    "ast_hash": "566bfca14a01a38ca062e4ca248a8d8b",
     "semantic_hash": ""
   },
   "src/seo/metadata.ts": {
-    "mtime": 1789293960.4146328,
-    "ast_hash": "100e556355fc67dc9fd49b0ec82dcd3b",
+    "mtime": 1790673152.1852345,
+    "ast_hash": "68bfe73fcc67b5848a65b45bb281a12c",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-04-legal-seo-consentimiento.md": {
@@ -3595,7 +3595,7 @@
     "semantic_hash": ""
   },
   "scripts/measure-home-js.mjs": {
-    "mtime": 1790667465.231328,
+    "mtime": 1790673152.1822348,
     "ast_hash": "7eb503081dd82744c8d57003672f5e00",
     "semantic_hash": ""
   },
@@ -3830,12 +3830,12 @@
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.linux.json": {
-    "mtime": 1790667465.1957316,
+    "mtime": 1790673152.179233,
     "ast_hash": "aa674e6e1b3c4739e10c42847f34df0b",
     "semantic_hash": ""
   },
   "scripts/home-js-baseline.win32.json": {
-    "mtime": 1790667152.8104968,
+    "mtime": 1790673152.1802325,
     "ast_hash": "40b1a4b8bd3364c8af0d44adfd838849",
     "semantic_hash": ""
   },

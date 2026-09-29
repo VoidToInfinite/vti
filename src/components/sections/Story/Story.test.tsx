@@ -4803,3 +4803,100 @@ describe("Story: critica #19 -- el escenario solo pina cuando cada diapositiva c
     }
   });
 });
+
+/*
+ * MODO APILADO: RITMO ENTRE DIAPOSITIVAS Y FONDO DEL ARTE (2026-09-29, reporte
+ * del dueño: con los efectos visuales de Windows desactivados, "los textos de
+ * Story y Journey se desacoplan").
+ *
+ * ## El defecto
+ *
+ * Medido en producción (`74003f6`, Chrome, tema oscuro, `prefers-reduced-motion:
+ * reduce` emulado, 1920x1080 y 390x844, coordenadas de documento): en el
+ * documento apilado que `deckStatic` entrega (D6), las seis diapositivas median
+ * 0 px de separación entre sí, con `padding-block: 0` -- el deck fijado asumía
+ * una pantalla por diapositiva y nadie declaró ritmo para el documento, así que
+ * el título de cada pilar arrancaba pegado al cuerpo del anterior. Y la escena
+ * (una pantalla de alto, anclada arriba) terminaba en el void del arte
+ * (`STORY_COSMIC_BEING_VOID`) mientras el resto del escenario pintaba
+ * `semantic.bg`, un morado: 464 px de franja plana a 1920x1080 con la costura
+ * cruzando la cuarta diapositiva.
+ *
+ * ## Qué ata este bloque
+ *
+ * Solo la declaración bajo `reduce`: que la gemela del estado "no cabe" diga lo
+ * mismo ya lo exige el candado de la crítica #19, justo arriba, componente a
+ * componente. La geometría real se midió en Chrome sobre el build de esta rama:
+ * 96 px entre diapositivas a 1920x1080 y a 390x844 (192 px con la raíz a 32),
+ * y el escenario en `rgb(5, 1, 14)`.
+ *
+ * ## Validado con el bug inyectado a propósito (regla 34 de RULES.md)
+ *
+ * Las líneas rojas van copiadas de la salida, no predichas.
+ *
+ * SABOTAJE 1 -- el ritmo baja un peldaño: `space[9]` pasa a `space[8]` en el
+ * bloque estático de `ScSlide`. Rojo aquí y en el candado de gemelos de
+ * `Journey.test.tsx`, `Tests  2 failed | 238 passed (240)` sobre los dos
+ * ficheros:
+ *
+ *   AssertionError: expected '4rem' to be '6rem' // Object.is equality
+ *
+ * SABOTAJE 2 -- el escenario vuelve a su fondo: se retira el
+ * `background-color` del bloque estático de `ScStage`. `Tests  1 failed | 133
+ * passed (134)`:
+ *
+ *   AssertionError: expected '' to be '#05010e' // Object.is equality
+ */
+describe("Story: modo apilado -- ritmo entre diapositivas y fondo del arte", () => {
+  /**
+   * El bloque de `reduce` cuyo selector es EXACTAMENTE el componente (`&`), no
+   * un pseudo-elemento ni un descendiente suyo. jsdom no evalúa `@media`, así
+   * que se lee del CSSOM (regla 36 de RULES.md).
+   */
+  function bloqueDeReduce(
+    Componente: ComponentType<Record<string, unknown>>,
+  ): CSSStyleDeclaration {
+    renderWithProviders(createElement(Componente, { "data-probe": "apilado" }));
+    const el = document.querySelector('[data-probe="apilado"]');
+    if (!el) throw new Error("el componente no llego a renderizarse");
+    const selectoresPropios = Array.from(el.classList).map((c) => `.${c}`);
+    for (const hoja of Array.from(document.styleSheets)) {
+      for (const regla of Array.from(hoja.cssRules)) {
+        if (!(regla instanceof CSSMediaRule)) continue;
+        if (!regla.media.mediaText.includes("prefers-reduced-motion: reduce")) {
+          continue;
+        }
+        for (const anidada of Array.from(regla.cssRules)) {
+          if (
+            anidada instanceof CSSStyleRule &&
+            selectoresPropios.includes(anidada.selectorText.trim())
+          ) {
+            return anidada.style;
+          }
+        }
+      }
+    }
+    throw new Error("el componente no declara bloque de reduce");
+  }
+
+  it("cada diapositiva apilada se separa de la siguiente con un peldaño de la escala, no con 0", () => {
+    const bloque = bloqueDeReduce(
+      storyDeck.ScSlide as unknown as ComponentType<Record<string, unknown>>,
+    );
+    const hueco = basicDarkTheme.space[9];
+    // jsdom no expande la abreviatura lógica en sus dos longhands: se lee la
+    // abreviatura tal y como se declara, con UN solo valor para los dos lados.
+    expect(bloque.getPropertyValue("margin-block")).toBe(hueco);
+  });
+
+  it("el escenario apilado pinta el void de su escena, no semantic.bg", () => {
+    const bloque = bloqueDeReduce(
+      storyDeck.ScStage as unknown as ComponentType<Record<string, unknown>>,
+    );
+    // El CSSOM conserva el valor tal y como se declara: se compara contra la
+    // constante importada, nunca contra un literal (regla 38 de RULES.md).
+    expect(bloque.getPropertyValue("background-color")).toBe(
+      STORY_COSMIC_BEING_VOID,
+    );
+  });
+});

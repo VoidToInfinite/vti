@@ -3,6 +3,7 @@ import styled, { css, type RuleSet } from "styled-components";
 import type { ThemeDefinition } from "@/theme/theme.types";
 import { DECK_DOES_NOT_FIT, DECK_FIT_ATTRIBUTE } from "@/hooks/useDeckFit";
 import { DECK } from "@/motion/vocabulary";
+import { JOURNEY_PORTAL_VOID } from "@/components/scenes/journeyCosmicPortal/journeyCosmicPortal.layers";
 import {
   JOURNEY_CONTENT_MAX_WIDTH,
   JOURNEY_DARK_HEIGHT,
@@ -138,6 +139,17 @@ export const ScJourneyTrack = styled.div`
  * que las 8 diapositivas, ya en flujo (ver `ScJourneyDeck`/`ScJourneySlide`),
  * determinen el alto real. El `overflow: hidden` se conserva a propósito, y de
  * él depende la reserva de descendente de `ScJourneyQuote`, más abajo.
+ *
+ * `background-color` DEL BLOQUE ESTÁTICO: el void de la escena (reporte del
+ * dueño, 2026-09-29: "los textos se desacoplan" con los efectos visuales de
+ * Windows desactivados). Este escenario no declaraba fondo, así que en el
+ * documento apilado, por debajo de la única pantalla de escena
+ * (`ScJourneySceneWrap`), se veía el `semantic.bg` de `ScJourney`: un morado
+ * distinto del negro en el que termina el arte (`JOURNEY_PORTAL_VOID`, el tope
+ * de la viñeta inferior de la escena). Medido en producción a 1920x1080: 1.175
+ * px de franja plana con la costura a la vista. MISMO arreglo y mismo motivo
+ * que `ScStage` (`story.deck.tsx`). Fuera del bloque la escena cubre el
+ * escenario entero y el fondo no se vería, así que no se declara.
  */
 export const ScJourneyStage = styled.div`
   position: sticky;
@@ -148,6 +160,7 @@ export const ScJourneyStage = styled.div`
   ${deckStatic(css`
     position: static;
     height: auto;
+    background-color: ${JOURNEY_PORTAL_VOID};
   `)}
 `;
 
@@ -443,6 +456,17 @@ export const ScJourneyDeck = styled.div`
  * movimiento. Ya no necesita revertir ninguna `visibility`: el reposo dejó de
  * declararla (ver arriba).
  *
+ * `margin-block` DEL BLOQUE ESTÁTICO: el ritmo del documento apilado (reporte
+ * del dueño, 2026-09-29). Apiladas, las ocho diapositivas medían 0 px entre sí
+ * en producción, y el icono de cada paso quedaba a unos 15 px del subtítulo
+ * del paso ANTERIOR y a unos 60 px de su propia palabra: la proximidad lo
+ * agrupaba con el paso equivocado. `space[9]` deja el hueco entre pasos muy
+ * por encima del hueco interno icono-palabra, y es el mismo peldaño que
+ * `ScSlide` (`story.deck.tsx`), candado en `Journey.test.tsx`. Margen y no
+ * relleno por el mismo motivo que allí: `useDeckFit` mide el `scrollHeight`
+ * de cada diapositiva para decidir si el deck vuelve a fijarse, y el relleno
+ * lo inflaría solo en el estado apilado.
+ *
  * NOTA DE ALCANCE (cerrada): ScSlide (story.deck.tsx) tenia el MISMO defecto,
  * agravado por un enlace real dentro. Se arreglo el mismo dia en la tarea
  * derivada de esta ola: misma reversion de `visibility`, con la compuerta de
@@ -476,6 +500,7 @@ export const ScJourneySlide = styled.div`
     opacity: 1;
     transform: none;
     pointer-events: auto;
+    margin-block: ${({ theme }) => theme.data.space[9]};
   `)}
 `;
 
