@@ -61,6 +61,13 @@ import { reglasDe404 } from "./serve-measure.mjs";
  * vigente dice que convive con `redirects` y `headers`
  * (https://vercel.com/docs/project-configuration/vercel-json#routes), pero eso
  * se comprueba contra un despliegue, con curl o con el navegador, no aquí.
+ *
+ * Y ESO FUE JUSTO LO QUE FALLÓ (2026-09-28). «Conviven» no quiere decir que
+ * se ejecuten: medido con curl contra producción, las dos cabeceras de esta
+ * mudanza seguían sin salir quince días después (`/opengraph-image` como
+ * `application/octet-stream`, los `.webp` con `max-age=0`), mientras las 301 y
+ * la 404 inglesa sí funcionaban. La causa está en el orden de las fases, no en
+ * la sintaxis: ver el bloque de las cabeceras más abajo.
  */
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -244,42 +251,88 @@ describe("vercel.json redirige las dos URLs retiradas con 301", () => {
  * - `.webp`: no llevan hash en el nombre, así que `immutable` mentiría. 30 días
  *   con `stale-while-revalidate` de 7: se sirve la copia al instante y se
  *   revalida en segundo plano. En producción salían con `max-age=0`.
+ *
+ * DÓNDE TIENEN QUE VIVIR (2026-09-28). Del 2026-09-13 a esta fecha estaban en
+ * el bloque `headers` y no se aplicaron NUNCA. `@vercel/routing-utils` 6.6.0
+ * (`getTransformedRoutes`) pone las `routes` del usuario PRIMERO y convierte
+ * `redirects` y `headers` en rutas que van DETRÁS; como estas `routes` abren la
+ * fase `{ "handle": "filesystem" }` (la necesita la 404 inglesa, más abajo), las
+ * cabeceras caían dentro de esa fase, que solo se evalúa cuando el fichero NO
+ * existe («check matches after the filesystem misses»,
+ * https://vercel.com/docs/build-output-api/configuration). La imagen OG y los
+ * `.webp` existen siempre, así que la regla no corría para ninguno; las 301 sí
+ * funcionaban por lo mismo al revés, porque `/terminos` no existe en disco.
+ * Reproducido en local pasando el `vercel.json` viejo por
+ * `getTransformedRoutes` + `mergeRoutes`: las dos cabeceras salían en la fase
+ * `filesystem`. El arreglo es la forma en que Vercel compila el bloque
+ * `headers` cuando nadie abre fases antes: una ruta con `continue: true`
+ * DELANTE del primer `handle`.
  */
 const CABECERAS = [
     {
-        source: "/opengraph-image",
+        src: "/opengraph-image",
         key: "Content-Type",
         value: "image/png",
     },
     {
-        source: "/(.*).webp",
+        src: "/(.*)\\.webp",
         key: "Cache-Control",
         value: "public, max-age=2592000, stale-while-revalidate=604800",
     },
 ];
 
+const RUTAS = Array.isArray(VERCEL.routes) ? VERCEL.routes : [];
+
+/** Primera ruta que abre una fase: lo que va detrás solo corre en esa fase. */
+const PRIMERA_FASE = RUTAS.findIndex(
+    (ruta) => typeof ruta?.handle === "string",
+);
+
+/** Una ruta que solo añade cabeceras y deja seguir el enrutado. */
+function esRutaDeCabeceras(ruta) {
+    return ruta?.continue === true && typeof ruta?.headers === "object";
+}
+
 describe("vercel.json pone las cabeceras que producción no ponía sola", () => {
-    it.each(CABECERAS)(
-        "$source lleva $key: $value",
-        ({ source, key, value }) => {
-            const bloques = Array.isArray(VERCEL.headers) ? VERCEL.headers : [];
-            const bloque = bloques.find((b) => b.source === source);
-            expect(
-                bloque,
-                `vercel.json no declara cabeceras para ${source}. Bloques reales: ` +
-                    `${JSON.stringify(bloques)}`,
-            ).toBeDefined();
-            const cabecera = (bloque.headers ?? []).find((h) => h.key === key);
-            expect(cabecera?.value).toBe(value);
-        },
-    );
+    it.each(CABECERAS)("$src lleva $key: $value", ({ src, key, value }) => {
+        const ruta = RUTAS.find(
+            (candidata) =>
+                candidata?.src === src && esRutaDeCabeceras(candidata),
+        );
+        expect(
+            ruta,
+            `vercel.json no declara una ruta de cabeceras con continue para ` +
+                `${src}. Rutas reales: ${JSON.stringify(RUTAS)}`,
+        ).toBeDefined();
+        expect(ruta.headers[key]).toBe(value);
+    });
+
+    it("ninguna ruta de cabeceras va detrás de la primera fase: ahí no corre para ficheros que existen", () => {
+        const tardias = RUTAS.filter(
+            (ruta, indice) =>
+                esRutaDeCabeceras(ruta) &&
+                PRIMERA_FASE !== -1 &&
+                indice > PRIMERA_FASE,
+        );
+        expect(tardias).toEqual([]);
+    });
+
+    it("no hay bloque headers mientras routes abra una fase: Vercel lo coloca detrás de ella", () => {
+        expect(
+            PRIMERA_FASE === -1 || VERCEL.headers === undefined,
+            `vercel.json declara «headers» y sus «routes» abren la fase ` +
+                `${JSON.stringify(RUTAS[PRIMERA_FASE])}: esas cabeceras solo se ` +
+                `aplicarían a rutas que no existen. Muévelas a «routes», delante ` +
+                `de la fase, con «continue: true».`,
+        ).toBe(true);
+    });
 
     it("los .webp no se declaran immutable: su nombre no lleva hash", () => {
-        const bloque = (VERCEL.headers ?? []).find(
-            (b) => b.source === "/(.*).webp",
+        const ruta = RUTAS.find(
+            (candidata) => candidata?.src === "/(.*)\\.webp",
         );
-        for (const cabecera of bloque?.headers ?? []) {
-            expect(cabecera.value).not.toMatch(/immutable/);
+        for (const valor of Object.values(ruta?.headers ?? {})) {
+            expect(valor).not.toMatch(/immutable/);
         }
     });
 });

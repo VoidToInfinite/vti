@@ -7,22 +7,19 @@
         },
         { "source": "/accesibilidad", "destination": "/", "statusCode": 301 }
     ],
-    "headers": [
+    "routes": [
         {
-            "source": "/(.*).webp",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "public, max-age=2592000, stale-while-revalidate=604800"
-                }
-            ]
+            "src": "/(.*)\\.webp",
+            "headers": {
+                "Cache-Control": "public, max-age=2592000, stale-while-revalidate=604800"
+            },
+            "continue": true
         },
         {
-            "source": "/opengraph-image",
-            "headers": [{ "key": "Content-Type", "value": "image/png" }]
-        }
-    ],
-    "routes": [
+            "src": "/opengraph-image",
+            "headers": { "Content-Type": "image/png" },
+            "continue": true
+        },
         { "handle": "filesystem" },
         { "src": "/en/(.*)", "status": 404, "dest": "/en/404" }
     ]

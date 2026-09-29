@@ -1,4 +1,5 @@
 import {
+  LOCALES,
   SITE,
   absoluteUrl,
   routePath,
@@ -6,6 +7,7 @@ import {
   type RouteKey,
 } from "@/config/site";
 import { EMAIL_ADDRESS, links } from "@/config/links";
+import { LEGAL_ENTITY } from "@/config/legal";
 
 /**
  * Constructores de datos estructurados JSON-LD (schema.org).
@@ -32,16 +34,27 @@ import { EMAIL_ADDRESS, links } from "@/config/links";
 /** `@id` estables para que los nodos se referencien entre sí sin duplicar el objeto entero. */
 const ORGANIZATION_ID = `${SITE.url}#organization`;
 const WEBSITE_ID = `${SITE.url}#website`;
+const FOUNDER_ID = `${SITE.url}#founder`;
 
 export interface OrganizationJsonLd {
   readonly "@context": "https://schema.org";
   readonly "@type": "Organization";
   readonly "@id": string;
   readonly "name": string;
+  readonly "alternateName": string;
   readonly "url": string;
   readonly "logo": string;
   readonly "description": string;
   readonly "email": string;
+  readonly "founder": { readonly "@id": string };
+  readonly "sameAs": readonly string[];
+}
+
+export interface PersonJsonLd {
+  readonly "@context": "https://schema.org";
+  readonly "@type": "Person";
+  readonly "@id": string;
+  readonly "name": string;
   readonly "sameAs": readonly string[];
 }
 
@@ -50,8 +63,9 @@ export interface WebSiteJsonLd {
   readonly "@type": "WebSite";
   readonly "@id": string;
   readonly "name": string;
+  readonly "alternateName": string;
   readonly "url": string;
-  readonly "inLanguage": string;
+  readonly "inLanguage": readonly Locale[];
   readonly "publisher": { readonly "@id": string };
 }
 
@@ -96,6 +110,7 @@ export function organizationJsonLd(): OrganizationJsonLd {
     "@type": "Organization",
     "@id": ORGANIZATION_ID,
     "name": SITE.name,
+    "alternateName": SITE.alternateName,
     "url": SITE.url,
     "logo": absoluteUrl("/brand/logo.svg"),
     "description": SITE.description,
@@ -108,24 +123,52 @@ export function organizationJsonLd(): OrganizationJsonLd {
     // recuperación de Contacto y el enlace del pie. Sigue sin duplicar
     // ninguna cadena literal: la constante se deriva de `links.email`.
     "email": EMAIL_ADDRESS,
+    /* Quién está detrás del proyecto, por `@id`. Del 2026-08-13 al
+       2026-09-28 el perfil de LinkedIn del titular iba en `sameAs` de ESTE
+       nodo; pero `sameAs` declara URLs de la MISMA entidad, y un perfil
+       personal no es el proyecto. La relación proyecto-persona se modela
+       ahora como lo que es: `founder`, apuntando al nodo `Person`, que es
+       quien lleva el LinkedIn. */
+    "founder": { "@id": FOUNDER_ID },
     /* `sameAs` es, por definición de schema.org, el conjunto de URLs que
-       identifican inequívocamente a la MISMA entidad. El perfil de LinkedIn
-       del titular entra aquí desde que el aviso legal lo identifica por su
-       nombre: es la señal que permite a un buscador atar el proyecto con la
-       persona que responde de él. */
-    "sameAs": [links.github, links.discord, links.linkedin],
+       identifican inequívocamente a la MISMA entidad: los perfiles del
+       proyecto en otras plataformas. */
+    "sameAs": [links.github, links.discord],
   };
 }
 
-/** El sitio como entidad, referenciando a la organización que lo publica por `@id`. */
+/**
+ * La persona que responde del proyecto: el titular que identifica el aviso
+ * legal. El nombre sale de `LEGAL_ENTITY` para que la ficha legal y los datos
+ * estructurados no puedan divergir. Solo lleva lo que el sitio ya publica: el
+ * nombre y el perfil de LinkedIn; ningún dato identificativo más (ver la regla
+ * de veracidad de la cabecera de este fichero).
+ */
+export function founderJsonLd(): PersonJsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": FOUNDER_ID,
+    "name": LEGAL_ENTITY.name,
+    "sameAs": [links.linkedin],
+  };
+}
+
+/**
+ * El sitio como entidad, referenciando a la organización que lo publica por
+ * `@id`. Este nodo se emite UNA vez para todas las rutas (`RootDocument`),
+ * castellanas e inglesas, así que declara los dos idiomas del sitio; el idioma
+ * de cada página concreta lo lleva su `WebPage`.
+ */
 export function webSiteJsonLd(): WebSiteJsonLd {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "@id": WEBSITE_ID,
     "name": SITE.name,
+    "alternateName": SITE.alternateName,
     "url": SITE.url,
-    "inLanguage": SITE.lang,
+    "inLanguage": LOCALES,
     "publisher": { "@id": ORGANIZATION_ID },
   };
 }

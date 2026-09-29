@@ -57,6 +57,14 @@ export const OG_LOCALES = {
 export const SITE = {
   url: "https://voidtoinfinite.com",
   name: "VoidToInfinite",
+  /* La marca escrita como tres palabras, la forma en que se teclea al
+     buscarla. Viaja como `alternateName` de `WebSite` y de `Organization` en
+     el JSON-LD (2026-09-28, estrategia SEO "marca primero" decidida por el
+     dueño): Google lo lee en `WebSite` de la portada para elegir el nombre del
+     sitio (https://developers.google.com/search/docs/appearance/site-names).
+     Sin "VTI" a propósito: esas siglas son de otras marcas en buscadores y
+     Google puede usar un `alternateName` como nombre visible del sitio. */
+  alternateName: "Void to Infinite",
   /* Se conserva como atajo del locale OG de la rama CASTELLANA. El valor por
      ruta sale de `OG_LOCALES[locale]` (ver `buildMetadata`): desde que existen
      rutas `/en/`, `og:locale` ya no es una constante del sitio. */
@@ -72,11 +80,18 @@ export const SITE = {
    * "VoidToInfinite": cero palabras sobre QUÉ es el sitio, ni en la pestaña
    * del navegador ni en el enlace azul de un resultado de búsqueda, ni en el
    * `og:title` de una vista previa compartida (los tres salen del mismo
-   * valor). El texto no se inventa: son las tres palabras que la propia
-   * `description` de aquí abajo ya usa para describir el proyecto, y que las
-   * secciones de la home desarrollan (Learning / Imagination / Gaming).
+   * valor).
+   *
+   * El texto no se inventa. Del 2026-08-05 al 2026-09-29 fue «Aprendizaje,
+   * imaginación y juego», las tres palabras de Features. Desde la auditoría
+   * SEO del 2026-09-28 (opción B, elegida por el dueño con la estrategia
+   * "marca primero") repite lo que dice de sí mismo el bloque visible «¿Qué es
+   * VoidToInfinite?» (`Home.about`): un proyecto creativo de diseño y
+   * tecnología. Así el `<title>`, la `description` y el texto de la página
+   * describen lo mismo, que es lo que Google pide a los datos que lee. Mide 40
+   * caracteres; con el sufijo, 57, bajo el tope de 60 de `PRE-LAUNCH-QA.md` §2.
    */
-  homeTitle: "Aprendizaje, imaginación y juego",
+  homeTitle: "Proyecto creativo de diseño y tecnología",
   /* Acentos corregidos el 2026-08-05: decía "imaginacion", "travesia" y
      "como". Esta cadena NO es solo interna -- es la `<meta name="description">`
      y el `og:description` de la home, el subtítulo de la imagen Open Graph
@@ -94,10 +109,20 @@ export const SITE = {
      ya declaraba la deuda por escrito: "el copy de §1 (`SITE.description`,
      'equipo creativo') no se ha actualizado todavía". Queda saldada.
 
-     Longitud tras el cambio: 158 caracteres, dentro del rango 120-165 que
-     §2 exige a la `<meta name="description">`. */
+     REESCRITA el 2026-09-29 (auditoría SEO, opción B del dueño). La anterior
+     («…construye aprendizaje, imaginación y juego en una misma travesía…»)
+     no decía quién está detrás ni de qué trata el proyecto. La nueva solo usa
+     hechos del bloque visible «¿Qué es VoidToInfinite?»: proyecto creativo
+     de Daniel Mosquera, diseño y tecnología, y un sistema de diseño que se
+     está construyendo desde cero («mientras construye», porque el System
+     Design Kit todavía no está publicado). Incluir el nombre sirve a la
+     búsqueda de la persona, y que la meta coincida con el texto visible es lo
+     que piden los motores de respuesta.
+
+     Longitud: 158 caracteres, dentro del rango 120-165 que §2 exige a la
+     `<meta name="description">`. */
   description:
-    "VoidToInfinite es un proyecto creativo que construye aprendizaje, imaginación y juego en una misma travesía. Descubre su historia, su viaje y cómo participar.",
+    "VoidToInfinite es el proyecto creativo de Daniel Mosquera: aprender y experimentar con diseño y tecnología mientras construye un sistema de diseño desde cero.",
 } as const;
 
 /**

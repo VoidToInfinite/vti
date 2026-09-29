@@ -2,7 +2,7 @@ import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import type { ReactElement, ReactNode } from "react";
 import type { Locale } from "@/config/site";
 import { JsonLdScript } from "@/seo/JsonLdScript";
-import { organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
+import { founderJsonLd, organizationJsonLd, webSiteJsonLd } from "@/seo/jsonLd";
 import { AURA_PRELOADS } from "@/components/scenes/aura/aura.layers";
 import { EYE_PRELOADS } from "@/components/scenes/eye/eye.layers";
 import { buildThemeBootstrapScript } from "@/theme/resolveTheme";
@@ -332,7 +332,7 @@ export function RootDocument({
             `page.tsx`. */}
         <JsonLdScript
           id="jsonld-organization"
-          data={[organizationJsonLd(), webSiteJsonLd()]}
+          data={[organizationJsonLd(), webSiteJsonLd(), founderJsonLd()]}
         />
         {/* `Providers` vuelve a montarse AQUÍ desde el 2026-08-19, y solo con
             la mitad del árbol que NO depende del idioma (registro de estilos,

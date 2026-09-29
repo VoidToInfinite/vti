@@ -49,26 +49,30 @@ describe("SITE", () => {
     expect(SITE.homeTitle).not.toContain(SITE.name);
   });
 
+  /*
+   * Las palabras de control cambian con el copy (2026-09-29): hasta la
+   * reescritura de la opción B eran "imaginación" y "travesía", que ya no
+   * están. La regla es la misma: las palabras acentuadas que la copia usa hoy
+   * no pueden salir sin tilde, y deben seguir presentes para que la ausencia
+   * no pase por vacuidad.
+   */
   it("la copia pública de la home lleva los acentos correctos", () => {
     for (const [clave, valor] of Object.entries({
       homeTitle: SITE.homeTitle,
       description: SITE.description,
     })) {
-      for (const falta of [
-        "imaginacion",
-        "travesia",
-        "Aprendizaje, imaginacion",
-      ]) {
+      for (const falta of ["diseno", "tecnologia"]) {
         expect(
           valor.toLowerCase(),
           `${clave} contiene "${falta}" sin acentuar`,
-        ).not.toContain(falta.toLowerCase());
+        ).not.toContain(falta);
       }
+      // Sonda positiva: si estas dos palabras dejaran de estar, los asserts
+      // de ausencia de arriba pasarían por vacuidad sobre una cadena
+      // cualquiera.
+      expect(valor).toContain("diseño");
+      expect(valor).toContain("tecnología");
     }
-    // Sonda positiva: si estas dos palabras dejaran de estar, los asserts de
-    // ausencia de arriba pasarían por vacuidad sobre una cadena cualquiera.
-    expect(SITE.description).toContain("imaginación");
-    expect(SITE.description).toContain("travesía");
   });
 
   /*
