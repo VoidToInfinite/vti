@@ -28,7 +28,7 @@ Naturaleza jurídica y organizativa de VoidToInfinite: **persona física — Dan
 
 ## 2. Propuesta de valor
 
-- **Titular declarado** (`SITE.homeTitle`, el `<title>` de la home): «Aprendizaje, imaginación y juego».
+- **Titular declarado** (`SITE.homeTitle`, el `<title>` de la home): «Proyecto creativo de diseño y tecnología» desde el 2026-09-29 (antes, «Aprendizaje, imaginación y juego»). Lo acompaña la `<meta name="description">` (`SITE.description`): «VoidToInfinite es el proyecto creativo de Daniel Mosquera: aprender y experimentar con diseño y tecnología mientras construye un sistema de diseño desde cero.» Las dos cadenas se reescribieron en la auditoría SEO (opción B, decisión del dueño, estrategia «marca primero») para que digan lo mismo que el bloque visible «¿Qué es VoidToInfinite?».
 - **Tesis** (`Home.features.intro`):
 
     > «Aprendizaje, imaginación y juego son la misma curiosidad vista desde tres ángulos. Cada uno te da una manera distinta de convertir lo que sabes en algo real.»
