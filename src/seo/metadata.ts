@@ -146,6 +146,23 @@ export function buildMetadata(input: BuildMetadataInput): Metadata {
   return {
     title: fullTitle,
     description,
+    /*
+     * `<meta name="author">`, nombre de metadatos estándar de HTML
+     * (2026-09-29, decisión del dueño tras ver en el Post Inspector de LinkedIn
+     * el campo Author vacío). El nombre sale de `SITE.author`, la misma fuente
+     * que reutilizan el aviso legal (`LEGAL_ENTITY.name`) y el nodo `Person`
+     * del JSON-LD, para que no puedan divergir. NO se importa `legal.ts` desde
+     * aquí: este módulo también llega al JS de cliente y lo metería entero en
+     * la portada (ver el comentario de `SITE.author`). Solo el nombre, sin
+     * `url`: Next emitiría además un `<link rel="author">`, que no se pidió.
+     *
+     * NO se declara fecha de publicación ni `article:*`: las páginas son
+     * `og:type` `website`, y en Open Graph ese tipo no tiene más propiedades
+     * que las básicas; una landing viva no tiene una fecha de publicación única
+     * y verdadera. Que LinkedIn lea esta etiqueta para su campo Author no está
+     * documentado: se comprueba en el Post Inspector tras desplegar.
+     */
+    authors: [{ name: SITE.author }],
     ...(keywords ? { keywords: [...keywords] } : {}),
     /*
      * `languages` emite un `<link rel="alternate" hreflang="…">` por entrada,

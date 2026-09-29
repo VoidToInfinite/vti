@@ -17,6 +17,7 @@ import {
   OG_IMAGE_SIZE,
   TITLE_SEPARATOR,
 } from "./metadata";
+import { LEGAL_ENTITY } from "@/config/legal";
 
 /** Las tres paginas reales del sitio: home + las dos legales. */
 const ALL_ROUTE_KEYS = ["home", ...LEGAL_ROUTE_KEYS] as const;
@@ -233,6 +234,27 @@ describe("buildMetadata — keywords", () => {
     });
     expect(sinKeywords).not.toHaveProperty("keywords");
   });
+});
+
+/*
+ * `<meta name="author">` en las SEIS rutas (2026-09-29). El nombre se compara
+ * contra `LEGAL_ENTITY.name`, el titular del aviso legal, nunca contra un
+ * literal: es la invariante que cruza `site.ts` y `legal.ts` (regla 41). Sin
+ * `url`, para que Next no emita además un `<link rel="author">` que nadie pidió.
+ */
+describe("buildMetadata — autor", () => {
+  it.each(ALL_ROUTES)(
+    "$locale/$key declara como autor al titular de la ficha legal, sin url",
+    ({ key, locale }) => {
+      const metadata = buildMetadata({
+        routeKey: key,
+        locale,
+        title: FIXTURE_TITLES[key],
+        description: FIXTURE_DESCRIPTION,
+      });
+      expect(metadata.authors).toEqual([{ name: LEGAL_ENTITY.name }]);
+    },
+  );
 });
 
 /*

@@ -65,6 +65,15 @@ export const SITE = {
      Sin "VTI" a propósito: esas siglas son de otras marcas en buscadores y
      Google puede usar un `alternateName` como nombre visible del sitio. */
   alternateName: "Void to Infinite",
+  /* La persona que responde del proyecto: fuente única de su nombre desde el
+     2026-09-29. `LEGAL_ENTITY.name` (`src/config/legal.ts`) la reutiliza, y de
+     ella salen la ficha del aviso legal, el nodo `Person` del JSON-LD y el
+     `<meta name="author">` de todas las páginas. Vive aquí y no en `legal.ts`
+     porque `src/seo/metadata.ts` también llega al JS de cliente (vía
+     `useDocumentMeta`): importar `legal.ts` desde allí metía el módulo legal
+     entero en el bundle de la portada (medido: un chunk nuevo de 781 B
+     brotli), y `SITE` ya viaja en ese bundle. */
+  author: "Daniel Mosquera",
   /* Se conserva como atajo del locale OG de la rama CASTELLANA. El valor por
      ruta sale de `OG_LOCALES[locale]` (ver `buildMetadata`): desde que existen
      rutas `/en/`, `og:locale` ya no es una constante del sitio. */
