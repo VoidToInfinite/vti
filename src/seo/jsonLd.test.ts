@@ -80,10 +80,18 @@ describe("organizationJsonLd", () => {
     });
   });
 
-  it("alternateName es la marca escrita en palabras, no otro nombre", () => {
-    expect(organizationJsonLd().alternateName).toBe(SITE.alternateName);
-    expect(SITE.alternateName).not.toBe(SITE.name);
-    expect(SITE.alternateName.replace(/\s+/g, "").toLowerCase()).toBe(
+  /*
+   * 2026-09-30, decisión del dueño: «VTI» entra como nombre de la marca.
+   * Google lee la lista por orden de preferencia, así que el primero sigue
+   * siendo la marca en palabras. Solo nombres: «Void2Infinite» es una forma de
+   * buscar la marca, no un nombre (corrección del dueño ese mismo día), y no
+   * se declara.
+   */
+  it("alternateName lista los nombres alternativos, la marca en palabras primero", () => {
+    expect(organizationJsonLd().alternateName).toEqual(SITE.alternateNames);
+    expect(SITE.alternateNames).toEqual(["Void to Infinite", "VTI"]);
+    expect(SITE.alternateNames).not.toContain(SITE.name);
+    expect(SITE.alternateNames[0].replace(/\s+/g, "").toLowerCase()).toBe(
       SITE.name.toLowerCase(),
     );
   });
@@ -117,8 +125,8 @@ describe("webSiteJsonLd", () => {
     expect(webSiteJsonLd().inLanguage).toEqual(LOCALES);
   });
 
-  it("lleva la marca en palabras como alternateName (nombre del sitio en Google)", () => {
-    expect(webSiteJsonLd().alternateName).toBe(SITE.alternateName);
+  it("lleva los mismos nombres alternativos que la organización (nombre del sitio en Google)", () => {
+    expect(webSiteJsonLd().alternateName).toEqual(SITE.alternateNames);
   });
 });
 

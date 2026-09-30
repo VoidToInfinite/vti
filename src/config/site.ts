@@ -57,14 +57,31 @@ export const OG_LOCALES = {
 export const SITE = {
   url: "https://voidtoinfinite.com",
   name: "VoidToInfinite",
-  /* La marca escrita como tres palabras, la forma en que se teclea al
-     buscarla. Viaja como `alternateName` de `WebSite` y de `Organization` en
-     el JSON-LD (2026-09-28, estrategia SEO "marca primero" decidida por el
-     dueño): Google lo lee en `WebSite` de la portada para elegir el nombre del
-     sitio (https://developers.google.com/search/docs/appearance/site-names).
-     Sin "VTI" a propósito: esas siglas son de otras marcas en buscadores y
-     Google puede usar un `alternateName` como nombre visible del sitio. */
-  alternateName: "Void to Infinite",
+  /* Otros NOMBRES de la marca. Viajan como `alternateName` de `WebSite` y de
+     `Organization` en el JSON-LD: Google lee el de `WebSite` de la portada
+     para elegir el nombre del sitio, y admite varios «in order of your
+     preference, with the most important one listed first»
+     (https://developers.google.com/search/docs/appearance/site-names).
+
+     Del 2026-09-28 al 2026-09-30 solo fue «Void to Infinite», y sin «VTI» a
+     propósito: esas siglas son de otras marcas en los buscadores y Google
+     puede usar un `alternateName` como nombre visible del sitio. El
+     2026-09-30 el dueño pidió que la web aparezca al buscar «vti» y sus
+     combinaciones con su nombre, y decidió incluir «VTI» también aquí
+     aceptando ese riesgo. El orden es el de preferencia: primero la marca en
+     palabras, que es la forma en que se teclea.
+
+     Aquí solo entran nombres, no formas de buscar la marca. «Void2Infinite»
+     estuvo en esta lista unas horas del 2026-09-30 y el dueño lo corrigió:
+     es una manera de buscar, no un nombre. Las variantes de búsqueda y las
+     erratas no se escriben en la página: repetirlas es keyword stuffing en
+     las políticas de spam de Google
+     (https://developers.google.com/search/docs/essentials/spam-policies).
+     Los mismos nombres aparecen en el texto visible de «¿Qué es
+     VoidToInfinite?» (`Home.about.what`, misma decisión del dueño): así la
+     página dice lo mismo que sus datos estructurados, junto al nombre de
+     quien firma el proyecto. */
+  alternateNames: ["Void to Infinite", "VTI"],
   /* La persona que responde del proyecto: fuente única de su nombre desde el
      2026-09-29. `LEGAL_ENTITY.name` (`src/config/legal.ts`) la reutiliza, y de
      ella salen la ficha del aviso legal, el nodo `Person` del JSON-LD y el

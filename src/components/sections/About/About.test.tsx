@@ -4,6 +4,7 @@ import i18n from "@/i18n/config";
 import esHome from "@/i18n/locales/es/home.json";
 import enHome from "@/i18n/locales/en/home.json";
 import { links } from "@/config/links";
+import { SITE } from "@/config/site";
 import { Footer } from "@/components/layout/Footer/Footer";
 import {
   FOOTER_DARK_BG,
@@ -163,6 +164,21 @@ describe("About", () => {
         const cifras = (texto.match(/\d+/g) ?? []).filter((n) => n !== "2020");
 
         expect(cifras, `${idioma}: cifras encontradas`).toEqual([]);
+      }
+    });
+
+    /* 2026-09-30, decisión SEO del dueño: el primer párrafo dice con qué
+       otros nombres se conoce la marca, junto a quien la firma. Es la misma
+       lista que el JSON-LD declara como `alternateName`, y la invariante cruza
+       `site.ts` y los dos `home.json` (regla 41). */
+    it("el primer párrafo nombra la marca con sus nombres alternativos y a su autor", () => {
+      for (const [idioma, copy] of [
+        ["es", esHome.Home.about],
+        ["en", enHome.Home.about],
+      ] as const) {
+        for (const nombre of [SITE.name, ...SITE.alternateNames, SITE.author]) {
+          expect(copy.what, `${idioma}: falta «${nombre}»`).toContain(nombre);
+        }
       }
     });
 
