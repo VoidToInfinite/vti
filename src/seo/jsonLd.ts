@@ -112,7 +112,11 @@ export function organizationJsonLd(): OrganizationJsonLd {
     "name": SITE.name,
     "alternateName": SITE.alternateName,
     "url": SITE.url,
-    "logo": absoluteUrl("/brand/logo.svg"),
+    /* PNG de 512 px con fondo, generado desde `app/icon.svg` por
+       `scripts/generate-icons.mjs`. Hasta el 2026-09-30 apuntaba a
+       `/brand/logo.svg`, el glifo blanco sobre transparente, y la guía de
+       logos de Google pide que la imagen se vea bien sobre blanco puro. */
+    "logo": absoluteUrl("/brand/logo.png"),
     "description": SITE.description,
     // `links.email` lleva el esquema "mailto:" (así lo consume el `href` de
     // los enlaces de contacto, `src/config/links.ts`); schema.org modela

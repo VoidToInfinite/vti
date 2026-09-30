@@ -1,9 +1,14 @@
-<svg width="400" height="450" viewBox="0 0 500 550" xmlns="http://www.w3.org/2000/svg">
-    <g>
-		<circle cx="250" cy="75" r="50" stroke="#fff" fill="#fff" stroke-width="2"/>
-		<polyline stroke="#fff" fill="#fff" stroke-width="2" 
-			points="10,75 250,540 490,75 440,75 250,460 60,75 10,75 250,540"/>
-		<polyline stroke="#fff" fill="#fff" stroke-width="2" 
-			points="110,140 145,210 210,210 250,400 290,210 355,210 390,140 110,140 130,180"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0" stop-color="#280739"/>
+			<stop offset="1" stop-color="#1A1A1C"/>
+		</linearGradient>
+	</defs>
+	<rect width="512" height="512" fill="url(#bg)"/>
+	<g fill="#FAFAFA" stroke="#FAFAFA" stroke-width="2" transform="translate(106.874 96) scale(0.621359) translate(-10 -25)">
+		<circle cx="250" cy="75" r="50"/>
+		<polyline points="10,75 250,540 490,75 440,75 250,460 60,75 10,75 250,540"/>
+		<polyline points="110,140 145,210 210,210 250,400 290,210 355,210 390,140 110,140 130,180"/>
 	</g>
 </svg>

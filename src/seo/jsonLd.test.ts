@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { LOCALES, ROUTES, SITE, absoluteUrl, routePath } from "@/config/site";
 import { links } from "@/config/links";
 import { LEGAL_ENTITY } from "@/config/legal";
@@ -30,8 +33,21 @@ describe("organizationJsonLd", () => {
     expect(organizationJsonLd()["@id"]).toBe(organizationJsonLd()["@id"]);
   });
 
-  it("logo apunta al SVG real de public/brand/", () => {
-    expect(organizationJsonLd().logo).toBe(absoluteUrl("/brand/logo.svg"));
+  /*
+   * Hasta el 2026-09-30 apuntaba a `/brand/logo.svg`, el glifo blanco sobre
+   * transparente. La guía de logos de Google pide que la imagen se vea bien
+   * sobre blanco puro; el PNG lleva el fondo oscuro del icono del sitio.
+   */
+  it("logo apunta al PNG con fondo que existe en public/brand/", () => {
+    expect(organizationJsonLd().logo).toBe(absoluteUrl("/brand/logo.png"));
+    /* Ruta con `join` y no con `new URL(…, import.meta.url)`: Vite reescribe
+       ese patrón como la URL HTTP del asset en el servidor de desarrollo, no
+       como una ruta de disco. */
+    const publicRoot = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../public",
+    );
+    expect(existsSync(join(publicRoot, "brand/logo.png"))).toBe(true);
   });
 
   it("description reutiliza la descripcion canonica del sitio", () => {
