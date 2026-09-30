@@ -2512,3 +2512,20 @@
 
 - **Qué pasó:** el encargo pedía auditar el SEO porque «Google aún no la indexa». La auditoría del 2026-09-24 ya había dejado la indexación sin confirmar por falta de Search Console. Esta vez, antes de tocar código, le pregunté al dueño qué decía Search Console, y la inspección de la portada respondió «URL is on Google / Page is indexed», último rastreo el 21 de septiembre. El problema real era de visibilidad: ningún sitemap registrado en Search Console, ninguna página que enlace al sitio y un dominio de dos meses.
 - **Regla:** ante «Google no indexa X», lo primero es la salida de la inspección de URL de Search Console (o pedírsela al dueño). Indexación, rastreo y posicionamiento son tres problemas distintos con arreglos distintos. Sin ese dato, la auditoría declara la indexación como no confirmada y no propone arreglos para un problema que quizá no existe.
+
+## 2026-09-30 (favicon en Google) — El icono no salía porque el único declarado era un SVG, y Google Search no admite SVG
+
+- **Qué pasó:** el dueño reportó que Google no enseñaba el icono del sitio. Desde la migración a Next 16 (2026-07-23) el único icono era `app/icon.svg`: la portada emitía un solo `<link rel="icon" type="image/svg+xml">` y `/favicon.ico` devolvía 404. La guía de favicons de Google (actualizada el 2026-08-28) solo admite «BMP, GIF, ICO, PNG, JPEG, PPM, and TIFF». Además el SVG medía 500×550 (la guía exige 1:1) y era un glifo blanco sobre transparente. Había también un `app/favicon.svg` que no es convención de Next y no se servía. El logo del JSON-LD (`/brand/logo.svg`) tenía el mismo problema de blanco sobre transparente.
+- **Por qué:** en la migración se dio por hecho que «Next lo sirve como favicon» bastaba para Google. Lo que un navegador pinta en la pestaña y lo que Google Search acepta son dos listas de formatos distintas, y nadie contrastó la segunda.
+- **Regla:**
+  - Un icono o logo pensado para buscadores se valida contra la guía del buscador (formato, 1:1, fondo sobre blanco), no contra lo que enseña la pestaña del navegador.
+  - `app/icon.svg` es el máster; `app/favicon.ico`, `app/apple-icon.png` y `public/brand/logo.png` se regeneran con `node scripts/generate-icons.mjs`, y `scripts/generate-icons.test.mjs` falla si se desfasan.
+  - En un test de Vitest, una ruta de disco se construye con `join(dirname(fileURLToPath(import.meta.url)), …)`. `new URL("…", import.meta.url)` lo reescribe Vite como la URL HTTP del asset y `fileURLToPath` revienta con `ERR_INVALID_URL_SCHEME`. Tampoco se escribe esa URL en un comentario: `no-external-hosts.test.ts` caza cualquier `http://` de `src/` y `app/`, comentarios incluidos.
+
+## 2026-09-30 (alias de marca) — Convertí una forma de buscar la marca en un nombre alternativo sin preguntarlo
+
+- **Qué pasó:** el dueño listó las búsquedas por las que quiere que le encuentren (void2infinite, vti, proyecto vti…). En la pregunta de decisión presenté «Void2Infinite» como nombre alternativo, junto a «Void to Infinite» y «VTI», sin preguntar si lo era. El dueño respondió «Con VTI» y lo leí como aprobación de la lista entera. «Void2Infinite» acabó en `alternateName` y en el copy visible («también … Void2Infinite»). El dueño corrigió: es otra manera de buscar, no un nombre.
+- **Por qué:** confundí «consulta por la que quiero aparecer» con «nombre de la marca». Una lista de búsquedas no declara nombres. Además, las opciones de la pregunta llevaban esa premisa dentro, y una respuesta libre y ambigua se tomó como aprobación de la premisa.
+- **Regla:**
+  - `alternateName` y el copy «también X» solo llevan nombres que el dueño haya declarado como nombres. Las formas de buscar y las erratas no se escriben en la página (keyword stuffing); se miden en las consultas de Search Console.
+  - Si una opción de una pregunta arrastra una premisa sin confirmar, la premisa se pregunta aparte. Una respuesta libre ambigua se confirma antes de aplicarla, no se interpreta.

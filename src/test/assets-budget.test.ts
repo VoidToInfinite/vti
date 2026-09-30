@@ -171,8 +171,9 @@ const BUDGET_MARGIN = 1.05;
  * (la carpeta mencionada en el encargo original) -- cada escena vive bajo
  * `public/<sección>/<nombre-de-escena>/`, más `public/figures/` para los
  * seis retratos compartidos entre secciones. Estas 7 son TODAS las carpetas
- * con `.webp` que tiene hoy el repo (`public/brand/logo.svg` es el único
- * asset fuera de esta lista, y no es WebP).
+ * con `.webp` que tiene hoy el repo (`public/brand/logo.svg` y
+ * `public/brand/logo.png` son los únicos assets fuera de esta lista, y
+ * ninguno es WebP).
  *
  * **Actualizado 2026-08-11 (Task 11, plan premium F1-F5).** Esta tarea es el
  * cambio legítimo que el docblock de cabecera anuncia: cuatro carpetas se

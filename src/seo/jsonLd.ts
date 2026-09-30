@@ -41,7 +41,7 @@ export interface OrganizationJsonLd {
   readonly "@type": "Organization";
   readonly "@id": string;
   readonly "name": string;
-  readonly "alternateName": string;
+  readonly "alternateName": readonly string[];
   readonly "url": string;
   readonly "logo": string;
   readonly "description": string;
@@ -63,7 +63,7 @@ export interface WebSiteJsonLd {
   readonly "@type": "WebSite";
   readonly "@id": string;
   readonly "name": string;
-  readonly "alternateName": string;
+  readonly "alternateName": readonly string[];
   readonly "url": string;
   readonly "inLanguage": readonly Locale[];
   readonly "publisher": { readonly "@id": string };
@@ -110,9 +110,13 @@ export function organizationJsonLd(): OrganizationJsonLd {
     "@type": "Organization",
     "@id": ORGANIZATION_ID,
     "name": SITE.name,
-    "alternateName": SITE.alternateName,
+    "alternateName": SITE.alternateNames,
     "url": SITE.url,
-    "logo": absoluteUrl("/brand/logo.svg"),
+    /* PNG de 512 px con fondo, generado desde `app/icon.svg` por
+       `scripts/generate-icons.mjs`. Hasta el 2026-09-30 apuntaba a
+       `/brand/logo.svg`, el glifo blanco sobre transparente, y la guía de
+       logos de Google pide que la imagen se vea bien sobre blanco puro. */
+    "logo": absoluteUrl("/brand/logo.png"),
     "description": SITE.description,
     // `links.email` lleva el esquema "mailto:" (así lo consume el `href` de
     // los enlaces de contacto, `src/config/links.ts`); schema.org modela
@@ -166,7 +170,7 @@ export function webSiteJsonLd(): WebSiteJsonLd {
     "@type": "WebSite",
     "@id": WEBSITE_ID,
     "name": SITE.name,
-    "alternateName": SITE.alternateName,
+    "alternateName": SITE.alternateNames,
     "url": SITE.url,
     "inLanguage": LOCALES,
     "publisher": { "@id": ORGANIZATION_ID },

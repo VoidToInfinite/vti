@@ -124,7 +124,7 @@
         },
         "about": {
             "title": "¿Qué es VoidToInfinite?",
-            "what": "VoidToInfinite es un proyecto creativo personal de Daniel Mosquera. Parte de una idea sencilla: todo puede empezar desde una página en blanco.",
+            "what": "VoidToInfinite (también Void to Infinite o VTI) es un proyecto creativo personal de Daniel Mosquera. Parte de una idea sencilla: todo puede empezar desde una página en blanco.",
             "approach": "Aquí se aprende y se experimenta con diseño y tecnología sin perseguir un resultado definitivo. Lo interesante es ver hasta dónde llega una idea cuando se trabaja en ella paso a paso.",
             "sdk": "La pieza central es el System Design Kit, un sistema de diseño que se está construyendo desde cero. Los componentes son solo una parte. La otra es el proceso: decidir, probar, equivocarse y corregir hasta tener piezas que encajen y se puedan reutilizar. VoidToInfinite documenta ese recorrido, del vacío a lo que venga después.",
             "status": "No es una empresa ni un producto terminado, y va a seguir cambiando mientras quede algo por aprender.",

@@ -1,4 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { LOCALES, ROUTES, SITE, absoluteUrl, routePath } from "@/config/site";
 import { links } from "@/config/links";
 import { LEGAL_ENTITY } from "@/config/legal";
@@ -30,8 +33,21 @@ describe("organizationJsonLd", () => {
     expect(organizationJsonLd()["@id"]).toBe(organizationJsonLd()["@id"]);
   });
 
-  it("logo apunta al SVG real de public/brand/", () => {
-    expect(organizationJsonLd().logo).toBe(absoluteUrl("/brand/logo.svg"));
+  /*
+   * Hasta el 2026-09-30 apuntaba a `/brand/logo.svg`, el glifo blanco sobre
+   * transparente. La guía de logos de Google pide que la imagen se vea bien
+   * sobre blanco puro; el PNG lleva el fondo oscuro del icono del sitio.
+   */
+  it("logo apunta al PNG con fondo que existe en public/brand/", () => {
+    expect(organizationJsonLd().logo).toBe(absoluteUrl("/brand/logo.png"));
+    /* Ruta con `join` y no con `new URL(…, import.meta.url)`: Vite reescribe
+       ese patrón como la URL HTTP del asset en el servidor de desarrollo, no
+       como una ruta de disco. */
+    const publicRoot = join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../public",
+    );
+    expect(existsSync(join(publicRoot, "brand/logo.png"))).toBe(true);
   });
 
   it("description reutiliza la descripcion canonica del sitio", () => {
@@ -64,10 +80,18 @@ describe("organizationJsonLd", () => {
     });
   });
 
-  it("alternateName es la marca escrita en palabras, no otro nombre", () => {
-    expect(organizationJsonLd().alternateName).toBe(SITE.alternateName);
-    expect(SITE.alternateName).not.toBe(SITE.name);
-    expect(SITE.alternateName.replace(/\s+/g, "").toLowerCase()).toBe(
+  /*
+   * 2026-09-30, decisión del dueño: «VTI» entra como nombre de la marca.
+   * Google lee la lista por orden de preferencia, así que el primero sigue
+   * siendo la marca en palabras. Solo nombres: «Void2Infinite» es una forma de
+   * buscar la marca, no un nombre (corrección del dueño ese mismo día), y no
+   * se declara.
+   */
+  it("alternateName lista los nombres alternativos, la marca en palabras primero", () => {
+    expect(organizationJsonLd().alternateName).toEqual(SITE.alternateNames);
+    expect(SITE.alternateNames).toEqual(["Void to Infinite", "VTI"]);
+    expect(SITE.alternateNames).not.toContain(SITE.name);
+    expect(SITE.alternateNames[0].replace(/\s+/g, "").toLowerCase()).toBe(
       SITE.name.toLowerCase(),
     );
   });
@@ -101,8 +125,8 @@ describe("webSiteJsonLd", () => {
     expect(webSiteJsonLd().inLanguage).toEqual(LOCALES);
   });
 
-  it("lleva la marca en palabras como alternateName (nombre del sitio en Google)", () => {
-    expect(webSiteJsonLd().alternateName).toBe(SITE.alternateName);
+  it("lleva los mismos nombres alternativos que la organización (nombre del sitio en Google)", () => {
+    expect(webSiteJsonLd().alternateName).toEqual(SITE.alternateNames);
   });
 });
 
